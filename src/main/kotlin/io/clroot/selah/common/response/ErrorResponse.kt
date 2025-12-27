@@ -1,0 +1,7 @@
+package io.clroot.selah.common.response
+
+data class ErrorResponse(
+    val code: String,
+    val message: String,
+    val details: Map<String, Any>? = null,
+)

@@ -95,12 +95,23 @@ JPA Entity (Adapter) ↔ Domain Model (Domain)  # 반드시 Mapper로 분리
 io.clroot.selah
 ├── common/                     # 공통 유틸리티, 전역 예외 처리
 │   ├── domain/
-│   │   └── AggregateRoot.kt
+│   │   ├── AggregateRoot.kt    # Aggregate Root 추상 클래스
+│   │   ├── AggregateId.kt      # ID 인터페이스
+│   │   └── DomainEntity.kt     # Entity 추상 클래스
 │   ├── event/
-│   │   ├── DomainEvent.kt
-│   │   └── IntegrationEvent.kt
-│   └── vo/
-│       └── ...
+│   │   ├── DomainEvent.kt      # 도메인 이벤트
+│   │   └── IntegrationEvent.kt # 통합 이벤트
+│   ├── response/
+│   │   ├── ApiResponse.kt      # API 응답 래퍼
+│   │   ├── ErrorResponse.kt    # 에러 응답
+│   │   └── PageResponse.kt     # 페이지네이션 응답
+│   ├── application/
+│   │   └── AggregateRootExtensions.kt  # 이벤트 발행 확장 함수
+│   ├── security/
+│   │   ├── PublicEndpoint.kt           # 공개 API 어노테이션
+│   │   └── PublicEndpointRegistry.kt   # 공개 엔드포인트 레지스트리
+│   └── util/
+│       └── ULIDSupport.kt      # ULID 생성/검증 유틸리티
 │
 └── domains/
     ├── member/                 # 회원 컨텍스트
@@ -360,14 +371,145 @@ class MemberNotFoundException(id: String) : DomainException("Member not found: $
 @RestControllerAdvice
 class GlobalExceptionHandler {
     @ExceptionHandler(DomainException::class)
-    fun handleDomainException(ex: DomainException): ResponseEntity<ErrorResponse> {
+    fun handleDomainException(ex: DomainException): ResponseEntity<ApiResponse<Nothing>> {
         return when (ex) {
-            is PrayerTopicNotFoundException -> ResponseEntity.notFound().build()
-            is MemberNotFoundException -> ResponseEntity.notFound().build()
-            else -> ResponseEntity.internalServerError().build()
+            is PrayerTopicNotFoundException -> ResponseEntity.notFound().body(
+                ApiResponse.error(ErrorResponse("PRAYER_TOPIC_NOT_FOUND", ex.message ?: ""))
+            )
+            is MemberNotFoundException -> ResponseEntity.notFound().body(
+                ApiResponse.error(ErrorResponse("MEMBER_NOT_FOUND", ex.message ?: ""))
+            )
+            else -> ResponseEntity.internalServerError().body(
+                ApiResponse.error(ErrorResponse("INTERNAL_ERROR", "서버 오류가 발생했습니다"))
+            )
         }
     }
 }
+```
+
+## Common 모듈 사용 가이드
+
+### Response 패키지
+
+API 응답의 일관성을 위한 DTO 클래스들입니다.
+
+```kotlin
+// 성공 응답
+@GetMapping("/{id}")
+suspend fun get(@PathVariable id: String): ResponseEntity<ApiResponse<PrayerTopicResponse>> {
+    val topic = getPrayerTopicUseCase.get(id)
+    return ResponseEntity.ok(ApiResponse.success(topic.toResponse()))
+}
+
+// 에러 응답
+return ResponseEntity.badRequest().body(
+    ApiResponse.error(ErrorResponse("INVALID_REQUEST", "잘못된 요청입니다"))
+)
+
+// 페이지네이션 응답
+@GetMapping
+suspend fun list(
+    @RequestParam page: Int,
+    @RequestParam size: Int
+): ResponseEntity<ApiResponse<PageResponse<PrayerTopicResponse>>> {
+    val result = listPrayerTopicsUseCase.list(page, size)
+    return ResponseEntity.ok(ApiResponse.success(
+        PageResponse(
+            content = result.content.map { it.toResponse() },
+            page = result.page,
+            size = result.size,
+            totalElements = result.totalElements,
+            totalPages = result.totalPages
+        )
+    ))
+}
+```
+
+### Application 패키지
+
+Aggregate Root의 도메인 이벤트 발행을 위한 확장 함수입니다.
+
+```kotlin
+@Service
+class CreatePrayerTopicService(
+    private val savePrayerTopicPort: SavePrayerTopicPort,
+    private val eventPublisher: ApplicationEventPublisher
+) : CreatePrayerTopicUseCase {
+
+    @Transactional
+    override suspend fun create(command: CreatePrayerTopicCommand): PrayerTopic {
+        val prayerTopic = PrayerTopic.create(command.memberId, command.title)
+        val saved = savePrayerTopicPort.save(prayerTopic)
+
+        // 도메인 이벤트 발행 및 클리어
+        saved.publishAndClearEvents(eventPublisher)
+
+        return saved
+    }
+}
+```
+
+### Security 패키지
+
+인증이 필요 없는 공개 API를 선언적으로 표시합니다.
+
+```kotlin
+// 메서드 레벨
+@PublicEndpoint
+@PostMapping("/login")
+suspend fun login(@RequestBody request: LoginRequest): ResponseEntity<ApiResponse<AuthTokenResponse>>
+
+// 클래스 레벨 (모든 엔드포인트 공개)
+@PublicEndpoint
+@RestController
+@RequestMapping("/api/v1/auth")
+class AuthController { ... }
+```
+
+Spring Security 설정에서 사용:
+
+```kotlin
+@Configuration
+@EnableWebSecurity
+class SecurityConfig(
+    private val publicEndpointRegistry: PublicEndpointRegistry
+) {
+    @Bean
+    fun securityFilterChain(http: HttpSecurity): SecurityFilterChain {
+        return http
+            .authorizeHttpRequests { auth ->
+                auth.requestMatchers(publicEndpointRegistry.getPublicEndpointMatcher()).permitAll()
+                    .anyRequest().authenticated()
+            }
+            .build()
+    }
+}
+```
+
+### Util 패키지 (ULIDSupport)
+
+ULID 생성 및 검증을 위한 유틸리티입니다.
+
+```kotlin
+// ID 생성
+@JvmInline
+value class MemberId(override val value: String) : AggregateId<String> {
+    init {
+        require(ULIDSupport.isValidULID(value)) { "Invalid MemberId format: $value" }
+    }
+
+    companion object {
+        fun new(): MemberId = MemberId(ULIDSupport.generateULID())
+        fun from(value: String): MemberId = MemberId(value)
+    }
+}
+
+// ULID 검증
+val isValid = ULIDSupport.isValidULID("01ARZ3NDEKTSV4RRFFQ69G5FAV")
+
+// ULID ↔ UUID 변환
+val uuid = ULIDSupport.ulidToUUID(ulidString)
+val ulid = ULIDSupport.uuidToULID(uuid)
 ```
 
 ## 테스트 규칙
@@ -433,6 +575,16 @@ class PrayerTopicServiceTest : BehaviorSpec({
 - [ ] Aggregate/Entity에 전용 ID 타입을 정의하였는가? (`MemberId`, `PrayerTopicId` 등)
 - [ ] 생성자에 기본값 없이 모든 파라미터를 명시하는가?
 - [ ] 새 객체 생성은 Factory 메서드를 통해 이루어지는가?
+- [ ] ULID 기반 ID가 `ULIDSupport`를 사용하여 검증되는가?
+
+### Application Layer
+- [ ] 도메인 이벤트 발행 후 `publishAndClearEvents()`를 호출하는가?
+
+### Adapter Layer
+- [ ] API 응답이 `ApiResponse`로 감싸져 있는가?
+- [ ] 페이지네이션이 `PageResponse`를 사용하는가?
+- [ ] 공개 API에 `@PublicEndpoint` 어노테이션이 붙어있는가?
+- [ ] 에러 응답이 `ErrorResponse`를 사용하는가?
 
 ### Persistence & Concurrency
 - [ ] JPA Repository 호출이 `withContext(Dispatchers.IO)` 내부에 있는가?
