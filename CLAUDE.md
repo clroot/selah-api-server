@@ -27,6 +27,7 @@
 | Framework | Spring Boot | 4.x (Spring 6.x) |
 | Build | Gradle | Kotlin DSL |
 | Persistence | Spring Data JPA | Hibernate |
+| Query DSL | Kotlin JDSL | 타입 안전한 쿼리 |
 | Security | Spring Security | OAuth2 + JWT |
 | Async | Kotlin Coroutines, Virtual Threads | 비동기 처리 |
 | Testing | Kotest, MockK | Spec 스타일 |
@@ -434,6 +435,94 @@ class PrayerTopicPersistenceAdapter(
 - JPA 호출은 반드시 `withContext(Dispatchers.IO)` 내부에서
 - `version` 필드를 Entity에 정확히 매핑해야 낙관적 락 동작
 
+#### JDSL 사용 지침
+
+**원칙**: 복잡한 쿼리는 JPQL 문자열 대신 Kotlin JDSL을 사용하여 타입 안전하게 작성합니다.
+
+**JDSL을 사용해야 하는 경우**:
+- Fetch Join이 필요한 경우 (Lazy Loading 방지)
+- 동적 조건이 포함된 복잡한 쿼리
+- 여러 Entity를 조인하는 쿼리
+
+**Spring Data JPA만 사용해도 되는 경우**:
+- 단순 CRUD 작업 (`save`, `findById`, `delete`)
+- 단순 존재 확인 (`existsById`, `existsByEmail`)
+- 메서드 이름 기반 쿼리로 충분한 경우
+
+```kotlin
+// ✅ Good: JDSL로 타입 안전한 쿼리 (Fetch Join 포함)
+@Component
+class MemberPersistenceAdapter(
+    private val repository: MemberJpaRepository,
+    private val entityManager: EntityManager,
+    private val jpqlRenderContext: JpqlRenderContext,
+    private val mapper: MemberMapper,
+) : LoadMemberPort, SaveMemberPort {
+
+    override suspend fun findById(memberId: MemberId): Member? = withContext(Dispatchers.IO) {
+        findMemberEntityBy { path(MemberEntity::id).eq(memberId.value) }
+            ?.let { mapper.toDomain(it) }
+    }
+
+    override suspend fun existsByEmail(email: Email): Boolean = withContext(Dispatchers.IO) {
+        repository.existsByEmail(email.value)  // 단순 쿼리는 JpaRepository 사용
+    }
+
+    // Helper: Fetch Join이 포함된 공통 조회 로직
+    private fun findMemberEntityBy(predicate: Jpql.() -> Predicate): MemberEntity? {
+        val query = jpql {
+            selectDistinct(entity(MemberEntity::class))
+                .from(
+                    entity(MemberEntity::class),
+                    leftFetchJoin(MemberEntity::oauthConnections),  // Lazy Loading 방지
+                ).where(predicate())
+        }
+        return entityManager.createQuery(query, jpqlRenderContext)
+            .resultList
+            .firstOrNull()
+    }
+}
+
+// ❌ Bad: JPQL 문자열 직접 사용 (타입 안전하지 않음)
+@Repository
+interface MemberJpaRepository : JpaRepository<MemberEntity, String> {
+    @Query("SELECT m FROM MemberEntity m LEFT JOIN FETCH m.oauthConnections WHERE m.email = :email")
+    fun findByEmailWithConnections(@Param("email") email: String): MemberEntity?
+}
+```
+
+**JDSL 쿼리 패턴**:
+
+```kotlin
+// 기본 조회
+val query = jpql {
+    select(entity(MemberEntity::class))
+        .from(entity(MemberEntity::class))
+        .where(path(MemberEntity::email).eq(email))
+}
+
+// Fetch Join (1:N 관계)
+val query = jpql {
+    selectDistinct(entity(MemberEntity::class))
+        .from(
+            entity(MemberEntity::class),
+            leftFetchJoin(MemberEntity::oauthConnections),
+        ).where(path(MemberEntity::id).eq(id))
+}
+
+// 여러 조건 조합
+val query = jpql {
+    select(entity(OAuthConnectionEntity::class))
+        .from(entity(OAuthConnectionEntity::class))
+        .where(
+            and(
+                path(OAuthConnectionEntity::provider).eq(provider),
+                path(OAuthConnectionEntity::providerId).eq(providerId),
+            )
+        )
+}
+```
+
 ## 코딩 컨벤션
 
 ### Naming
@@ -645,6 +734,7 @@ class PrayerTopicServiceTest : BehaviorSpec({
 | 모든 프로퍼티에 backing field 사용 | 단순 타입은 `var ... private set`, 타입 변환 필요 시만 `_property` 사용 |
 | Service에 비즈니스 로직 | Domain 객체에 위임 |
 | JPA 호출 시 `Dispatchers.IO` 누락 | `withContext(Dispatchers.IO) { }` 감싸기 |
+| JPQL 문자열(`@Query`) 직접 사용 | Kotlin JDSL로 타입 안전한 쿼리 작성 |
 | suspend 함수에서 `runBlocking` | Coroutine 컨텍스트 전파 활용 |
 | Entity ↔ Domain 매핑에서 메타 필드 누락 | id, version, createdAt, updatedAt 모두 매핑 |
 | 메타 필드를 자식에서 직접 관리 | 부모(AggregateRoot)에게 생성자로 전달 |
@@ -681,6 +771,8 @@ class PrayerTopicServiceTest : BehaviorSpec({
 
 ### Persistence & Concurrency
 - [ ] JPA Repository 호출이 `withContext(Dispatchers.IO)` 내부에 있는가?
+- [ ] 복잡한 쿼리(Fetch Join, 동적 조건)가 JDSL로 작성되었는가? (JPQL 문자열 금지)
+- [ ] 단순 쿼리(existsById, save 등)는 Spring Data JPA 메서드를 활용하는가?
 
 ### E2E 암호화 (Backend)
 - [ ] 암호화 키를 서버에 저장하거나 로깅하지 않는가?
