@@ -80,3 +80,19 @@ class OAuthProviderNotConnectedException(provider: String) : MemberException(
     code = "OAUTH_PROVIDER_NOT_CONNECTED",
     message = "OAuth provider not connected: $provider",
 )
+
+/**
+ * 암호화 설정을 찾을 수 없는 경우
+ */
+class EncryptionSettingsNotFoundException(memberId: String) : MemberException(
+    code = "ENCRYPTION_SETTINGS_NOT_FOUND",
+    message = "Encryption settings not found for member: $memberId",
+)
+
+/**
+ * 암호화가 이미 설정된 경우
+ */
+class EncryptionAlreadySetupException(memberId: String) : MemberException(
+    code = "ENCRYPTION_ALREADY_SETUP",
+    message = "Encryption already setup for member: $memberId",
+)

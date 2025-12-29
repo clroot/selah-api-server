@@ -1,0 +1,66 @@
+databaseChangeLog:
+  - changeSet:
+      id: 005-create-encryption-settings
+      author: clroot
+      changes:
+        - createTable:
+            tableName: encryption_settings
+            columns:
+              - column:
+                  name: id
+                  type: varchar(26)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: member_id
+                  type: varchar(26)
+                  constraints:
+                    nullable: false
+                    unique: true
+              - column:
+                  name: salt
+                  type: text
+                  constraints:
+                    nullable: false
+              - column:
+                  name: recovery_key_hash
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: is_enabled
+                  type: boolean
+                  defaultValueBoolean: true
+                  constraints:
+                    nullable: false
+              - column:
+                  name: version
+                  type: bigint
+              - column:
+                  name: created_at
+                  type: timestamp
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: timestamp
+                  constraints:
+                    nullable: false
+        - createIndex:
+            indexName: idx_encryption_settings_member_id
+            tableName: encryption_settings
+            unique: true
+            columns:
+              - column:
+                  name: member_id
+        - addForeignKeyConstraint:
+            baseTableName: encryption_settings
+            baseColumnNames: member_id
+            referencedTableName: members
+            referencedColumnNames: id
+            constraintName: fk_encryption_settings_member
+            onDelete: CASCADE
+      rollback:
+        - dropTable:
+            tableName: encryption_settings

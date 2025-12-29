@@ -2,7 +2,17 @@ package io.clroot.selah.domains.member.adapter.inbound.web
 
 import io.clroot.selah.common.response.ApiResponse
 import io.clroot.selah.common.response.ErrorResponse
-import io.clroot.selah.domains.member.domain.exception.*
+import io.clroot.selah.domains.member.domain.exception.EmailAlreadyExistsException
+import io.clroot.selah.domains.member.domain.exception.EmailNotVerifiedException
+import io.clroot.selah.domains.member.domain.exception.EncryptionAlreadySetupException
+import io.clroot.selah.domains.member.domain.exception.EncryptionSettingsNotFoundException
+import io.clroot.selah.domains.member.domain.exception.InvalidApiKeyException
+import io.clroot.selah.domains.member.domain.exception.InvalidCredentialsException
+import io.clroot.selah.domains.member.domain.exception.InvalidSessionException
+import io.clroot.selah.domains.member.domain.exception.MemberNotFoundException
+import io.clroot.selah.domains.member.domain.exception.OAuthProviderAlreadyConnectedException
+import io.clroot.selah.domains.member.domain.exception.OAuthProviderNotConnectedException
+import io.clroot.selah.domains.member.domain.exception.SessionExpiredException
 import io.github.oshai.kotlinlogging.KotlinLogging
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
@@ -88,6 +98,22 @@ class MemberExceptionHandler {
         logger.debug { "OAuth provider not connected: ${ex.message}" }
         return ResponseEntity
             .status(HttpStatus.NOT_FOUND)
+            .body(ApiResponse.error(ErrorResponse(ex.code, ex.message)))
+    }
+
+    @ExceptionHandler(EncryptionSettingsNotFoundException::class)
+    fun handleEncryptionSettingsNotFound(ex: EncryptionSettingsNotFoundException): ResponseEntity<ApiResponse<Nothing>> {
+        logger.debug { "Encryption settings not found: ${ex.message}" }
+        return ResponseEntity
+            .status(HttpStatus.NOT_FOUND)
+            .body(ApiResponse.error(ErrorResponse(ex.code, ex.message)))
+    }
+
+    @ExceptionHandler(EncryptionAlreadySetupException::class)
+    fun handleEncryptionAlreadySetup(ex: EncryptionAlreadySetupException): ResponseEntity<ApiResponse<Nothing>> {
+        logger.debug { "Encryption already setup: ${ex.message}" }
+        return ResponseEntity
+            .status(HttpStatus.CONFLICT)
             .body(ApiResponse.error(ErrorResponse(ex.code, ex.message)))
     }
 
