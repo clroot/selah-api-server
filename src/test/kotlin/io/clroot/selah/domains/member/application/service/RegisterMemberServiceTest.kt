@@ -11,7 +11,10 @@ import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.DescribeSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
-import io.mockk.*
+import io.mockk.clearMocks
+import io.mockk.coEvery
+import io.mockk.coVerify
+import io.mockk.mockk
 import org.springframework.context.ApplicationEventPublisher
 import java.time.LocalDateTime
 
@@ -188,7 +191,7 @@ private fun createEmailMember(
         email = email,
         nickname = nickname,
         profileImageUrl = null,
-        passwordHash = PasswordHash.from("\$argon2id\$hashedvalue"),
+        passwordHash = PasswordHash.from($$"$argon2id$hashedvalue"),
         emailVerified = true,
         oauthConnections = emptyList(),
         role = Member.Role.USER,

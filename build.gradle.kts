@@ -28,7 +28,7 @@ java {
 
 val jjwtVersion = "0.12.6"
 val kotlinJdslVersion = "3.5.5"
-val kotestVersion = "5.9.1"
+val kotestVersion = "6.0.7"
 val coroutinesVersion = "1.10.2"
 val testcontainersVersion = "1.20.4"
 
@@ -105,7 +105,7 @@ dependencies {
     testFixturesApi("org.springframework.boot:spring-boot-starter-data-jpa")
     testFixturesApi("io.kotest:kotest-runner-junit5:$kotestVersion")
     testFixturesApi("io.kotest:kotest-assertions-core:$kotestVersion")
-    testFixturesApi("io.kotest.extensions:kotest-extensions-spring:1.3.0")
+    testFixturesApi("io.kotest:kotest-extensions-spring:$kotestVersion")
     testFixturesApi("org.testcontainers:testcontainers:$testcontainersVersion")
     testFixturesApi("org.testcontainers:postgresql:$testcontainersVersion")
     testFixturesApi("org.testcontainers:junit-jupiter:$testcontainersVersion")

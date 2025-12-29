@@ -44,8 +44,8 @@ import org.springframework.transaction.annotation.Transactional
 @ActiveProfiles("test")
 @Transactional(propagation = Propagation.NOT_SUPPORTED)
 abstract class IntegrationTestBase : DescribeSpec() {
-    override fun extensions() = listOf(
-        DatabaseTestExtension(),   // TestContainer 관리 (먼저 실행되어야 함)
-        SpringExtension,           // Spring 컨텍스트 통합
-    )
+    init {
+        extension(DatabaseTestExtension())   // TestContainer 관리 (먼저 실행되어야 함)
+        extension(SpringExtension())          // Spring 컨텍스트 통합
+    }
 }

@@ -24,9 +24,9 @@ import java.util.*
 class SessionPersistenceAdapter(
     private val repository: SessionJpaRepository,
     private val transactionTemplate: TransactionTemplate,
-    @Value("\${selah.session.ttl:P7D}")
+    @Value($$"${selah.session.ttl:P7D}")
     private val sessionTtl: Duration,
-    @Value("\${selah.session.extend-threshold:P1D}")
+    @Value($$"${selah.session.extend-threshold:P1D}")
     private val extendThreshold: Duration,
 ) : SessionPort {
 

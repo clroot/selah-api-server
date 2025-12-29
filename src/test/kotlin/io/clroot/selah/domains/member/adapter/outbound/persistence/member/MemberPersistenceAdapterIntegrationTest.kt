@@ -31,7 +31,7 @@ class MemberPersistenceAdapterIntegrationTest : IntegrationTestBase() {
                         val member = Member.createWithEmail(
                             email = Email("test@example.com"),
                             nickname = "TestUser",
-                            passwordHash = PasswordHash.from("\$argon2id\$hashedvalue"),
+                            passwordHash = PasswordHash.from($$"$argon2id$hashedvalue"),
                         )
 
                         val savedMember = memberPersistenceAdapter.save(member)
@@ -81,7 +81,7 @@ class MemberPersistenceAdapterIntegrationTest : IntegrationTestBase() {
                         val member = Member.createWithEmail(
                             email = Email("update@example.com"),
                             nickname = "OriginalNickname",
-                            passwordHash = PasswordHash.from("\$argon2id\$hashedvalue"),
+                            passwordHash = PasswordHash.from($$"$argon2id$hashedvalue"),
                         )
 
                         val savedMember = memberPersistenceAdapter.save(member)
@@ -105,7 +105,7 @@ class MemberPersistenceAdapterIntegrationTest : IntegrationTestBase() {
                         val member = Member.createWithEmail(
                             email = Email("addingoauth@example.com"),
                             nickname = "EmailUser",
-                            passwordHash = PasswordHash.from("\$argon2id\$hashedvalue"),
+                            passwordHash = PasswordHash.from($$"$argon2id$hashedvalue"),
                         )
 
                         val savedMember = memberPersistenceAdapter.save(member)
@@ -126,7 +126,7 @@ class MemberPersistenceAdapterIntegrationTest : IntegrationTestBase() {
                         val member = Member.createWithEmail(
                             email = Email("findbyid@example.com"),
                             nickname = "FindById",
-                            passwordHash = PasswordHash.from("\$argon2id\$hashedvalue"),
+                            passwordHash = PasswordHash.from($$"$argon2id$hashedvalue"),
                         )
                         memberPersistenceAdapter.save(member)
 
@@ -156,7 +156,7 @@ class MemberPersistenceAdapterIntegrationTest : IntegrationTestBase() {
                         val member = Member.createWithEmail(
                             email = email,
                             nickname = "FindByEmail",
-                            passwordHash = PasswordHash.from("\$argon2id\$hashedvalue"),
+                            passwordHash = PasswordHash.from($$"$argon2id$hashedvalue"),
                         )
                         memberPersistenceAdapter.save(member)
 
@@ -218,7 +218,7 @@ class MemberPersistenceAdapterIntegrationTest : IntegrationTestBase() {
                         val member = Member.createWithEmail(
                             email = email,
                             nickname = "Exists",
-                            passwordHash = PasswordHash.from("\$argon2id\$hashedvalue"),
+                            passwordHash = PasswordHash.from($$"$argon2id$hashedvalue"),
                         )
                         memberPersistenceAdapter.save(member)
 
