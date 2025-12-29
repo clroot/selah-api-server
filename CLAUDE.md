@@ -73,8 +73,11 @@ JPA Entity (Adapter) ↔ Domain Model (Domain)  # 반드시 Mapper로 분리
 | 인증/인가 | OAuth 2.0 소셜 로그인 + 이메일 로그인 |
 | JWT 관리 | 토큰 발급, 검증, 갱신 |
 | 프로필 관리 | 닉네임, 프로필 이미지 등 |
+| OAuth 연동 관리 | 소셜 계정 연결/해제 |
 
-**Aggregates**: `Member`(Root)
+**Aggregates**: `Member`(Root), `OAuthConnection`(Root)
+
+> **📌 OAuthConnection 분리**: `OAuthConnection`은 `Member`와 별도의 Aggregate로 관리됩니다. `memberId`를 통해 소속을 식별하며, 로그인/연동 관리 시 독립적으로 조회됩니다. 불변식(동일 Member에 동일 Provider 하나만)은 DB Unique 제약조건으로 보장합니다.
 
 ### 🙏 2. Prayer Context (기도 도메인)
 

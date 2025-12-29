@@ -8,23 +8,26 @@ package io.clroot.selah.common.domain
  *
  * 사용 예시:
  * ```kotlin
- * class OAuthConnection(
- *     id: OAuthConnectionId?,
+ * // Order Aggregate 내의 OrderItem Entity
+ * class OrderItem(
+ *     id: OrderItemId?,
  *     // --- 비즈니스 필드 ---
- *     val memberId: MemberId,
- *     val provider: OAuthProvider,
- *     val providerId: String,
- *     val connectedAt: LocalDateTime,
- * ) : DomainEntity<OAuthConnectionId>(id)
+ *     val productId: ProductId,
+ *     val quantity: Int,
+ *     val unitPrice: Money,
+ * ) : DomainEntity<OrderItemId>(id) {
  *
- * companion object {
- *     fun create(provider: OAuthProvider, providerId: String) = OAuthConnection(
- *         id = OAuthConnectionId.new(),
- *         memberId = memberId,
- *         provider = provider,
- *         providerId = providerId,
- *         connectedAt = LocalDateTime.now(),
- *     )
+ *     val totalPrice: Money
+ *         get() = unitPrice * quantity
+ *
+ *     companion object {
+ *         fun create(productId: ProductId, quantity: Int, unitPrice: Money) = OrderItem(
+ *             id = OrderItemId.new(),
+ *             productId = productId,
+ *             quantity = quantity,
+ *             unitPrice = unitPrice,
+ *         )
+ *     }
  * }
  * ```
  *
