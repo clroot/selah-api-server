@@ -34,35 +34,18 @@ val testcontainersVersion = "1.20.4"
 dependencies {
     // ===== Kotlin =====
     implementation("org.jetbrains.kotlin:kotlin-reflect")
-    implementation("org.jetbrains.kotlin:kotlin-stdlib")
 
     // ===== Kotlin Coroutines =====
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:$coroutinesVersion")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactor:$coroutinesVersion")
 
-    // ===== Spring Boot Core =====
-    implementation("org.springframework.boot:spring-boot-starter")
+    // ===== Spring Boot =====
     implementation("org.springframework.boot:spring-boot-starter-actuator")
-    implementation("org.springframework.boot:spring-boot-starter-cache")
-
-    // ===== Spring Web =====
     implementation("org.springframework.boot:spring-boot-starter-web")
-    implementation("jakarta.validation:jakarta.validation-api")
-
-    // ===== Spring Security =====
     implementation("org.springframework.boot:spring-boot-starter-security")
-
-    // ===== Spring Data / Persistence =====
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
-//    implementation("org.springframework.boot:spring-boot-starter-data-redis-reactive")
-    implementation("org.springframework:spring-tx")
+
+    // ===== Spring AOP =====
     implementation("org.springframework:spring-aspects")
-
-    // ===== Spring Mail =====
-    implementation("org.springframework.boot:spring-boot-starter-mail")
-
-    // ===== Hibernate / JPA =====
-    implementation("org.hibernate.orm:hibernate-core")
 
     // ===== Kotlin JDSL =====
     implementation("com.linecorp.kotlin-jdsl:jpql-dsl:$kotlinJdslVersion")
@@ -70,7 +53,6 @@ dependencies {
     implementation("com.linecorp.kotlin-jdsl:spring-data-jpa-support:$kotlinJdslVersion")
 
     // ===== Database =====
-    implementation("com.zaxxer:HikariCP")
     runtimeOnly("org.postgresql:postgresql")
 
     // ===== Database Migration =====
@@ -79,20 +61,15 @@ dependencies {
     // ===== Crypto =====
     implementation("org.bouncycastle:bcpkix-jdk18on:1.81")
 
-    // ===== Logging =====
-    implementation("org.slf4j:slf4j-api")
-
     // ===== Testing: Kotest =====
     testImplementation("io.kotest:kotest-runner-junit5:$kotestVersion")
     testImplementation("io.kotest:kotest-assertions-core:$kotestVersion")
 
     // ===== Testing: MockK =====
     testImplementation("io.mockk:mockk:1.13.10")
-    testImplementation("com.ninja-squad:springmockk:4.0.2")
 
     // ===== Testing: Spring =====
     testImplementation("org.springframework.boot:spring-boot-starter-test")
-    testImplementation("org.mockito.kotlin:mockito-kotlin:5.4.0")
 
     // ===== Testing: Architecture =====
     testImplementation("com.tngtech.archunit:archunit-junit5:1.3.0")
