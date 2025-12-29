@@ -55,7 +55,7 @@ dependencies {
 
     // ===== Spring Data / Persistence =====
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
-    implementation("org.springframework.boot:spring-boot-starter-data-redis-reactive")
+//    implementation("org.springframework.boot:spring-boot-starter-data-redis-reactive")
     implementation("org.springframework:spring-tx")
     implementation("org.springframework:spring-aspects")
 
