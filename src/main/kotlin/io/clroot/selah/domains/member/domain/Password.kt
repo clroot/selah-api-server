@@ -38,7 +38,7 @@ value class NewPassword private constructor(override val value: String) : Passwo
     companion object {
         private val LETTER_REGEX = Regex("[a-zA-Z]")
         private val DIGIT_REGEX = Regex("[0-9]")
-        private val SPECIAL_CHAR_REGEX = Regex("[!@#\$%^&*(),.?\":{}|<>]")
+        private val SPECIAL_CHAR_REGEX = Regex("[!@#$%^&*(),.?\":{}|<>]")
 
         fun from(plainText: String): NewPassword {
             require(plainText.length >= 8) { "Password must be at least 8 characters" }

@@ -70,6 +70,7 @@ dependencies {
 
     // ===== Database =====
     implementation("com.zaxxer:HikariCP")
+    runtimeOnly("com.h2database:h2")
 
     // ===== JWT =====
     implementation("io.jsonwebtoken:jjwt-api:$jjwtVersion")

@@ -1,0 +1,78 @@
+spring:
+  application:
+    name: selah-api-server
+
+  # Virtual Threads 활성화
+  threads:
+    virtual:
+      enabled: true
+
+  # JPA 설정
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        format_sql: true
+        use_sql_comments: true
+
+  # 데이터소스 (로컬 개발용)
+  datasource:
+    url: jdbc:h2:mem:selah;DB_CLOSE_DELAY=-1
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+
+# Selah 커스텀 설정
+selah:
+  # 세션 설정
+  session:
+    cookie-name: SELAH_SESSION
+    ttl: P7D                      # 세션 유효 기간 (7일)
+    extend-threshold: P1D         # 이 시간 이하 남으면 연장 (1일)
+    cookie:
+      secure: false               # 개발환경 false, 운영환경 true
+      same-site: Lax              # Strict 또는 Lax
+
+  # API Key 설정
+  api-key:
+    prefix: selah_                # API Key 접두사
+
+# 로깅 설정
+logging:
+  level:
+    root: INFO
+    io.clroot.selah: DEBUG
+    org.springframework.security: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.orm.jdbc.bind: TRACE
+
+---
+# 프로덕션 프로파일
+spring:
+  config:
+    activate:
+      on-profile: prod
+
+  jpa:
+    hibernate:
+      ddl-auto: none
+    properties:
+      hibernate:
+        format_sql: false
+        use_sql_comments: false
+
+selah:
+  session:
+    cookie:
+      secure: true
+      same-site: Strict
+
+logging:
+  level:
+    root: WARN
+    io.clroot.selah: INFO
+    org.springframework.security: WARN
+    org.hibernate.SQL: WARN
+    org.hibernate.orm.jdbc.bind: WARN
