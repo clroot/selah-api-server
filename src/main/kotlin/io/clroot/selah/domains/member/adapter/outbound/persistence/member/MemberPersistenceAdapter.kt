@@ -8,7 +8,6 @@ import io.clroot.selah.domains.member.domain.MemberId
 import io.clroot.selah.domains.member.domain.OAuthProvider
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Component
 
 /**
@@ -24,11 +23,11 @@ class MemberPersistenceAdapter(
 ) : LoadMemberPort, SaveMemberPort {
 
     override suspend fun findById(memberId: MemberId): Member? = withContext(Dispatchers.IO) {
-        repository.findByIdOrNull(memberId.value)?.let { mapper.toDomain(it) }
+        repository.findByIdWithOAuthConnections(memberId.value)?.let { mapper.toDomain(it) }
     }
 
     override suspend fun findByEmail(email: Email): Member? = withContext(Dispatchers.IO) {
-        repository.findByEmail(email.value)?.let { mapper.toDomain(it) }
+        repository.findByEmailWithOAuthConnections(email.value)?.let { mapper.toDomain(it) }
     }
 
     override suspend fun findByOAuthConnection(
@@ -43,7 +42,7 @@ class MemberPersistenceAdapter(
     }
 
     override suspend fun save(member: Member): Member = withContext(Dispatchers.IO) {
-        val existingEntity = repository.findByIdOrNull(member.id.value)
+        val existingEntity = repository.findByIdWithOAuthConnections(member.id.value)
 
         val savedEntity = if (existingEntity != null) {
             // 기존 Entity 업데이트

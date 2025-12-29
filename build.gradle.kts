@@ -10,6 +10,8 @@ plugins {
     id("io.spring.dependency-management") version "1.1.7"
 
     id("org.jlleitschuh.gradle.ktlint") version "13.1.0"
+
+    `java-test-fixtures`
 }
 
 group = "io.clroot.selah"
@@ -28,6 +30,7 @@ val jjwtVersion = "0.12.6"
 val kotlinJdslVersion = "3.5.5"
 val kotestVersion = "5.9.1"
 val coroutinesVersion = "1.10.2"
+val testcontainersVersion = "1.20.4"
 
 dependencies {
     // ===== Kotlin =====
@@ -61,7 +64,6 @@ dependencies {
 
     // ===== Hibernate / JPA =====
     implementation("org.hibernate.orm:hibernate-core")
-    implementation("io.hypersistence:hypersistence-utils-hibernate-63:3.10.1")
 
     // ===== Kotlin JDSL =====
     implementation("com.linecorp.kotlin-jdsl:jpql-dsl:$kotlinJdslVersion")
@@ -70,7 +72,7 @@ dependencies {
 
     // ===== Database =====
     implementation("com.zaxxer:HikariCP")
-    runtimeOnly("com.h2database:h2")
+    runtimeOnly("org.postgresql:postgresql")
 
     // ===== JWT =====
     implementation("io.jsonwebtoken:jjwt-api:$jjwtVersion")
@@ -97,6 +99,18 @@ dependencies {
 
     // ===== Testing: Architecture =====
     testImplementation("com.tngtech.archunit:archunit-junit5:1.3.0")
+
+    // ===== TestFixtures =====
+    testFixturesApi("org.springframework.boot:spring-boot-starter-test")
+    testFixturesApi("org.springframework.boot:spring-boot-starter-data-jpa")
+    testFixturesApi("io.kotest:kotest-runner-junit5:$kotestVersion")
+    testFixturesApi("io.kotest:kotest-assertions-core:$kotestVersion")
+    testFixturesApi("io.kotest.extensions:kotest-extensions-spring:1.3.0")
+    testFixturesApi("org.testcontainers:testcontainers:$testcontainersVersion")
+    testFixturesApi("org.testcontainers:postgresql:$testcontainersVersion")
+    testFixturesApi("org.testcontainers:junit-jupiter:$testcontainersVersion")
+    testFixturesApi("org.postgresql:postgresql")
+    testFixturesApi("io.github.microutils:kotlin-logging-jvm:3.0.5")
 }
 
 tasks {

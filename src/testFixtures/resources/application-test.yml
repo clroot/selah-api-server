@@ -1,0 +1,37 @@
+# 테스트 프로파일 설정
+# TestContainer에서 datasource 설정을 시스템 프로퍼티로 주입합니다.
+
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
+  # 테스트에서는 Virtual Thread 비활성화 (안정성)
+  threads:
+    virtual:
+      enabled: false
+
+# 테스트용 세션 설정
+selah:
+  session:
+    cookie-name: SELAH_SESSION_TEST
+    ttl: PT1H
+    extend-threshold: PT10M
+    cookie:
+      secure: false
+      same-site: Lax
+
+  api-key:
+    prefix: selah_test
+
+# 로깅 설정
+logging:
+  level:
+    org.hibernate.SQL: DEBUG
+    org.hibernate.orm.jdbc.bind: TRACE
+    io.clroot.selah: DEBUG

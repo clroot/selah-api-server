@@ -5,6 +5,8 @@ import io.clroot.selah.domains.member.domain.Email
 import io.clroot.selah.domains.member.domain.MemberId
 import io.clroot.selah.domains.member.domain.OAuthProvider
 import io.clroot.selah.domains.member.domain.RawPassword
+import io.clroot.selah.domains.member.domain.exception.EmailNotVerifiedException
+import io.clroot.selah.domains.member.domain.exception.InvalidCredentialsException
 
 /**
  * 로그인 UseCase

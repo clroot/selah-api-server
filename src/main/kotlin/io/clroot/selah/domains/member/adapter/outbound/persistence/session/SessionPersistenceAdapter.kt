@@ -9,7 +9,7 @@ import kotlinx.coroutines.withContext
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Component
-import org.springframework.transaction.annotation.Transactional
+import org.springframework.transaction.support.TransactionTemplate
 import java.time.Duration
 import java.time.LocalDateTime
 import java.util.*
@@ -23,9 +23,10 @@ import java.util.*
 @Component
 class SessionPersistenceAdapter(
     private val repository: SessionJpaRepository,
-    @Value($$"${selah.session.ttl:P7D}")
+    private val transactionTemplate: TransactionTemplate,
+    @Value("\${selah.session.ttl:P7D}")
     private val sessionTtl: Duration,
-    @Value($$"${selah.session.extend-threshold:P1D}")
+    @Value("\${selah.session.extend-threshold:P1D}")
     private val extendThreshold: Duration,
 ) : SessionPort {
 
@@ -50,7 +51,9 @@ class SessionPersistenceAdapter(
             createdAt = now,
         )
 
-        repository.save(entity)
+        transactionTemplate.execute {
+            repository.save(entity)
+        }
         entity.toSessionInfo()
     }
 
@@ -58,41 +61,45 @@ class SessionPersistenceAdapter(
         repository.findByIdOrNull(token)?.toSessionInfo()
     }
 
-    @Transactional
     override suspend fun delete(token: String) {
         withContext(Dispatchers.IO) {
-            repository.deleteById(token)
+            transactionTemplate.execute {
+                repository.deleteById(token)
+            }
         }
     }
 
-    @Transactional
     override suspend fun deleteAllByMemberId(memberId: MemberId) {
         withContext(Dispatchers.IO) {
-            repository.deleteAllByMemberId(memberId.value)
+            transactionTemplate.execute {
+                repository.deleteAllByMemberId(memberId.value)
+            }
         }
     }
 
-    @Transactional
     override suspend fun extendExpiry(token: String, ipAddress: String?) {
         withContext(Dispatchers.IO) {
-            val entity = repository.findByIdOrNull(token) ?: return@withContext
-            val now = LocalDateTime.now()
-            val remainingTime = Duration.between(now, entity.expiresAt)
+            transactionTemplate.execute {
+                val entity = repository.findByIdOrNull(token) ?: return@execute
+                val now = LocalDateTime.now()
+                val remainingTime = Duration.between(now, entity.expiresAt)
 
-            // 마지막 접근 IP 업데이트
-            entity.lastAccessedIp = ipAddress?.take(45)
+                // 마지막 접근 IP 업데이트
+                entity.lastAccessedIp = ipAddress?.take(45)
 
-            // 남은 시간이 threshold 이하일 때만 연장
-            if (remainingTime <= extendThreshold) {
-                entity.expiresAt = now.plus(sessionTtl)
+                // 남은 시간이 threshold 이하일 때만 연장
+                if (remainingTime <= extendThreshold) {
+                    entity.expiresAt = now.plus(sessionTtl)
+                }
+                repository.save(entity)
             }
-            repository.save(entity)
         }
     }
 
-    @Transactional
     override suspend fun deleteExpiredSessions(): Int = withContext(Dispatchers.IO) {
-        repository.deleteExpiredSessions(LocalDateTime.now())
+        transactionTemplate.execute {
+            repository.deleteExpiredSessions(LocalDateTime.now())
+        } ?: 0
     }
 
     private fun SessionEntity.toSessionInfo(): SessionInfo = SessionInfo(

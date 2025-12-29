@@ -17,12 +17,12 @@ spring:
         format_sql: true
         use_sql_comments: true
 
-  # 데이터소스 (로컬 개발용)
+  # 데이터소스 (로컬 개발용 - 환경변수로 오버라이드 가능)
   datasource:
-    url: jdbc:h2:mem:selah;DB_CLOSE_DELAY=-1
-    driver-class-name: org.h2.Driver
-    username: sa
-    password:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/selah}
+    driver-class-name: org.postgresql.Driver
+    username: ${SPRING_DATASOURCE_USERNAME:selah}
+    password: ${SPRING_DATASOURCE_PASSWORD:selah}
 
 # Selah 커스텀 설정
 selah:

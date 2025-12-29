@@ -2,6 +2,7 @@ package io.clroot.selah.domains.member.application.port.inbound
 
 import io.clroot.selah.domains.member.domain.Member
 import io.clroot.selah.domains.member.domain.MemberId
+import io.clroot.selah.domains.member.domain.exception.MemberNotFoundException
 
 /**
  * 현재 회원 정보 조회 UseCase

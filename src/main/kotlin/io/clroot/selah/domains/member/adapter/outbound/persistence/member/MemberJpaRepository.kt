@@ -12,9 +12,28 @@ import org.springframework.stereotype.Repository
 @Repository
 interface MemberJpaRepository : JpaRepository<MemberEntity, String> {
     /**
-     * 이메일로 Member를 조회합니다.
+     * ID로 Member를 조회합니다. (OAuth 연결 포함)
      */
-    fun findByEmail(email: String): MemberEntity?
+    @Query(
+        """
+        SELECT DISTINCT m FROM MemberEntity m
+        LEFT JOIN FETCH m.oauthConnections
+        WHERE m.id = :id
+        """,
+    )
+    fun findByIdWithOAuthConnections(@Param("id") id: String): MemberEntity?
+
+    /**
+     * 이메일로 Member를 조회합니다. (OAuth 연결 포함)
+     */
+    @Query(
+        """
+        SELECT DISTINCT m FROM MemberEntity m
+        LEFT JOIN FETCH m.oauthConnections
+        WHERE m.email = :email
+        """,
+    )
+    fun findByEmailWithOAuthConnections(@Param("email") email: String): MemberEntity?
 
     /**
      * 이메일 존재 여부를 확인합니다.
@@ -22,13 +41,16 @@ interface MemberJpaRepository : JpaRepository<MemberEntity, String> {
     fun existsByEmail(email: String): Boolean
 
     /**
-     * OAuth Provider와 Provider ID로 Member를 조회합니다.
+     * OAuth Provider와 Provider ID로 Member를 조회합니다. (OAuth 연결 포함)
      */
     @Query(
         """
-        SELECT m FROM MemberEntity m
-        JOIN m.oauthConnections oc
-        WHERE oc.provider = :provider AND oc.providerId = :providerId
+        SELECT DISTINCT m FROM MemberEntity m
+        LEFT JOIN FETCH m.oauthConnections
+        WHERE EXISTS (
+            SELECT 1 FROM OAuthConnectionEntity oc
+            WHERE oc.member = m AND oc.provider = :provider AND oc.providerId = :providerId
+        )
         """,
     )
     fun findByOAuthConnection(
