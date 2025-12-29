@@ -30,6 +30,7 @@
 | Query DSL | Kotlin JDSL | 타입 안전한 쿼리 |
 | Security | Spring Security | OAuth2 + JWT |
 | Async | Kotlin Coroutines, Virtual Threads | 비동기 처리 |
+| Logging | kotlin-logging | SLF4J 래퍼 |
 | Testing | Kotest, MockK | Spec 스타일 |
 
 ### 동시성 설정
@@ -535,6 +536,49 @@ val query = jpql {
 | Adapter | `~Adapter` | `PrayerTopicPersistenceAdapter` |
 | JPA Entity | `~Entity` | `PrayerTopicEntity` |
 
+### Logging
+
+**원칙**: SLF4J를 직접 사용하지 않고 `kotlin-logging`을 사용합니다.
+
+```kotlin
+import io.github.oshai.kotlinlogging.KotlinLogging
+
+// ✅ Good: Companion Object + @JvmStatic (권장)
+class MyService {
+    companion object {
+        @JvmStatic
+        private val logger = KotlinLogging.logger {}
+    }
+
+    fun doSomething() {
+        logger.info { "Processing..." }
+    }
+}
+
+// ✅ Good: Lambda 문법 사용 (문자열 연산 지연)
+logger.debug { "Processing member: ${member.id}" }
+logger.info { "Public endpoint registered: $methods $patterns" }
+logger.error(exception) { "Failed to process request" }
+
+// ❌ Bad: 인스턴스 레벨 logger (인스턴스마다 참조 보유)
+class MyService {
+    private val logger = KotlinLogging.logger {}  // 비효율적
+}
+
+// ❌ Bad: SLF4J 직접 사용
+private val logger = LoggerFactory.getLogger(MyClass::class.java)
+logger.debug("Processing member: {}", member.id)  // 플레이스홀더 문법
+```
+
+**Companion Object + @JvmStatic 장점**:
+- Java의 static field로 컴파일되어 메모리 효율적
+- Logger 이름이 클래스 FQCN과 일치하여 로그 추적 용이
+- 인스턴스당 logger lookup 비용 없음
+
+**Lambda 문법 장점**:
+- 로그 레벨이 비활성화된 경우 문자열 연산 생략 (성능 최적화)
+- Kotlin 스타일의 문자열 템플릿 사용 가능
+
 ### Error Handling
 
 ```kotlin
@@ -743,6 +787,8 @@ class PrayerTopicServiceTest : BehaviorSpec({
 | ID를 `Long`으로 직접 사용 | 전용 ID 타입 정의 (`MemberId`, `PrayerTopicId` 등) |
 | 암호화 키를 서버에 저장/로깅 | 키는 클라이언트에만 존재해야 함 |
 | 암호화 필드를 평문으로 검색 시도 | 암호문(Base64)으로만 저장/조회 |
+| SLF4J 직접 사용 (`LoggerFactory.getLogger`) | `kotlin-logging` 사용 (`KotlinLogging.logger {}`) |
+| 인스턴스 레벨 logger 정의 | `companion object` + `@JvmStatic`으로 static 정의 |
 
 ## 코드 생성 시 체크리스트
 
@@ -782,3 +828,4 @@ class PrayerTopicServiceTest : BehaviorSpec({
 
 ### Quality
 - [ ] 테스트가 Kotest Spec 스타일로 작성되었는가?
+- [ ] 로깅이 `kotlin-logging` + `companion object` + `@JvmStatic` 패턴을 사용하는가?

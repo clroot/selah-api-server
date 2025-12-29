@@ -1,6 +1,6 @@
 package io.clroot.selah.common.security
 
-import org.slf4j.LoggerFactory
+import io.github.oshai.kotlinlogging.KotlinLogging
 import org.springframework.http.HttpMethod
 import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher
 import org.springframework.security.web.util.matcher.OrRequestMatcher
@@ -20,7 +20,10 @@ import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandl
 class PublicEndpointRegistry(
     private val requestMappingHandlerMapping: RequestMappingHandlerMapping,
 ) {
-    private val logger = LoggerFactory.getLogger(javaClass)
+    companion object {
+        @JvmStatic
+        private val logger = KotlinLogging.logger {}
+    }
 
     /**
      * 공개 엔드포인트 목록을 RequestMatcher로 반환
@@ -83,12 +86,8 @@ class PublicEndpointRegistry(
         val methods = mappingInfo.methodsCondition.methods.ifEmpty { setOf("*") }
         val patterns = mappingInfo.patternValues
 
-        logger.info(
-            "Public endpoint registered: {} {} -> {}.{}",
-            methods,
-            patterns,
-            handlerMethod.beanType.simpleName,
-            handlerMethod.method.name,
-        )
+        logger.info {
+            "Public endpoint registered: $methods $patterns -> ${handlerMethod.beanType.simpleName}.${handlerMethod.method.name}"
+        }
     }
 }

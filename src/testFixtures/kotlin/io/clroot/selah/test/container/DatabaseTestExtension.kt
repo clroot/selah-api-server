@@ -2,7 +2,7 @@ package io.clroot.selah.test.container
 
 import io.kotest.core.extensions.SpecExtension
 import io.kotest.core.spec.Spec
-import mu.KotlinLogging
+import io.github.oshai.kotlinlogging.KotlinLogging
 
 /**
  * Kotest Spec 레벨 Extension
@@ -10,7 +10,10 @@ import mu.KotlinLogging
  * 각 테스트 Spec이 시작될 때 컨테이너를 시작하고 시스템 프로퍼티를 설정합니다.
  */
 class DatabaseTestExtension : SpecExtension {
-    private val logger = KotlinLogging.logger {}
+    companion object {
+        @JvmStatic
+        private val logger = KotlinLogging.logger {}
+    }
 
     override suspend fun intercept(
         spec: Spec,

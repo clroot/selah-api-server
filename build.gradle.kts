@@ -61,6 +61,9 @@ dependencies {
     // ===== Crypto =====
     implementation("org.bouncycastle:bcpkix-jdk18on:1.81")
 
+    // ===== Logging =====
+    implementation("io.github.oshai:kotlin-logging-jvm:7.0.3")
+
     // ===== Testing: Kotest =====
     testImplementation("io.kotest:kotest-runner-junit5:$kotestVersion")
     testImplementation("io.kotest:kotest-assertions-core:$kotestVersion")
@@ -75,6 +78,7 @@ dependencies {
     testImplementation("com.tngtech.archunit:archunit-junit5:1.3.0")
 
     // ===== TestFixtures =====
+    testFixturesImplementation("io.github.oshai:kotlin-logging-jvm:7.0.3")
     testFixturesApi("org.springframework.boot:spring-boot-starter-test")
     testFixturesApi("org.springframework.boot:spring-boot-starter-data-jpa")
     testFixturesApi("io.kotest:kotest-runner-junit5:$kotestVersion")
@@ -84,7 +88,6 @@ dependencies {
     testFixturesApi("org.testcontainers:postgresql:$testcontainersVersion")
     testFixturesApi("org.testcontainers:junit-jupiter:$testcontainersVersion")
     testFixturesApi("org.postgresql:postgresql")
-    testFixturesApi("io.github.microutils:kotlin-logging-jvm:3.0.5")
 }
 
 tasks {
