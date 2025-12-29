@@ -1,0 +1,70 @@
+databaseChangeLog:
+  - changeSet:
+      id: 004-create-api-keys
+      author: clroot
+      changes:
+        - createTable:
+            tableName: api_keys
+            columns:
+              - column:
+                  name: id
+                  type: varchar(26)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: key_hash
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+                    unique: true
+              - column:
+                  name: key_prefix
+                  type: varchar(16)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: member_id
+                  type: varchar(26)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: role
+                  type: varchar(20)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: name
+                  type: varchar(100)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_ip
+                  type: varchar(45)
+              - column:
+                  name: last_used_ip
+                  type: varchar(45)
+              - column:
+                  name: last_used_at
+                  type: timestamp
+              - column:
+                  name: created_at
+                  type: timestamp
+                  constraints:
+                    nullable: false
+        - createIndex:
+            indexName: idx_api_keys_member_id
+            tableName: api_keys
+            columns:
+              - column:
+                  name: member_id
+        - createIndex:
+            indexName: idx_api_keys_key_hash
+            tableName: api_keys
+            unique: true
+            columns:
+              - column:
+                  name: key_hash
+      rollback:
+        - dropTable:
+            tableName: api_keys

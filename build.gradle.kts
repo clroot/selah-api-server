@@ -26,7 +26,6 @@ java {
     }
 }
 
-val jjwtVersion = "0.12.6"
 val kotlinJdslVersion = "3.6.1"
 val kotestVersion = "6.0.7"
 val coroutinesVersion = "1.10.2"
@@ -74,10 +73,8 @@ dependencies {
     implementation("com.zaxxer:HikariCP")
     runtimeOnly("org.postgresql:postgresql")
 
-    // ===== JWT =====
-    implementation("io.jsonwebtoken:jjwt-api:$jjwtVersion")
-    runtimeOnly("io.jsonwebtoken:jjwt-impl:$jjwtVersion")
-    runtimeOnly("io.jsonwebtoken:jjwt-jackson:$jjwtVersion")
+    // ===== Database Migration =====
+    implementation("org.springframework.boot:spring-boot-starter-liquibase")
 
     // ===== Crypto =====
     implementation("org.bouncycastle:bcpkix-jdk18on:1.81")

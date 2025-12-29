@@ -1,0 +1,57 @@
+databaseChangeLog:
+  - changeSet:
+      id: 002-create-oauth-connections
+      author: clroot
+      changes:
+        - createTable:
+            tableName: oauth_connections
+            columns:
+              - column:
+                  name: id
+                  type: varchar(26)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: member_id
+                  type: varchar(26)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: provider
+                  type: varchar(20)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: provider_id
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: connected_at
+                  type: timestamp
+                  constraints:
+                    nullable: false
+        - addForeignKeyConstraint:
+            baseTableName: oauth_connections
+            baseColumnNames: member_id
+            referencedTableName: members
+            referencedColumnNames: id
+            constraintName: fk_oauth_connections_member
+            onDelete: CASCADE
+        - createIndex:
+            indexName: idx_oauth_provider_id
+            tableName: oauth_connections
+            unique: true
+            columns:
+              - column:
+                  name: provider
+              - column:
+                  name: provider_id
+        - addUniqueConstraint:
+            tableName: oauth_connections
+            columnNames: member_id, provider
+            constraintName: uk_member_provider
+      rollback:
+        - dropTable:
+            tableName: oauth_connections

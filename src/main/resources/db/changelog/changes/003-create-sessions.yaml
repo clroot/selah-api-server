@@ -1,0 +1,58 @@
+databaseChangeLog:
+  - changeSet:
+      id: 003-create-sessions
+      author: clroot
+      changes:
+        - createTable:
+            tableName: sessions
+            columns:
+              - column:
+                  name: token
+                  type: varchar(36)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: member_id
+                  type: varchar(26)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: role
+                  type: varchar(20)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: user_agent
+                  type: varchar(500)
+              - column:
+                  name: created_ip
+                  type: varchar(45)
+              - column:
+                  name: last_accessed_ip
+                  type: varchar(45)
+              - column:
+                  name: expires_at
+                  type: timestamp
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: timestamp
+                  constraints:
+                    nullable: false
+        - createIndex:
+            indexName: idx_sessions_member_id
+            tableName: sessions
+            columns:
+              - column:
+                  name: member_id
+        - createIndex:
+            indexName: idx_sessions_expires_at
+            tableName: sessions
+            columns:
+              - column:
+                  name: expires_at
+      rollback:
+        - dropTable:
+            tableName: sessions

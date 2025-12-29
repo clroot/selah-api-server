@@ -7,6 +7,10 @@ spring:
     virtual:
       enabled: true
 
+  # Liquibase 설정
+  liquibase:
+    change-log: classpath:db/changelog/db.changelog-master.yaml
+
   # JPA 설정
   jpa:
     open-in-view: false
