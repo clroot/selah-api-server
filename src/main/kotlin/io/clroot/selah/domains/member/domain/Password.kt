@@ -22,6 +22,8 @@ value class RawPassword(override val value: String) : Password {
     init {
         require(value.isNotEmpty()) { "Password cannot be empty" }
     }
+
+    override fun toString(): String = "[PROTECTED]"
 }
 
 /**
@@ -48,4 +50,6 @@ value class NewPassword private constructor(override val value: String) : Passwo
             return NewPassword(plainText)
         }
     }
+
+    override fun toString(): String = "[PROTECTED]"
 }
