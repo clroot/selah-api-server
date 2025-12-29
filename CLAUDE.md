@@ -89,6 +89,79 @@ JPA Entity (Adapter) ↔ Domain Model (Domain)  # 반드시 Mapper로 분리
 
 **Aggregates**: `PrayerTopic`(Root), `Prayer`(Root)
 
+---
+
+## E2E 암호화 - Backend 역할
+
+클라이언트에서 암호화된 데이터를 저장/조회하는 역할만 수행합니다. **서버는 평문에 접근할 수 없습니다.**
+
+### Backend 책임
+
+| 책임 | 설명 |
+|------|------|
+| Salt 저장 | 키 파생용 Salt 저장 (암호화 키 아님) |
+| 암호문 CRUD | 암호화된 데이터 저장/조회/수정/삭제 |
+| 암호화 설정 관리 | 사용자별 암호화 활성화 상태 관리 |
+| 복구 키 해시 저장 | 복구 키 검증용 해시 저장 (복구 키 자체는 저장 금지) |
+
+### 암호화 관련 API
+
+```text
+// 암호화 설정 API
+POST   /api/v1/encryption/setup      // 암호화 설정 (salt, recoveryKeyHash 저장)
+GET    /api/v1/encryption/settings   // 암호화 설정 조회 (salt 반환)
+POST   /api/v1/encryption/verify-recovery  // 복구 키 검증
+DELETE /api/v1/encryption/settings   // 암호화 설정 삭제 (모든 데이터 삭제됨)
+```
+
+### 도메인 모델
+
+```kotlin
+// EncryptionSettings - 암호화 설정 (별도 Aggregate)
+class EncryptionSettings(
+    override val id: EncryptionSettingsId,
+    val memberId: MemberId,
+    salt: String,                    // Base64 인코딩된 Salt
+    recoveryKeyHash: String,         // 복구 키 해시 (검증용)
+    isEnabled: Boolean,
+    createdAt: LocalDateTime,
+    updatedAt: LocalDateTime,
+    val version: Long?
+) : AggregateRoot<EncryptionSettingsId>()
+```
+
+### 암호화 필드 처리
+
+기도 데이터의 암호화 필드는 Base64 인코딩된 암호문으로 저장됩니다.
+
+```kotlin
+// PrayerTopic - title, reflection은 암호문(Base64)으로 저장
+class PrayerTopic(
+    // ...
+    title: String,           // 암호문 (Base64)
+    reflection: String?,     // 암호문 (Base64) 또는 null
+    // ...
+)
+
+// Prayer - content는 암호문(Base64)으로 저장
+class Prayer(
+    // ...
+    content: String,         // 암호문 (Base64)
+    // ...
+)
+```
+
+### ⚠️ Backend 금지 사항
+
+| 금지 | 이유 |
+|------|------|
+| 암호화 키 저장/로깅 | E2E 보안 무력화 |
+| 평문 검색 기능 구현 | 불가능 (암호문만 저장) |
+| 복구 키 원본 저장 | 해시만 저장 가능 |
+| Salt를 암호화 키로 오해 | Salt는 키 파생 입력값일 뿐 |
+
+---
+
 ## 패키지 구조
 
 ```
@@ -141,6 +214,15 @@ io.clroot.selah
 
 **핵심 원칙**: 캡슐화(Encapsulation) + 순수 Kotlin + ID 기반 동등성
 
+**AggregateRoot 공통 메타 필드** (생성자로 전달, 부모에서 관리):
+
+| 필드 | 타입 | 변경 가능 | 설명 |
+|------|------|----------|------|
+| `id` | `ID?` | 불변 | 식별자 |
+| `version` | `Long?` | 불변 | 낙관적 락 (JPA @Version) |
+| `createdAt` | `LocalDateTime` | 불변 | 생성 시점 |
+| `updatedAt` | `LocalDateTime` | `touch()` | 수정 시점 (자식에서 `touch()` 호출) |
+
 #### Aggregate ID 정의 규칙
 
 각 Aggregate/Entity는 전용 ID 타입을 정의합니다.
@@ -176,17 +258,20 @@ value class MemberId(override val value: String) : AggregateId<String> {
 
 ```kotlin
 // ✅ Good: 생성자에 기본값 없음 (모든 값 명시 강제)
+// id는 맨 위, 메타 필드(version, createdAt, updatedAt)는 하단에 배치
 class PrayerTopic(
-    override val id: PrayerTopicId?,
-    memberId: MemberId,
+    id: PrayerTopicId?,
+    // --- 비즈니스 필드 ---
+    val memberId: MemberId,
     title: String,
     status: PrayerStatus,
     answeredAt: LocalDateTime?,
     reflection: String?,
+    // --- 메타 필드 (하단) ---
+    version: Long?,
     createdAt: LocalDateTime,
     updatedAt: LocalDateTime,
-    val version: Long?
-) : AggregateRoot<PrayerTopicId>()
+) : AggregateRoot<PrayerTopicId>(id, version, createdAt, updatedAt)
 
 // ✅ Factory 메서드에서 기본값 설정
 companion object {
@@ -199,9 +284,9 @@ companion object {
             status = PrayerStatus.PRAYING,
             answeredAt = null,
             reflection = null,
+            version = null,  // 새 객체는 version null
             createdAt = now,
             updatedAt = now,
-            version = null
         )
     }
 }
@@ -210,21 +295,22 @@ companion object {
 #### Aggregate Root (Entity)
 
 ```kotlin
-// ✅ Good: 캡슐화된 가변성 + AggregateRoot 상속 + 기본값 없음
+// ✅ Good: 캡슐화된 가변성 + AggregateRoot 상속 + 메타 필드는 부모에서 관리
 class PrayerTopic(
-    override val id: PrayerTopicId?,
-    memberId: MemberId,
+    id: PrayerTopicId?,
+    // --- 비즈니스 필드 ---
+    val memberId: MemberId,
     title: String,
     status: PrayerStatus,
     answeredAt: LocalDateTime?,
     reflection: String?,
+    // --- 메타 필드 (하단, 부모에게 전달) ---
+    version: Long?,
     createdAt: LocalDateTime,
     updatedAt: LocalDateTime,
-    val version: Long?
-) : AggregateRoot<PrayerTopicId>() {
+) : AggregateRoot<PrayerTopicId>(id, version, createdAt, updatedAt) {
 
-    // ✅ 단순 타입: var + private set (간결함)
-    val memberId: MemberId = memberId
+    // ✅ 비즈니스 필드만 자식에서 관리 (var + private set)
     var title: String = title
         private set
     var status: PrayerStatus = status
@@ -233,24 +319,20 @@ class PrayerTopic(
         private set
     var reflection: String? = reflection
         private set
-    var createdAt: LocalDateTime = createdAt
-        private set
-    var updatedAt: LocalDateTime = updatedAt
-        private set
 
-    // 비즈니스 메서드를 통해서만 상태 변경 + 이벤트 등록
+    // ✅ 비즈니스 메서드에서 touch() 호출로 updatedAt 갱신
     fun markAsAnswered(reflection: String? = null) {
         status = PrayerStatus.ANSWERED
         answeredAt = LocalDateTime.now()
         this.reflection = reflection
-        updatedAt = LocalDateTime.now()
+        touch()  // 부모의 updatedAt 갱신
         registerEvent(PrayerAnsweredEvent(this))
     }
 
     fun updateTitle(newTitle: String) {
         if (title != newTitle) {
             title = newTitle
-            updatedAt = LocalDateTime.now()
+            touch()  // 부모의 updatedAt 갱신
         }
     }
 }
@@ -282,11 +364,11 @@ data class Email(val value: String) {
 
 **구분 기준**:
 
-| 타입 | 구현 방식 | 동등성 | 이벤트 |
-|------|----------|--------|--------|
-| **Aggregate Root** | `class` + `AggregateRoot<ID>` 상속 | ID 기반 | `registerEvent()` |
-| **Entity** | `class` | ID 기반 | - |
-| **Value Object** | `data class` | 모든 필드 | - |
+| 타입 | 구현 방식 | 동등성 | 이벤트 | 메타 필드 |
+|------|----------|--------|--------|----------|
+| **Aggregate Root** | `class` + `AggregateRoot<ID>(...)` 상속 | ID 기반 | `registerEvent()` | 부모에게 전달 (id, version, createdAt, updatedAt) |
+| **Entity** | `class` | ID 기반 | - | 직접 관리 |
+| **Value Object** | `data class` | 모든 필드 | - | 없음 |
 
 ### Application Layer
 
@@ -558,18 +640,23 @@ class PrayerTopicServiceTest : BehaviorSpec({
 | Service에 비즈니스 로직 | Domain 객체에 위임 |
 | JPA 호출 시 `Dispatchers.IO` 누락 | `withContext(Dispatchers.IO) { }` 감싸기 |
 | suspend 함수에서 `runBlocking` | Coroutine 컨텍스트 전파 활용 |
-| Entity `version` 매핑 누락 | Mapper에서 반드시 version 포함 |
+| Entity ↔ Domain 매핑에서 메타 필드 누락 | id, version, createdAt, updatedAt 모두 매핑 |
+| 메타 필드를 자식에서 직접 관리 | 부모(AggregateRoot)에게 생성자로 전달 |
+| updatedAt 직접 변경 | `touch()` 메서드 사용 |
 | Aggregate/Entity 생성자에 기본값 사용 | 기본값 없이 모든 파라미터 명시, Factory 메서드에서만 기본값 설정 |
 | ID를 `Long`으로 직접 사용 | 전용 ID 타입 정의 (`MemberId`, `PrayerTopicId` 등) |
+| 암호화 키를 서버에 저장/로깅 | 키는 클라이언트에만 존재해야 함 |
+| 암호화 필드를 평문으로 검색 시도 | 암호문(Base64)으로만 저장/조회 |
 
 ## 코드 생성 시 체크리스트
 
 ### Architecture & Domain
 - [ ] Domain 클래스가 외부 라이브러리에 의존하지 않는가?
-- [ ] Aggregate Root가 `AggregateRoot<ID>`를 상속하는가?
+- [ ] Aggregate Root가 `AggregateRoot<ID>(id, version, createdAt, updatedAt)`를 상속하는가?
+- [ ] 메타 필드(id, version, createdAt, updatedAt)가 부모에게 전달되는가?
 - [ ] 상태 변경이 비즈니스 메서드를 통해서만 이루어지는가? (캡슐화)
+- [ ] 비즈니스 메서드에서 상태 변경 시 `touch()`를 호출하는가?
 - [ ] 단순 타입은 `var ... private set`, 타입 변환 필요 시만 backing field(`_property`)를 사용하는가?
-- [ ] Domain 클래스에 `version` 필드가 있는가?
 - [ ] Entity ↔ Domain 매핑이 Mapper를 통해 이루어지는가?
 - [ ] Value Object는 `data class`로 구현되었는가?
 - [ ] Aggregate/Entity에 전용 ID 타입을 정의하였는가? (`MemberId`, `PrayerTopicId` 등)
@@ -588,6 +675,12 @@ class PrayerTopicServiceTest : BehaviorSpec({
 
 ### Persistence & Concurrency
 - [ ] JPA Repository 호출이 `withContext(Dispatchers.IO)` 내부에 있는가?
+
+### E2E 암호화 (Backend)
+- [ ] 암호화 키를 서버에 저장하거나 로깅하지 않는가?
+- [ ] 암호화 필드(title, reflection, content)를 평문으로 다루지 않는가?
+- [ ] Salt만 저장하고, 암호화 키는 클라이언트에만 존재하는가?
+- [ ] 복구 키 원본이 아닌 해시만 저장하는가?
 
 ### Quality
 - [ ] 테스트가 Kotest Spec 스타일로 작성되었는가?

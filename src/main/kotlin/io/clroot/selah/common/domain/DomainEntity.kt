@@ -9,24 +9,31 @@ package io.clroot.selah.common.domain
  * 사용 예시:
  * ```kotlin
  * class OAuthConnection(
- *     override val id: OAuthConnectionId? = null,
+ *     id: OAuthConnectionId?,
+ *     // --- 비즈니스 필드 ---
  *     val memberId: MemberId,
- *     val provider: AuthProvider,
- *     val providerId: String
- * ) : DomainEntity<OAuthConnectionId>()
+ *     val provider: OAuthProvider,
+ *     val providerId: String,
+ *     val connectedAt: LocalDateTime,
+ * ) : DomainEntity<OAuthConnectionId>(id)
+ *
+ * companion object {
+ *     fun create(provider: OAuthProvider, providerId: String) = OAuthConnection(
+ *         id = OAuthConnectionId.new(),
+ *         memberId = memberId,
+ *         provider = provider,
+ *         providerId = providerId,
+ *         connectedAt = LocalDateTime.now(),
+ *     )
+ * }
  * ```
  *
  * @param ID 식별자 타입
+ * @param id Entity 식별자 (ULID 기반: 생성 시 할당, Long 기반: DB 저장 후 할당)
  */
-abstract class DomainEntity<ID : Any> {
-    /**
-     * Entity 식별자
-     *
-     * - ULID 기반 ID: 생성 시점에 할당
-     * - Long 기반 ID: null이면 DB 저장 후 할당됨
-     */
-    abstract val id: ID?
-
+abstract class DomainEntity<ID : Any>(
+    open val id: ID?,
+) {
     /**
      * Entity 동등성 - ID 기반 비교
      */
