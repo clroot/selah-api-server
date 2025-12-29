@@ -27,7 +27,7 @@ java {
 }
 
 val jjwtVersion = "0.12.6"
-val kotlinJdslVersion = "3.5.5"
+val kotlinJdslVersion = "3.6.1"
 val kotestVersion = "6.0.7"
 val coroutinesVersion = "1.10.2"
 val testcontainersVersion = "1.20.4"

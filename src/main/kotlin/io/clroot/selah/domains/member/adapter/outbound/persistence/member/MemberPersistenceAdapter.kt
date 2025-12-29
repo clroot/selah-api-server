@@ -1,11 +1,17 @@
 package io.clroot.selah.domains.member.adapter.outbound.persistence.member
 
+import com.linecorp.kotlinjdsl.dsl.jpql.Jpql
+import com.linecorp.kotlinjdsl.dsl.jpql.jpql
+import com.linecorp.kotlinjdsl.querymodel.jpql.predicate.Predicate
+import com.linecorp.kotlinjdsl.render.jpql.JpqlRenderContext
+import com.linecorp.kotlinjdsl.support.spring.data.jpa.extension.createQuery
 import io.clroot.selah.domains.member.application.port.outbound.LoadMemberPort
 import io.clroot.selah.domains.member.application.port.outbound.SaveMemberPort
 import io.clroot.selah.domains.member.domain.Email
 import io.clroot.selah.domains.member.domain.Member
 import io.clroot.selah.domains.member.domain.MemberId
 import io.clroot.selah.domains.member.domain.OAuthProvider
+import jakarta.persistence.EntityManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.springframework.stereotype.Component
@@ -14,27 +20,36 @@ import org.springframework.stereotype.Component
  * Member Persistence Adapter
  *
  * LoadMemberPort와 SaveMemberPort를 구현합니다.
- * JPA 호출은 Dispatchers.IO에서 실행됩니다.
+ * JDSL을 사용하여 타입 안전한 쿼리를 작성합니다.
  */
 @Component
 class MemberPersistenceAdapter(
     private val repository: MemberJpaRepository,
+    private val entityManager: EntityManager,
+    private val jpqlRenderContext: JpqlRenderContext,
     private val mapper: MemberMapper,
 ) : LoadMemberPort, SaveMemberPort {
 
     override suspend fun findById(memberId: MemberId): Member? = withContext(Dispatchers.IO) {
-        repository.findByIdWithOAuthConnections(memberId.value)?.let { mapper.toDomain(it) }
+        findMemberEntityBy { path(MemberEntity::id).eq(memberId.value) }
+            ?.let { mapper.toDomain(it) }
     }
 
     override suspend fun findByEmail(email: Email): Member? = withContext(Dispatchers.IO) {
-        repository.findByEmailWithOAuthConnections(email.value)?.let { mapper.toDomain(it) }
+        findMemberEntityBy { path(MemberEntity::email).eq(email.value) }
+            ?.let { mapper.toDomain(it) }
     }
 
     override suspend fun findByOAuthConnection(
         provider: OAuthProvider,
         providerId: String,
     ): Member? = withContext(Dispatchers.IO) {
-        repository.findByOAuthConnection(provider, providerId)?.let { mapper.toDomain(it) }
+        findMemberEntityBy {
+            and(
+                path(OAuthConnectionEntity::provider).eq(provider),
+                path(OAuthConnectionEntity::providerId).eq(providerId),
+            )
+        }?.let { mapper.toDomain(it) }
     }
 
     override suspend fun existsByEmail(email: Email): Boolean = withContext(Dispatchers.IO) {
@@ -42,18 +57,31 @@ class MemberPersistenceAdapter(
     }
 
     override suspend fun save(member: Member): Member = withContext(Dispatchers.IO) {
-        val existingEntity = repository.findByIdWithOAuthConnections(member.id.value)
-
-        val savedEntity = if (existingEntity != null) {
-            // 기존 Entity 업데이트
+        val savedEntity = if (repository.existsById(member.id.value)) {
+            val existingEntity = findMemberEntityBy { path(MemberEntity::id).eq(member.id.value) }!!
             mapper.updateEntity(existingEntity, member)
             repository.save(existingEntity)
         } else {
-            // 새 Entity 저장
-            val newEntity = mapper.toEntity(member)
-            repository.save(newEntity)
+            repository.save(mapper.toEntity(member))
         }
 
         mapper.toDomain(savedEntity)
+    }
+
+    /**
+     * 조건에 맞는 MemberEntity를 OAuth 연결과 함께 조회합니다.
+     */
+    private fun findMemberEntityBy(predicate: Jpql.() -> Predicate): MemberEntity? {
+        val query = jpql {
+            selectDistinct(entity(MemberEntity::class))
+                .from(
+                    entity(MemberEntity::class),
+                    leftFetchJoin(MemberEntity::oauthConnections),
+                ).where(predicate())
+        }
+
+        return entityManager.createQuery(query, jpqlRenderContext)
+            .resultList
+            .firstOrNull()
     }
 }
