@@ -2,23 +2,7 @@ package io.clroot.selah.domains.member.adapter.inbound.web
 
 import io.clroot.selah.common.response.ApiResponse
 import io.clroot.selah.common.response.ErrorResponse
-import io.clroot.selah.domains.member.domain.exception.EmailAlreadyExistsException
-import io.clroot.selah.domains.member.domain.exception.EmailAlreadyVerifiedException
-import io.clroot.selah.domains.member.domain.exception.EmailNotVerifiedException
-import io.clroot.selah.domains.member.domain.exception.EmailVerificationResendTooSoonException
-import io.clroot.selah.domains.member.domain.exception.EmailVerificationTokenExpiredException
-import io.clroot.selah.domains.member.domain.exception.EncryptionAlreadySetupException
-import io.clroot.selah.domains.member.domain.exception.InvalidEmailVerificationTokenException
-import io.clroot.selah.domains.member.domain.exception.EncryptionSettingsNotFoundException
-import io.clroot.selah.domains.member.domain.exception.InvalidApiKeyException
-import io.clroot.selah.domains.member.domain.exception.InvalidCredentialsException
-import io.clroot.selah.domains.member.domain.exception.InvalidSessionException
-import io.clroot.selah.domains.member.domain.exception.MemberNotFoundException
-import io.clroot.selah.domains.member.domain.exception.OAuthProviderAlreadyConnectedException
-import io.clroot.selah.domains.member.domain.exception.OAuthProviderNotConnectedException
-import io.clroot.selah.domains.member.domain.exception.PasswordResetResendTooSoonException
-import io.clroot.selah.domains.member.domain.exception.InvalidPasswordResetTokenException
-import io.clroot.selah.domains.member.domain.exception.SessionExpiredException
+import io.clroot.selah.domains.member.domain.exception.*
 import io.github.oshai.kotlinlogging.KotlinLogging
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
@@ -26,166 +10,53 @@ import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.RestControllerAdvice
 
 /**
- * Member 도메인 예외 처리기
+ * Member 도메인 예외 핸들러
  */
-@RestControllerAdvice
+@RestControllerAdvice(basePackages = ["io.clroot.selah.domains.member"])
 class MemberExceptionHandler {
+
     companion object {
         @JvmStatic
         private val logger = KotlinLogging.logger {}
     }
 
-    @ExceptionHandler(EmailAlreadyExistsException::class)
-    fun handleEmailAlreadyExists(ex: EmailAlreadyExistsException): ResponseEntity<ApiResponse<Nothing>> {
-        logger.debug { "Email already exists: ${ex.message}" }
-        return ResponseEntity
-            .status(HttpStatus.CONFLICT)
-            .body(ApiResponse.error(ErrorResponse(ex.code, ex.message)))
-    }
+    @ExceptionHandler(MemberException::class)
+    fun handleMemberException(ex: MemberException): ResponseEntity<ApiResponse<Nothing>> {
+        logger.debug { "Member exception: ${ex.code} - ${ex.message}" }
 
-    @ExceptionHandler(MemberNotFoundException::class)
-    fun handleMemberNotFound(ex: MemberNotFoundException): ResponseEntity<ApiResponse<Nothing>> {
-        logger.debug { "Member not found: ${ex.message}" }
-        return ResponseEntity
-            .status(HttpStatus.NOT_FOUND)
-            .body(ApiResponse.error(ErrorResponse(ex.code, ex.message)))
-    }
+        val (status, message) = when (ex) {
+            // 인증/인가
+            is InvalidCredentialsException -> HttpStatus.UNAUTHORIZED to "이메일 또는 비밀번호가 올바르지 않습니다"
+            is SessionExpiredException -> HttpStatus.UNAUTHORIZED to "세션이 만료되었습니다"
+            is InvalidSessionException -> HttpStatus.UNAUTHORIZED to "유효하지 않은 세션입니다"
+            is InvalidApiKeyException -> HttpStatus.UNAUTHORIZED to "유효하지 않은 API 키입니다"
 
-    @ExceptionHandler(InvalidCredentialsException::class)
-    fun handleInvalidCredentials(ex: InvalidCredentialsException): ResponseEntity<ApiResponse<Nothing>> {
-        logger.debug { "Invalid credentials" }
-        return ResponseEntity
-            .status(HttpStatus.UNAUTHORIZED)
-            .body(ApiResponse.error(ErrorResponse(ex.code, ex.message)))
-    }
+            // 회원
+            is MemberNotFoundException -> HttpStatus.NOT_FOUND to "회원을 찾을 수 없습니다"
+            is EmailAlreadyExistsException -> HttpStatus.CONFLICT to "이미 사용 중인 이메일입니다"
 
-    @ExceptionHandler(EmailNotVerifiedException::class)
-    fun handleEmailNotVerified(ex: EmailNotVerifiedException): ResponseEntity<ApiResponse<Nothing>> {
-        logger.debug { "Email not verified: ${ex.message}" }
-        return ResponseEntity
-            .status(HttpStatus.FORBIDDEN)
-            .body(ApiResponse.error(ErrorResponse(ex.code, ex.message)))
-    }
+            // 이메일 인증
+            is EmailNotVerifiedException -> HttpStatus.FORBIDDEN to "이메일 인증이 필요합니다"
+            is EmailAlreadyVerifiedException -> HttpStatus.CONFLICT to "이미 인증된 이메일입니다"
+            is InvalidEmailVerificationTokenException -> HttpStatus.BAD_REQUEST to "유효하지 않은 인증 토큰입니다"
+            is EmailVerificationTokenExpiredException -> HttpStatus.GONE to "인증 토큰이 만료되었습니다"
+            is EmailVerificationResendTooSoonException -> HttpStatus.TOO_MANY_REQUESTS to "${ex.remainingSeconds}초 후에 다시 시도해주세요"
 
-    @ExceptionHandler(SessionExpiredException::class)
-    fun handleSessionExpired(ex: SessionExpiredException): ResponseEntity<ApiResponse<Nothing>> {
-        logger.debug { "Session expired" }
-        return ResponseEntity
-            .status(HttpStatus.UNAUTHORIZED)
-            .body(ApiResponse.error(ErrorResponse(ex.code, ex.message)))
-    }
+            // 비밀번호 재설정
+            is InvalidPasswordResetTokenException -> HttpStatus.BAD_REQUEST to "유효하지 않은 비밀번호 재설정 토큰입니다"
+            is PasswordResetResendTooSoonException -> HttpStatus.TOO_MANY_REQUESTS to "${ex.remainingSeconds}초 후에 다시 시도해주세요"
 
-    @ExceptionHandler(InvalidSessionException::class)
-    fun handleInvalidSession(ex: InvalidSessionException): ResponseEntity<ApiResponse<Nothing>> {
-        logger.debug { "Invalid session" }
-        return ResponseEntity
-            .status(HttpStatus.UNAUTHORIZED)
-            .body(ApiResponse.error(ErrorResponse(ex.code, ex.message)))
-    }
+            // OAuth
+            is OAuthProviderAlreadyConnectedException -> HttpStatus.CONFLICT to "이미 연결된 소셜 계정입니다"
+            is OAuthProviderNotConnectedException -> HttpStatus.NOT_FOUND to "연결되지 않은 소셜 계정입니다"
 
-    @ExceptionHandler(InvalidApiKeyException::class)
-    fun handleInvalidApiKey(ex: InvalidApiKeyException): ResponseEntity<ApiResponse<Nothing>> {
-        logger.debug { "Invalid API key" }
-        return ResponseEntity
-            .status(HttpStatus.UNAUTHORIZED)
-            .body(ApiResponse.error(ErrorResponse(ex.code, ex.message)))
-    }
+            // 암호화 설정
+            is EncryptionSettingsNotFoundException -> HttpStatus.NOT_FOUND to "암호화 설정을 찾을 수 없습니다"
+            is EncryptionAlreadySetupException -> HttpStatus.CONFLICT to "이미 암호화가 설정되어 있습니다"
+        }
 
-    @ExceptionHandler(OAuthProviderAlreadyConnectedException::class)
-    fun handleOAuthProviderAlreadyConnected(ex: OAuthProviderAlreadyConnectedException): ResponseEntity<ApiResponse<Nothing>> {
-        logger.debug { "OAuth provider already connected: ${ex.message}" }
         return ResponseEntity
-            .status(HttpStatus.CONFLICT)
-            .body(ApiResponse.error(ErrorResponse(ex.code, ex.message)))
-    }
-
-    @ExceptionHandler(OAuthProviderNotConnectedException::class)
-    fun handleOAuthProviderNotConnected(ex: OAuthProviderNotConnectedException): ResponseEntity<ApiResponse<Nothing>> {
-        logger.debug { "OAuth provider not connected: ${ex.message}" }
-        return ResponseEntity
-            .status(HttpStatus.NOT_FOUND)
-            .body(ApiResponse.error(ErrorResponse(ex.code, ex.message)))
-    }
-
-    @ExceptionHandler(EncryptionSettingsNotFoundException::class)
-    fun handleEncryptionSettingsNotFound(ex: EncryptionSettingsNotFoundException): ResponseEntity<ApiResponse<Nothing>> {
-        logger.debug { "Encryption settings not found: ${ex.message}" }
-        return ResponseEntity
-            .status(HttpStatus.NOT_FOUND)
-            .body(ApiResponse.error(ErrorResponse(ex.code, ex.message)))
-    }
-
-    @ExceptionHandler(EncryptionAlreadySetupException::class)
-    fun handleEncryptionAlreadySetup(ex: EncryptionAlreadySetupException): ResponseEntity<ApiResponse<Nothing>> {
-        logger.debug { "Encryption already setup: ${ex.message}" }
-        return ResponseEntity
-            .status(HttpStatus.CONFLICT)
-            .body(ApiResponse.error(ErrorResponse(ex.code, ex.message)))
-    }
-
-    @ExceptionHandler(InvalidEmailVerificationTokenException::class)
-    fun handleInvalidEmailVerificationToken(
-        ex: InvalidEmailVerificationTokenException,
-    ): ResponseEntity<ApiResponse<Nothing>> {
-        logger.debug { "Invalid email verification token" }
-        return ResponseEntity
-            .status(HttpStatus.BAD_REQUEST)
-            .body(ApiResponse.error(ErrorResponse(ex.code, ex.message)))
-    }
-
-    @ExceptionHandler(EmailVerificationTokenExpiredException::class)
-    fun handleEmailVerificationTokenExpired(
-        ex: EmailVerificationTokenExpiredException,
-    ): ResponseEntity<ApiResponse<Nothing>> {
-        logger.debug { "Email verification token expired" }
-        return ResponseEntity
-            .status(HttpStatus.GONE)
-            .body(ApiResponse.error(ErrorResponse(ex.code, ex.message)))
-    }
-
-    @ExceptionHandler(EmailAlreadyVerifiedException::class)
-    fun handleEmailAlreadyVerified(ex: EmailAlreadyVerifiedException): ResponseEntity<ApiResponse<Nothing>> {
-        logger.debug { "Email already verified: ${ex.message}" }
-        return ResponseEntity
-            .status(HttpStatus.CONFLICT)
-            .body(ApiResponse.error(ErrorResponse(ex.code, ex.message)))
-    }
-
-    @ExceptionHandler(EmailVerificationResendTooSoonException::class)
-    fun handleEmailVerificationResendTooSoon(
-        ex: EmailVerificationResendTooSoonException,
-    ): ResponseEntity<ApiResponse<Nothing>> {
-        logger.debug { "Email verification resend too soon: ${ex.remainingSeconds}s remaining" }
-        return ResponseEntity
-            .status(HttpStatus.TOO_MANY_REQUESTS)
-            .body(ApiResponse.error(ErrorResponse(ex.code, ex.message)))
-    }
-
-    @ExceptionHandler(InvalidPasswordResetTokenException::class)
-    fun handleInvalidPasswordResetToken(
-        ex: InvalidPasswordResetTokenException,
-    ): ResponseEntity<ApiResponse<Nothing>> {
-        logger.debug { "Invalid password reset token" }
-        return ResponseEntity
-            .status(HttpStatus.BAD_REQUEST)
-            .body(ApiResponse.error(ErrorResponse(ex.code, ex.message)))
-    }
-
-    @ExceptionHandler(PasswordResetResendTooSoonException::class)
-    fun handlePasswordResetResendTooSoon(
-        ex: PasswordResetResendTooSoonException,
-    ): ResponseEntity<ApiResponse<Nothing>> {
-        logger.debug { "Password reset resend too soon: ${ex.remainingSeconds}s remaining" }
-        return ResponseEntity
-            .status(HttpStatus.TOO_MANY_REQUESTS)
-            .body(ApiResponse.error(ErrorResponse(ex.code, ex.message)))
-    }
-
-    @ExceptionHandler(IllegalArgumentException::class)
-    fun handleIllegalArgument(ex: IllegalArgumentException): ResponseEntity<ApiResponse<Nothing>> {
-        logger.debug { "Invalid argument: ${ex.message}" }
-        return ResponseEntity
-            .status(HttpStatus.BAD_REQUEST)
-            .body(ApiResponse.error(ErrorResponse("INVALID_ARGUMENT", ex.message ?: "Invalid argument")))
+            .status(status)
+            .body(ApiResponse.error(ErrorResponse(ex.code, message)))
     }
 }
