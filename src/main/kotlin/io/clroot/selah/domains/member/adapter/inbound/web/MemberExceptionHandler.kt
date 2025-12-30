@@ -16,6 +16,8 @@ import io.clroot.selah.domains.member.domain.exception.InvalidSessionException
 import io.clroot.selah.domains.member.domain.exception.MemberNotFoundException
 import io.clroot.selah.domains.member.domain.exception.OAuthProviderAlreadyConnectedException
 import io.clroot.selah.domains.member.domain.exception.OAuthProviderNotConnectedException
+import io.clroot.selah.domains.member.domain.exception.PasswordResetResendTooSoonException
+import io.clroot.selah.domains.member.domain.exception.InvalidPasswordResetTokenException
 import io.clroot.selah.domains.member.domain.exception.SessionExpiredException
 import io.github.oshai.kotlinlogging.KotlinLogging
 import org.springframework.http.HttpStatus
@@ -154,6 +156,26 @@ class MemberExceptionHandler {
         ex: EmailVerificationResendTooSoonException,
     ): ResponseEntity<ApiResponse<Nothing>> {
         logger.debug { "Email verification resend too soon: ${ex.remainingSeconds}s remaining" }
+        return ResponseEntity
+            .status(HttpStatus.TOO_MANY_REQUESTS)
+            .body(ApiResponse.error(ErrorResponse(ex.code, ex.message)))
+    }
+
+    @ExceptionHandler(InvalidPasswordResetTokenException::class)
+    fun handleInvalidPasswordResetToken(
+        ex: InvalidPasswordResetTokenException,
+    ): ResponseEntity<ApiResponse<Nothing>> {
+        logger.debug { "Invalid password reset token" }
+        return ResponseEntity
+            .status(HttpStatus.BAD_REQUEST)
+            .body(ApiResponse.error(ErrorResponse(ex.code, ex.message)))
+    }
+
+    @ExceptionHandler(PasswordResetResendTooSoonException::class)
+    fun handlePasswordResetResendTooSoon(
+        ex: PasswordResetResendTooSoonException,
+    ): ResponseEntity<ApiResponse<Nothing>> {
+        logger.debug { "Password reset resend too soon: ${ex.remainingSeconds}s remaining" }
         return ResponseEntity
             .status(HttpStatus.TOO_MANY_REQUESTS)
             .body(ApiResponse.error(ErrorResponse(ex.code, ex.message)))

@@ -64,6 +64,11 @@ selah:
     from-email: ${MAIL_FROM:noreply@selah.io}
     from-name: ${MAIL_FROM_NAME:Selah}
 
+  # 비밀번호 재설정 설정
+  password-reset:
+    ttl: PT1H                     # 토큰 유효 기간 (1시간)
+    resend-cooldown: PT1M         # 재발송 대기 시간 (1분)
+
 # 로깅 설정
 logging:
   level:

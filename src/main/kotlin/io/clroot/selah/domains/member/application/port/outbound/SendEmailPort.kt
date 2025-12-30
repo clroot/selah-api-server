@@ -18,4 +18,28 @@ interface SendEmailPort {
         nickname: String,
         verificationToken: String,
     )
+
+    /**
+     * 비밀번호 재설정 메일을 발송합니다.
+     *
+     * @param to 수신자 이메일
+     * @param nickname 수신자 닉네임
+     * @param resetToken 재설정 토큰 (URL에 포함됨)
+     */
+    suspend fun sendPasswordResetEmail(
+        to: Email,
+        nickname: String,
+        resetToken: String,
+    )
+
+    /**
+     * 비밀번호 변경 알림 메일을 발송합니다.
+     *
+     * @param to 수신자 이메일
+     * @param nickname 수신자 닉네임
+     */
+    suspend fun sendPasswordChangedNotification(
+        to: Email,
+        nickname: String,
+    )
 }

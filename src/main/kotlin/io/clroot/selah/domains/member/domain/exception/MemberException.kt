@@ -130,3 +130,21 @@ class EmailVerificationResendTooSoonException(
     code = "EMAIL_VERIFICATION_RESEND_TOO_SOON",
     message = "Please wait $remainingSeconds seconds before requesting another verification email",
 )
+
+/**
+ * 유효하지 않은 비밀번호 재설정 토큰인 경우
+ */
+class InvalidPasswordResetTokenException : MemberException(
+    code = "INVALID_PASSWORD_RESET_TOKEN",
+    message = "Invalid or expired password reset token",
+)
+
+/**
+ * 비밀번호 재설정 토큰 재발송 대기 시간 내에 재요청한 경우
+ */
+class PasswordResetResendTooSoonException(
+    val remainingSeconds: Long,
+) : MemberException(
+    code = "PASSWORD_RESET_RESEND_TOO_SOON",
+    message = "Please wait $remainingSeconds seconds before requesting another password reset email",
+)
