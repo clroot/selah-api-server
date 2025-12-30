@@ -1,5 +1,7 @@
 package io.clroot.selah.domains.member.adapter.outbound.persistence.emailverification
 
+import io.clroot.selah.common.util.HexSupport.hashSha256
+import io.clroot.selah.common.util.HexSupport.toHexString
 import io.clroot.selah.common.util.ULIDSupport
 import io.clroot.selah.domains.member.application.port.outbound.EmailVerificationTokenCreateResult
 import io.clroot.selah.domains.member.application.port.outbound.EmailVerificationTokenInfo
@@ -11,7 +13,6 @@ import org.springframework.beans.factory.annotation.Value
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
-import java.security.MessageDigest
 import java.security.SecureRandom
 import java.time.Duration
 import java.time.LocalDateTime
@@ -29,7 +30,6 @@ class EmailVerificationTokenPersistenceAdapter(
     companion object {
         private const val TOKEN_LENGTH = 32
         private val SECURE_RANDOM = SecureRandom()
-        private val HEX_CHARS = "0123456789abcdef".toCharArray()
     }
 
     @Transactional
@@ -80,7 +80,6 @@ class EmailVerificationTokenPersistenceAdapter(
         }
     }
 
-    @Transactional
     override suspend fun invalidateAllByMemberId(memberId: MemberId) {
         withContext(Dispatchers.IO) {
             repository.deleteAllByMemberId(memberId.value)
@@ -92,7 +91,6 @@ class EmailVerificationTokenPersistenceAdapter(
             repository.findTopByMemberIdOrderByCreatedAtDesc(memberId.value)?.createdAt
         }
 
-    @Transactional
     override suspend fun deleteExpiredTokens(): Int =
         withContext(Dispatchers.IO) {
             repository.deleteAllByExpiresAtBefore(LocalDateTime.now())
@@ -110,21 +108,7 @@ class EmailVerificationTokenPersistenceAdapter(
     /**
      * 토큰 해싱 (SHA-256)
      */
-    private fun hashToken(token: String): String {
-        val digest = MessageDigest.getInstance("SHA-256")
-        val hashBytes = digest.digest(token.toByteArray(Charsets.UTF_8))
-        return hashBytes.toHexString()
-    }
-
-    private fun ByteArray.toHexString(): String {
-        val result = StringBuilder(size * 2)
-        for (byte in this) {
-            val i = byte.toInt()
-            result.append(HEX_CHARS[(i shr 4) and 0x0F])
-            result.append(HEX_CHARS[i and 0x0F])
-        }
-        return result.toString()
-    }
+    private fun hashToken(token: String): String = hashSha256(token)
 
     private fun EmailVerificationTokenEntity.toInfo(): EmailVerificationTokenInfo =
         EmailVerificationTokenInfo(

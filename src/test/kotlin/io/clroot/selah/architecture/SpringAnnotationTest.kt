@@ -34,7 +34,7 @@ class SpringAnnotationTest :
 
             context("@Component 어노테이션") {
 
-                it("@Component는 Adapter Layer에서만 사용한다") {
+                it("@Component는 Adapter Layer 또는 Application Layer의 Listener에서만 사용한다") {
                     classes()
                         .that()
                         .areAnnotatedWith("org.springframework.stereotype.Component")
@@ -42,7 +42,9 @@ class SpringAnnotationTest :
                         .resideInAPackage("..adapter..")
                         .orShould()
                         .resideInAPackage("..common..")
-                        .because("@Component는 Adapter Layer 또는 Common에서만 사용해야 합니다")
+                        .orShould()
+                        .resideInAPackage("..application.listener..")
+                        .because("@Component는 Adapter Layer, Common, 또는 같은 Context의 Event Listener에서만 사용해야 합니다")
                         .allowEmptyShould(true)
                         .check(importedClasses)
                 }
