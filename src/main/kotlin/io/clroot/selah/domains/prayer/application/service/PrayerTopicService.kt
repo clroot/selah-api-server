@@ -2,12 +2,16 @@ package io.clroot.selah.domains.prayer.application.service
 
 import io.clroot.selah.common.application.publishAndClearEvents
 import io.clroot.selah.domains.member.domain.MemberId
+import io.clroot.selah.domains.prayer.application.port.inbound.AnswerPrayerTopicUseCase
+import io.clroot.selah.domains.prayer.application.port.inbound.CancelAnswerCommand
 import io.clroot.selah.domains.prayer.application.port.inbound.CreatePrayerTopicCommand
 import io.clroot.selah.domains.prayer.application.port.inbound.CreatePrayerTopicUseCase
 import io.clroot.selah.domains.prayer.application.port.inbound.DeletePrayerTopicUseCase
 import io.clroot.selah.domains.prayer.application.port.inbound.GetPrayerTopicUseCase
+import io.clroot.selah.domains.prayer.application.port.inbound.MarkAsAnsweredCommand
 import io.clroot.selah.domains.prayer.application.port.inbound.UpdatePrayerTopicTitleCommand
 import io.clroot.selah.domains.prayer.application.port.inbound.UpdatePrayerTopicUseCase
+import io.clroot.selah.domains.prayer.application.port.inbound.UpdateReflectionCommand
 import io.clroot.selah.domains.prayer.application.port.outbound.DeletePrayerTopicPort
 import io.clroot.selah.domains.prayer.application.port.outbound.LoadPrayerTopicPort
 import io.clroot.selah.domains.prayer.application.port.outbound.SavePrayerTopicPort
@@ -15,6 +19,8 @@ import io.clroot.selah.domains.prayer.domain.PrayerTopic
 import io.clroot.selah.domains.prayer.domain.PrayerTopicId
 import io.clroot.selah.domains.prayer.domain.PrayerTopicStatus
 import io.clroot.selah.domains.prayer.domain.exception.PrayerTopicAccessDeniedException
+import io.clroot.selah.domains.prayer.domain.exception.PrayerTopicAlreadyAnsweredException
+import io.clroot.selah.domains.prayer.domain.exception.PrayerTopicNotAnsweredException
 import io.clroot.selah.domains.prayer.domain.exception.PrayerTopicNotFoundException
 import org.springframework.context.ApplicationEventPublisher
 import org.springframework.data.domain.Page
@@ -32,7 +38,11 @@ class PrayerTopicService(
     private val loadPrayerTopicPort: LoadPrayerTopicPort,
     private val deletePrayerTopicPort: DeletePrayerTopicPort,
     private val eventPublisher: ApplicationEventPublisher,
-) : CreatePrayerTopicUseCase, GetPrayerTopicUseCase, UpdatePrayerTopicUseCase, DeletePrayerTopicUseCase {
+) : CreatePrayerTopicUseCase,
+    GetPrayerTopicUseCase,
+    UpdatePrayerTopicUseCase,
+    DeletePrayerTopicUseCase,
+    AnswerPrayerTopicUseCase {
 
     override suspend fun create(command: CreatePrayerTopicCommand): PrayerTopic {
         val prayerTopic = PrayerTopic.create(
@@ -92,5 +102,65 @@ class PrayerTopicService(
         }
 
         deletePrayerTopicPort.deleteById(id)
+    }
+
+    override suspend fun markAsAnswered(command: MarkAsAnsweredCommand): PrayerTopic {
+        val prayerTopic = loadPrayerTopicPort.findById(command.id)
+            ?: throw PrayerTopicNotFoundException(command.id.value)
+
+        if (prayerTopic.memberId != command.memberId) {
+            throw PrayerTopicAccessDeniedException(command.id.value)
+        }
+
+        if (prayerTopic.status == PrayerTopicStatus.ANSWERED) {
+            throw PrayerTopicAlreadyAnsweredException(command.id.value)
+        }
+
+        prayerTopic.markAsAnswered(command.reflection)
+
+        val saved = savePrayerTopicPort.save(prayerTopic)
+        saved.publishAndClearEvents(eventPublisher)
+
+        return saved
+    }
+
+    override suspend fun cancelAnswer(command: CancelAnswerCommand): PrayerTopic {
+        val prayerTopic = loadPrayerTopicPort.findById(command.id)
+            ?: throw PrayerTopicNotFoundException(command.id.value)
+
+        if (prayerTopic.memberId != command.memberId) {
+            throw PrayerTopicAccessDeniedException(command.id.value)
+        }
+
+        if (prayerTopic.status != PrayerTopicStatus.ANSWERED) {
+            throw PrayerTopicNotAnsweredException(command.id.value)
+        }
+
+        prayerTopic.cancelAnswer()
+
+        val saved = savePrayerTopicPort.save(prayerTopic)
+        saved.publishAndClearEvents(eventPublisher)
+
+        return saved
+    }
+
+    override suspend fun updateReflection(command: UpdateReflectionCommand): PrayerTopic {
+        val prayerTopic = loadPrayerTopicPort.findById(command.id)
+            ?: throw PrayerTopicNotFoundException(command.id.value)
+
+        if (prayerTopic.memberId != command.memberId) {
+            throw PrayerTopicAccessDeniedException(command.id.value)
+        }
+
+        if (prayerTopic.status != PrayerTopicStatus.ANSWERED) {
+            throw PrayerTopicNotAnsweredException(command.id.value)
+        }
+
+        prayerTopic.updateReflection(command.reflection)
+
+        val saved = savePrayerTopicPort.save(prayerTopic)
+        saved.publishAndClearEvents(eventPublisher)
+
+        return saved
     }
 }

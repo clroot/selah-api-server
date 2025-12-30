@@ -4,15 +4,21 @@ import io.clroot.selah.common.response.ApiResponse
 import io.clroot.selah.common.response.PageResponse
 import io.clroot.selah.domains.member.adapter.inbound.security.SecurityUtils
 import io.clroot.selah.domains.prayer.adapter.inbound.web.dto.CreatePrayerTopicRequest
+import io.clroot.selah.domains.prayer.adapter.inbound.web.dto.MarkAsAnsweredRequest
 import io.clroot.selah.domains.prayer.adapter.inbound.web.dto.PrayerTopicResponse
 import io.clroot.selah.domains.prayer.adapter.inbound.web.dto.UpdatePrayerTopicRequest
+import io.clroot.selah.domains.prayer.adapter.inbound.web.dto.UpdateReflectionRequest
 import io.clroot.selah.domains.prayer.adapter.inbound.web.dto.toResponse
+import io.clroot.selah.domains.prayer.application.port.inbound.AnswerPrayerTopicUseCase
+import io.clroot.selah.domains.prayer.application.port.inbound.CancelAnswerCommand
 import io.clroot.selah.domains.prayer.application.port.inbound.CreatePrayerTopicCommand
 import io.clroot.selah.domains.prayer.application.port.inbound.CreatePrayerTopicUseCase
 import io.clroot.selah.domains.prayer.application.port.inbound.DeletePrayerTopicUseCase
 import io.clroot.selah.domains.prayer.application.port.inbound.GetPrayerTopicUseCase
+import io.clroot.selah.domains.prayer.application.port.inbound.MarkAsAnsweredCommand
 import io.clroot.selah.domains.prayer.application.port.inbound.UpdatePrayerTopicTitleCommand
 import io.clroot.selah.domains.prayer.application.port.inbound.UpdatePrayerTopicUseCase
+import io.clroot.selah.domains.prayer.application.port.inbound.UpdateReflectionCommand
 import io.clroot.selah.domains.prayer.domain.PrayerTopicId
 import io.clroot.selah.domains.prayer.domain.PrayerTopicStatus
 import org.springframework.data.domain.PageRequest
@@ -38,6 +44,7 @@ class PrayerTopicController(
     private val getPrayerTopicUseCase: GetPrayerTopicUseCase,
     private val updatePrayerTopicUseCase: UpdatePrayerTopicUseCase,
     private val deletePrayerTopicUseCase: DeletePrayerTopicUseCase,
+    private val answerPrayerTopicUseCase: AnswerPrayerTopicUseCase,
 ) {
 
     /**
@@ -135,5 +142,60 @@ class PrayerTopicController(
             memberId = memberId,
         )
         return ResponseEntity.noContent().build()
+    }
+
+    /**
+     * 응답 체크
+     */
+    @PostMapping("/{id}/answer")
+    suspend fun markAsAnswered(
+        @PathVariable id: String,
+        @RequestBody(required = false) request: MarkAsAnsweredRequest?,
+    ): ResponseEntity<ApiResponse<PrayerTopicResponse>> {
+        val memberId = SecurityUtils.requireCurrentMemberId()
+        val prayerTopic = answerPrayerTopicUseCase.markAsAnswered(
+            MarkAsAnsweredCommand(
+                id = PrayerTopicId.from(id),
+                memberId = memberId,
+                reflection = request?.reflection,
+            ),
+        )
+        return ResponseEntity.ok(ApiResponse.success(prayerTopic.toResponse()))
+    }
+
+    /**
+     * 응답 취소
+     */
+    @DeleteMapping("/{id}/answer")
+    suspend fun cancelAnswer(
+        @PathVariable id: String,
+    ): ResponseEntity<ApiResponse<PrayerTopicResponse>> {
+        val memberId = SecurityUtils.requireCurrentMemberId()
+        val prayerTopic = answerPrayerTopicUseCase.cancelAnswer(
+            CancelAnswerCommand(
+                id = PrayerTopicId.from(id),
+                memberId = memberId,
+            ),
+        )
+        return ResponseEntity.ok(ApiResponse.success(prayerTopic.toResponse()))
+    }
+
+    /**
+     * 소감 수정
+     */
+    @PatchMapping("/{id}/reflection")
+    suspend fun updateReflection(
+        @PathVariable id: String,
+        @RequestBody request: UpdateReflectionRequest,
+    ): ResponseEntity<ApiResponse<PrayerTopicResponse>> {
+        val memberId = SecurityUtils.requireCurrentMemberId()
+        val prayerTopic = answerPrayerTopicUseCase.updateReflection(
+            UpdateReflectionCommand(
+                id = PrayerTopicId.from(id),
+                memberId = memberId,
+                reflection = request.reflection,
+            ),
+        )
+        return ResponseEntity.ok(ApiResponse.success(prayerTopic.toResponse()))
     }
 }

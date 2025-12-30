@@ -14,6 +14,14 @@ data class UpdatePrayerTopicRequest(
     val title: String,
 )
 
+data class MarkAsAnsweredRequest(
+    val reflection: String? = null,
+)
+
+data class UpdateReflectionRequest(
+    val reflection: String?,
+)
+
 // === Response DTOs ===
 
 data class PrayerTopicResponse(

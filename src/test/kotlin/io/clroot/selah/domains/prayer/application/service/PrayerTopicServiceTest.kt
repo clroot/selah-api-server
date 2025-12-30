@@ -1,8 +1,11 @@
 package io.clroot.selah.domains.prayer.application.service
 
 import io.clroot.selah.domains.member.domain.MemberId
+import io.clroot.selah.domains.prayer.application.port.inbound.CancelAnswerCommand
 import io.clroot.selah.domains.prayer.application.port.inbound.CreatePrayerTopicCommand
+import io.clroot.selah.domains.prayer.application.port.inbound.MarkAsAnsweredCommand
 import io.clroot.selah.domains.prayer.application.port.inbound.UpdatePrayerTopicTitleCommand
+import io.clroot.selah.domains.prayer.application.port.inbound.UpdateReflectionCommand
 import io.clroot.selah.domains.prayer.application.port.outbound.DeletePrayerTopicPort
 import io.clroot.selah.domains.prayer.application.port.outbound.LoadPrayerTopicPort
 import io.clroot.selah.domains.prayer.application.port.outbound.SavePrayerTopicPort
@@ -10,6 +13,8 @@ import io.clroot.selah.domains.prayer.domain.PrayerTopic
 import io.clroot.selah.domains.prayer.domain.PrayerTopicId
 import io.clroot.selah.domains.prayer.domain.PrayerTopicStatus
 import io.clroot.selah.domains.prayer.domain.exception.PrayerTopicAccessDeniedException
+import io.clroot.selah.domains.prayer.domain.exception.PrayerTopicAlreadyAnsweredException
+import io.clroot.selah.domains.prayer.domain.exception.PrayerTopicNotAnsweredException
 import io.clroot.selah.domains.prayer.domain.exception.PrayerTopicNotFoundException
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.DescribeSpec
@@ -232,6 +237,253 @@ class PrayerTopicServiceTest : DescribeSpec({
 
             shouldThrow<PrayerTopicAccessDeniedException> {
                 service.delete(prayerTopic.id, otherMemberId)
+            }
+        }
+    }
+
+    describe("응답 체크") {
+
+        context("markAsAnswered") {
+
+            it("소유자가 기도제목을 응답 상태로 변경할 수 있다") {
+                val memberId = MemberId.new()
+                val prayerTopic = createPrayerTopic(memberId = memberId)
+                val command = MarkAsAnsweredCommand(
+                    id = prayerTopic.id,
+                    memberId = memberId,
+                    reflection = "encrypted_reflection",
+                )
+
+                coEvery { loadPrayerTopicPort.findById(prayerTopic.id) } returns prayerTopic
+                coEvery { savePrayerTopicPort.save(any()) } answers { firstArg() }
+
+                val result = service.markAsAnswered(command)
+
+                result.status shouldBe PrayerTopicStatus.ANSWERED
+                result.reflection shouldBe "encrypted_reflection"
+                coVerify(exactly = 1) { savePrayerTopicPort.save(any()) }
+            }
+
+            it("소감 없이 응답할 수 있다") {
+                val memberId = MemberId.new()
+                val prayerTopic = createPrayerTopic(memberId = memberId)
+                val command = MarkAsAnsweredCommand(
+                    id = prayerTopic.id,
+                    memberId = memberId,
+                    reflection = null,
+                )
+
+                coEvery { loadPrayerTopicPort.findById(prayerTopic.id) } returns prayerTopic
+                coEvery { savePrayerTopicPort.save(any()) } answers { firstArg() }
+
+                val result = service.markAsAnswered(command)
+
+                result.status shouldBe PrayerTopicStatus.ANSWERED
+                result.reflection shouldBe null
+            }
+
+            it("존재하지 않는 기도제목에 대해 호출하면 PrayerTopicNotFoundException을 던진다") {
+                val memberId = MemberId.new()
+                val prayerTopicId = PrayerTopicId.new()
+                val command = MarkAsAnsweredCommand(
+                    id = prayerTopicId,
+                    memberId = memberId,
+                    reflection = null,
+                )
+
+                coEvery { loadPrayerTopicPort.findById(prayerTopicId) } returns null
+
+                shouldThrow<PrayerTopicNotFoundException> {
+                    service.markAsAnswered(command)
+                }
+            }
+
+            it("다른 사용자의 기도제목에 대해 호출하면 PrayerTopicAccessDeniedException을 던진다") {
+                val ownerId = MemberId.new()
+                val otherMemberId = MemberId.new()
+                val prayerTopic = createPrayerTopic(memberId = ownerId)
+                val command = MarkAsAnsweredCommand(
+                    id = prayerTopic.id,
+                    memberId = otherMemberId,
+                    reflection = null,
+                )
+
+                coEvery { loadPrayerTopicPort.findById(prayerTopic.id) } returns prayerTopic
+
+                shouldThrow<PrayerTopicAccessDeniedException> {
+                    service.markAsAnswered(command)
+                }
+            }
+
+            it("이미 응답된 기도제목에 대해 호출하면 PrayerTopicAlreadyAnsweredException을 던진다") {
+                val memberId = MemberId.new()
+                val prayerTopic = createPrayerTopic(memberId = memberId, status = PrayerTopicStatus.ANSWERED)
+                val command = MarkAsAnsweredCommand(
+                    id = prayerTopic.id,
+                    memberId = memberId,
+                    reflection = null,
+                )
+
+                coEvery { loadPrayerTopicPort.findById(prayerTopic.id) } returns prayerTopic
+
+                shouldThrow<PrayerTopicAlreadyAnsweredException> {
+                    service.markAsAnswered(command)
+                }
+            }
+        }
+
+        context("cancelAnswer") {
+
+            it("소유자가 응답 상태를 취소할 수 있다") {
+                val memberId = MemberId.new()
+                val prayerTopic = createPrayerTopic(memberId = memberId, status = PrayerTopicStatus.ANSWERED)
+                val command = CancelAnswerCommand(
+                    id = prayerTopic.id,
+                    memberId = memberId,
+                )
+
+                coEvery { loadPrayerTopicPort.findById(prayerTopic.id) } returns prayerTopic
+                coEvery { savePrayerTopicPort.save(any()) } answers { firstArg() }
+
+                val result = service.cancelAnswer(command)
+
+                result.status shouldBe PrayerTopicStatus.PRAYING
+                result.answeredAt shouldBe null
+                result.reflection shouldBe null
+                coVerify(exactly = 1) { savePrayerTopicPort.save(any()) }
+            }
+
+            it("존재하지 않는 기도제목에 대해 호출하면 PrayerTopicNotFoundException을 던진다") {
+                val memberId = MemberId.new()
+                val prayerTopicId = PrayerTopicId.new()
+                val command = CancelAnswerCommand(
+                    id = prayerTopicId,
+                    memberId = memberId,
+                )
+
+                coEvery { loadPrayerTopicPort.findById(prayerTopicId) } returns null
+
+                shouldThrow<PrayerTopicNotFoundException> {
+                    service.cancelAnswer(command)
+                }
+            }
+
+            it("다른 사용자의 기도제목에 대해 호출하면 PrayerTopicAccessDeniedException을 던진다") {
+                val ownerId = MemberId.new()
+                val otherMemberId = MemberId.new()
+                val prayerTopic = createPrayerTopic(memberId = ownerId, status = PrayerTopicStatus.ANSWERED)
+                val command = CancelAnswerCommand(
+                    id = prayerTopic.id,
+                    memberId = otherMemberId,
+                )
+
+                coEvery { loadPrayerTopicPort.findById(prayerTopic.id) } returns prayerTopic
+
+                shouldThrow<PrayerTopicAccessDeniedException> {
+                    service.cancelAnswer(command)
+                }
+            }
+
+            it("PRAYING 상태의 기도제목에 대해 호출하면 PrayerTopicNotAnsweredException을 던진다") {
+                val memberId = MemberId.new()
+                val prayerTopic = createPrayerTopic(memberId = memberId, status = PrayerTopicStatus.PRAYING)
+                val command = CancelAnswerCommand(
+                    id = prayerTopic.id,
+                    memberId = memberId,
+                )
+
+                coEvery { loadPrayerTopicPort.findById(prayerTopic.id) } returns prayerTopic
+
+                shouldThrow<PrayerTopicNotAnsweredException> {
+                    service.cancelAnswer(command)
+                }
+            }
+        }
+
+        context("updateReflection") {
+
+            it("소유자가 응답된 기도제목의 소감을 수정할 수 있다") {
+                val memberId = MemberId.new()
+                val prayerTopic = createPrayerTopic(memberId = memberId, status = PrayerTopicStatus.ANSWERED)
+                val command = UpdateReflectionCommand(
+                    id = prayerTopic.id,
+                    memberId = memberId,
+                    reflection = "new_reflection",
+                )
+
+                coEvery { loadPrayerTopicPort.findById(prayerTopic.id) } returns prayerTopic
+                coEvery { savePrayerTopicPort.save(any()) } answers { firstArg() }
+
+                val result = service.updateReflection(command)
+
+                result.reflection shouldBe "new_reflection"
+                coVerify(exactly = 1) { savePrayerTopicPort.save(any()) }
+            }
+
+            it("소감을 null로 설정하여 삭제할 수 있다") {
+                val memberId = MemberId.new()
+                val prayerTopic = createPrayerTopic(memberId = memberId, status = PrayerTopicStatus.ANSWERED)
+                val command = UpdateReflectionCommand(
+                    id = prayerTopic.id,
+                    memberId = memberId,
+                    reflection = null,
+                )
+
+                coEvery { loadPrayerTopicPort.findById(prayerTopic.id) } returns prayerTopic
+                coEvery { savePrayerTopicPort.save(any()) } answers { firstArg() }
+
+                val result = service.updateReflection(command)
+
+                result.reflection shouldBe null
+            }
+
+            it("존재하지 않는 기도제목에 대해 호출하면 PrayerTopicNotFoundException을 던진다") {
+                val memberId = MemberId.new()
+                val prayerTopicId = PrayerTopicId.new()
+                val command = UpdateReflectionCommand(
+                    id = prayerTopicId,
+                    memberId = memberId,
+                    reflection = "new_reflection",
+                )
+
+                coEvery { loadPrayerTopicPort.findById(prayerTopicId) } returns null
+
+                shouldThrow<PrayerTopicNotFoundException> {
+                    service.updateReflection(command)
+                }
+            }
+
+            it("다른 사용자의 기도제목에 대해 호출하면 PrayerTopicAccessDeniedException을 던진다") {
+                val ownerId = MemberId.new()
+                val otherMemberId = MemberId.new()
+                val prayerTopic = createPrayerTopic(memberId = ownerId, status = PrayerTopicStatus.ANSWERED)
+                val command = UpdateReflectionCommand(
+                    id = prayerTopic.id,
+                    memberId = otherMemberId,
+                    reflection = "new_reflection",
+                )
+
+                coEvery { loadPrayerTopicPort.findById(prayerTopic.id) } returns prayerTopic
+
+                shouldThrow<PrayerTopicAccessDeniedException> {
+                    service.updateReflection(command)
+                }
+            }
+
+            it("PRAYING 상태의 기도제목에 대해 호출하면 PrayerTopicNotAnsweredException을 던진다") {
+                val memberId = MemberId.new()
+                val prayerTopic = createPrayerTopic(memberId = memberId, status = PrayerTopicStatus.PRAYING)
+                val command = UpdateReflectionCommand(
+                    id = prayerTopic.id,
+                    memberId = memberId,
+                    reflection = "new_reflection",
+                )
+
+                coEvery { loadPrayerTopicPort.findById(prayerTopic.id) } returns prayerTopic
+
+                shouldThrow<PrayerTopicNotAnsweredException> {
+                    service.updateReflection(command)
+                }
             }
         }
     }

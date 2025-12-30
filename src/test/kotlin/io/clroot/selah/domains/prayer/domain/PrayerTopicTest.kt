@@ -128,6 +128,167 @@ class PrayerTopicTest : DescribeSpec({
         }
     }
 
+    describe("응답 체크") {
+
+        context("markAsAnswered") {
+
+            it("PRAYING 상태의 기도제목을 ANSWERED 상태로 변경한다") {
+                val prayerTopic = PrayerTopic.create(
+                    memberId = MemberId.new(),
+                    title = "encrypted_title",
+                )
+
+                prayerTopic.markAsAnswered()
+
+                prayerTopic.status shouldBe PrayerTopicStatus.ANSWERED
+                prayerTopic.answeredAt shouldNotBe null
+            }
+
+            it("응답 시 소감을 함께 기록할 수 있다") {
+                val prayerTopic = PrayerTopic.create(
+                    memberId = MemberId.new(),
+                    title = "encrypted_title",
+                )
+                val reflection = "encrypted_reflection"
+
+                prayerTopic.markAsAnswered(reflection)
+
+                prayerTopic.status shouldBe PrayerTopicStatus.ANSWERED
+                prayerTopic.reflection shouldBe reflection
+            }
+
+            it("소감 없이 응답할 수 있다") {
+                val prayerTopic = PrayerTopic.create(
+                    memberId = MemberId.new(),
+                    title = "encrypted_title",
+                )
+
+                prayerTopic.markAsAnswered(null)
+
+                prayerTopic.status shouldBe PrayerTopicStatus.ANSWERED
+                prayerTopic.reflection shouldBe null
+            }
+
+            it("updatedAt이 갱신된다") {
+                val prayerTopic = PrayerTopic.create(
+                    memberId = MemberId.new(),
+                    title = "encrypted_title",
+                )
+                val originalUpdatedAt = prayerTopic.updatedAt
+
+                Thread.sleep(10)
+                prayerTopic.markAsAnswered()
+
+                prayerTopic.updatedAt shouldNotBe originalUpdatedAt
+            }
+
+            it("이미 응답된 기도제목에 대해 호출하면 실패한다") {
+                val prayerTopic = PrayerTopic.create(
+                    memberId = MemberId.new(),
+                    title = "encrypted_title",
+                )
+                prayerTopic.markAsAnswered()
+
+                shouldThrow<IllegalStateException> {
+                    prayerTopic.markAsAnswered()
+                }
+            }
+        }
+
+        context("cancelAnswer") {
+
+            it("ANSWERED 상태의 기도제목을 PRAYING 상태로 변경한다") {
+                val prayerTopic = PrayerTopic.create(
+                    memberId = MemberId.new(),
+                    title = "encrypted_title",
+                )
+                prayerTopic.markAsAnswered("some_reflection")
+
+                prayerTopic.cancelAnswer()
+
+                prayerTopic.status shouldBe PrayerTopicStatus.PRAYING
+                prayerTopic.answeredAt shouldBe null
+                prayerTopic.reflection shouldBe null
+            }
+
+            it("updatedAt이 갱신된다") {
+                val prayerTopic = PrayerTopic.create(
+                    memberId = MemberId.new(),
+                    title = "encrypted_title",
+                )
+                prayerTopic.markAsAnswered()
+                val originalUpdatedAt = prayerTopic.updatedAt
+
+                Thread.sleep(10)
+                prayerTopic.cancelAnswer()
+
+                prayerTopic.updatedAt shouldNotBe originalUpdatedAt
+            }
+
+            it("PRAYING 상태의 기도제목에 대해 호출하면 실패한다") {
+                val prayerTopic = PrayerTopic.create(
+                    memberId = MemberId.new(),
+                    title = "encrypted_title",
+                )
+
+                shouldThrow<IllegalStateException> {
+                    prayerTopic.cancelAnswer()
+                }
+            }
+        }
+
+        context("updateReflection") {
+
+            it("응답된 기도제목의 소감을 수정할 수 있다") {
+                val prayerTopic = PrayerTopic.create(
+                    memberId = MemberId.new(),
+                    title = "encrypted_title",
+                )
+                prayerTopic.markAsAnswered("old_reflection")
+
+                prayerTopic.updateReflection("new_reflection")
+
+                prayerTopic.reflection shouldBe "new_reflection"
+            }
+
+            it("소감을 null로 설정하여 삭제할 수 있다") {
+                val prayerTopic = PrayerTopic.create(
+                    memberId = MemberId.new(),
+                    title = "encrypted_title",
+                )
+                prayerTopic.markAsAnswered("some_reflection")
+
+                prayerTopic.updateReflection(null)
+
+                prayerTopic.reflection shouldBe null
+            }
+
+            it("같은 소감으로 수정하면 updatedAt이 변경되지 않는다") {
+                val prayerTopic = PrayerTopic.create(
+                    memberId = MemberId.new(),
+                    title = "encrypted_title",
+                )
+                prayerTopic.markAsAnswered("same_reflection")
+                val originalUpdatedAt = prayerTopic.updatedAt
+
+                prayerTopic.updateReflection("same_reflection")
+
+                prayerTopic.updatedAt shouldBe originalUpdatedAt
+            }
+
+            it("PRAYING 상태의 기도제목에 대해 호출하면 실패한다") {
+                val prayerTopic = PrayerTopic.create(
+                    memberId = MemberId.new(),
+                    title = "encrypted_title",
+                )
+
+                shouldThrow<IllegalStateException> {
+                    prayerTopic.updateReflection("some_reflection")
+                }
+            }
+        }
+    }
+
     describe("PrayerTopicId") {
 
         it("new()로 새 ID를 생성할 수 있다") {

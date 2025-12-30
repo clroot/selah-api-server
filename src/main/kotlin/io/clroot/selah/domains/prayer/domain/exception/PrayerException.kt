@@ -39,3 +39,19 @@ class PrayerAccessDeniedException(id: String) : PrayerException(
     code = "PRAYER_ACCESS_DENIED",
     message = "Access denied to prayer: $id",
 )
+
+/**
+ * 이미 응답된 기도제목인 경우
+ */
+class PrayerTopicAlreadyAnsweredException(id: String) : PrayerException(
+    code = "PRAYER_TOPIC_ALREADY_ANSWERED",
+    message = "Prayer topic already answered: $id",
+)
+
+/**
+ * 응답 상태가 아닌 기도제목인 경우
+ */
+class PrayerTopicNotAnsweredException(id: String) : PrayerException(
+    code = "PRAYER_TOPIC_NOT_ANSWERED",
+    message = "Prayer topic not answered: $id",
+)

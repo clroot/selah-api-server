@@ -52,6 +52,55 @@ class PrayerTopic(
         }
     }
 
+    /**
+     * 기도제목을 응답 상태로 변경합니다.
+     *
+     * @param reflection 응답 소감 (암호문, 선택)
+     * @throws IllegalStateException 이미 응답된 기도제목인 경우
+     */
+    fun markAsAnswered(reflection: String? = null) {
+        check(status == PrayerTopicStatus.PRAYING) {
+            "이미 응답된 기도제목입니다"
+        }
+        this.status = PrayerTopicStatus.ANSWERED
+        this.answeredAt = LocalDateTime.now()
+        this.reflection = reflection
+        touch()
+    }
+
+    /**
+     * 응답 상태를 취소하고 기도 중 상태로 되돌립니다.
+     * 소감(reflection)도 함께 삭제됩니다.
+     *
+     * @throws IllegalStateException 응답 상태가 아닌 경우
+     */
+    fun cancelAnswer() {
+        check(status == PrayerTopicStatus.ANSWERED) {
+            "응답 상태가 아닌 기도제목입니다"
+        }
+        this.status = PrayerTopicStatus.PRAYING
+        this.answeredAt = null
+        this.reflection = null
+        touch()
+    }
+
+    /**
+     * 응답된 기도제목의 소감을 수정합니다.
+     * reflection은 암호문(Base64)입니다.
+     *
+     * @param newReflection 새 소감 (null로 설정 시 소감 삭제)
+     * @throws IllegalStateException 응답 상태가 아닌 경우
+     */
+    fun updateReflection(newReflection: String?) {
+        check(status == PrayerTopicStatus.ANSWERED) {
+            "응답 상태가 아닌 기도제목입니다"
+        }
+        if (reflection != newReflection) {
+            this.reflection = newReflection
+            touch()
+        }
+    }
+
     companion object {
         /**
          * 새로운 기도제목을 생성합니다.

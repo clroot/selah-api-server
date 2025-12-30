@@ -2,11 +2,7 @@ package io.clroot.selah.domains.prayer.adapter.inbound.web
 
 import io.clroot.selah.common.response.ApiResponse
 import io.clroot.selah.common.response.ErrorResponse
-import io.clroot.selah.domains.prayer.domain.exception.PrayerAccessDeniedException
-import io.clroot.selah.domains.prayer.domain.exception.PrayerException
-import io.clroot.selah.domains.prayer.domain.exception.PrayerNotFoundException
-import io.clroot.selah.domains.prayer.domain.exception.PrayerTopicAccessDeniedException
-import io.clroot.selah.domains.prayer.domain.exception.PrayerTopicNotFoundException
+import io.clroot.selah.domains.prayer.domain.exception.*
 import io.github.oshai.kotlinlogging.KotlinLogging
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
@@ -31,6 +27,8 @@ class PrayerExceptionHandler {
         val (status, message) = when (ex) {
             is PrayerTopicNotFoundException -> HttpStatus.NOT_FOUND to "기도제목을 찾을 수 없습니다"
             is PrayerTopicAccessDeniedException -> HttpStatus.FORBIDDEN to "해당 기도제목에 접근할 수 없습니다"
+            is PrayerTopicAlreadyAnsweredException -> HttpStatus.CONFLICT to "이미 응답된 기도제목입니다"
+            is PrayerTopicNotAnsweredException -> HttpStatus.CONFLICT to "응답 상태가 아닌 기도제목입니다"
             is PrayerNotFoundException -> HttpStatus.NOT_FOUND to "기도문을 찾을 수 없습니다"
             is PrayerAccessDeniedException -> HttpStatus.FORBIDDEN to "해당 기도문에 접근할 수 없습니다"
         }
