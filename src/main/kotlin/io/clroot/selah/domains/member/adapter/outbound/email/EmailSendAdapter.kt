@@ -16,11 +16,11 @@ import org.springframework.stereotype.Component
 @Component
 class EmailSendAdapter(
     private val mailSender: JavaMailSender,
-    @Value("\${selah.email-verification.frontend-url:http://localhost:3000}")
+    @Value($$"${selah.email-verification.frontend-url:http://localhost:3000}")
     private val frontendUrl: String,
-    @Value("\${selah.email-verification.from-email:noreply@selah.io}")
+    @Value($$"${selah.email-verification.from-email:noreply@selah.io}")
     private val fromEmail: String,
-    @Value("\${selah.email-verification.from-name:Selah}")
+    @Value($$"${selah.email-verification.from-name:Selah}")
     private val fromName: String,
 ) : SendEmailPort {
 

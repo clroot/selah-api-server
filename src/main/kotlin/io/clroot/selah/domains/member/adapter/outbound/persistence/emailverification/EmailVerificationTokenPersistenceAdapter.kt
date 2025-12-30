@@ -23,7 +23,7 @@ import java.time.LocalDateTime
 @Component
 class EmailVerificationTokenPersistenceAdapter(
     private val repository: EmailVerificationTokenJpaRepository,
-    @Value("\${selah.email-verification.ttl:P1D}")
+    @Value($$"${selah.email-verification.ttl:P1D}")
     private val tokenTtl: Duration,
 ) : EmailVerificationTokenPort {
 

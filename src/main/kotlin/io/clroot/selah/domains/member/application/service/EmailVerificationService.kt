@@ -33,7 +33,7 @@ class EmailVerificationService(
     private val emailVerificationTokenPort: EmailVerificationTokenPort,
     private val sendEmailPort: SendEmailPort,
     private val eventPublisher: ApplicationEventPublisher,
-    @Value("\${selah.email-verification.resend-cooldown:PT5M}")
+    @Value($$"${selah.email-verification.resend-cooldown:PT5M}")
     private val resendCooldown: Duration,
 ) : EmailVerificationUseCase {
 
