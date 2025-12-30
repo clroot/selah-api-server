@@ -1,15 +1,11 @@
 package io.clroot.selah.domains.member.domain
 
-import io.clroot.selah.domains.member.domain.event.EncryptionSettingsDeletedEvent
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.DescribeSpec
 import io.kotest.matchers.booleans.shouldBeFalse
 import io.kotest.matchers.booleans.shouldBeTrue
-import io.kotest.matchers.collections.shouldBeEmpty
-import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
-import io.kotest.matchers.types.shouldBeInstanceOf
 import java.time.LocalDateTime
 import java.util.Base64
 
@@ -208,28 +204,6 @@ class EncryptionSettingsTest : DescribeSpec({
         }
     }
 
-    describe("삭제 이벤트") {
-
-        it("markForDeletion 호출 시 EncryptionSettingsDeletedEvent가 발행된다") {
-            val settings = createEncryptionSettings()
-            settings.domainEvents.shouldBeEmpty()
-
-            settings.markForDeletion()
-
-            settings.domainEvents shouldHaveSize 1
-            settings.domainEvents.first().shouldBeInstanceOf<EncryptionSettingsDeletedEvent>()
-        }
-
-        it("삭제 이벤트에 memberId가 포함된다") {
-            val memberId = MemberId.new()
-            val settings = createEncryptionSettings(memberId = memberId)
-
-            settings.markForDeletion()
-
-            val event = settings.domainEvents.first() as EncryptionSettingsDeletedEvent
-            event.memberId shouldBe memberId
-        }
-    }
 })
 
 // region Test Fixtures

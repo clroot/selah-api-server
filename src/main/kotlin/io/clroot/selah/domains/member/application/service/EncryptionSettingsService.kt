@@ -1,6 +1,6 @@
 package io.clroot.selah.domains.member.application.service
 
-import io.clroot.selah.common.application.publishAndClearEvents
+import io.clroot.selah.domains.member.application.event.EncryptionSettingsDeletedIntegrationEvent
 import io.clroot.selah.domains.member.application.port.inbound.ManageEncryptionSettingsUseCase
 import io.clroot.selah.domains.member.application.port.inbound.SetupEncryptionCommand
 import io.clroot.selah.domains.member.application.port.outbound.DeleteEncryptionSettingsPort
@@ -63,16 +63,17 @@ class EncryptionSettingsService(
     }
 
     override suspend fun deleteSettings(memberId: MemberId) {
-        val settings = loadEncryptionSettingsPort.findByMemberId(memberId)
-            ?: throw EncryptionSettingsNotFoundException(memberId.value)
-
-        // 삭제 이벤트 등록 (Prayer 도메인에서 관련 데이터 삭제)
-        settings.markForDeletion()
-
-        // 이벤트 발행
-        settings.publishAndClearEvents(eventPublisher)
+        // 암호화 설정 존재 확인
+        if (!loadEncryptionSettingsPort.existsByMemberId(memberId)) {
+            throw EncryptionSettingsNotFoundException(memberId.value)
+        }
 
         // 암호화 설정 삭제
         deleteEncryptionSettingsPort.deleteByMemberId(memberId)
+
+        // Integration Event 발행 (Prayer 도메인에서 관련 데이터 삭제)
+        eventPublisher.publishEvent(
+            EncryptionSettingsDeletedIntegrationEvent(memberId = memberId.value)
+        )
     }
 }

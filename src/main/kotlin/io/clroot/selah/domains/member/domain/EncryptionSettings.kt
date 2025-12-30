@@ -1,7 +1,6 @@
 package io.clroot.selah.domains.member.domain
 
 import io.clroot.selah.common.domain.AggregateRoot
-import io.clroot.selah.domains.member.domain.event.EncryptionSettingsDeletedEvent
 import java.time.LocalDateTime
 
 /**
@@ -75,14 +74,6 @@ class EncryptionSettings(
             isEnabled = false
             touch()
         }
-    }
-
-    /**
-     * 삭제 시 이벤트 발행
-     * Prayer 도메인에서 이 이벤트를 수신하여 관련 데이터를 삭제합니다.
-     */
-    fun markForDeletion() {
-        registerEvent(EncryptionSettingsDeletedEvent(memberId))
     }
 
     companion object {

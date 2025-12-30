@@ -195,29 +195,28 @@ class EncryptionSettingsServiceTest : DescribeSpec({
 
         context("암호화 설정이 존재하는 경우") {
 
-            it("설정을 삭제하고 이벤트를 발행한다") {
-                val existingSettings = createEncryptionSettings(memberId)
+            it("설정을 삭제하고 Integration Event를 발행한다") {
                 val eventSlot = slot<Any>()
-                coEvery { loadEncryptionSettingsPort.findByMemberId(memberId) } returns existingSettings
+                coEvery { loadEncryptionSettingsPort.existsByMemberId(memberId) } returns true
                 coEvery { deleteEncryptionSettingsPort.deleteByMemberId(memberId) } just Runs
                 every { eventPublisher.publishEvent(capture(eventSlot)) } just Runs
 
                 encryptionSettingsService.deleteSettings(memberId)
 
-                coVerify(exactly = 1) { loadEncryptionSettingsPort.findByMemberId(memberId) }
+                coVerify(exactly = 1) { loadEncryptionSettingsPort.existsByMemberId(memberId) }
                 coVerify(exactly = 1) { deleteEncryptionSettingsPort.deleteByMemberId(memberId) }
 
-                // 발행된 이벤트 검증
+                // 발행된 Integration Event 검증
                 eventSlot.isCaptured shouldBe true
                 val capturedEvent = eventSlot.captured
-                capturedEvent::class.simpleName shouldBe "EncryptionSettingsDeletedEvent"
+                capturedEvent::class.simpleName shouldBe "EncryptionSettingsDeletedIntegrationEvent"
             }
         }
 
         context("암호화 설정이 없는 경우") {
 
             it("EncryptionSettingsNotFoundException을 던진다") {
-                coEvery { loadEncryptionSettingsPort.findByMemberId(memberId) } returns null
+                coEvery { loadEncryptionSettingsPort.existsByMemberId(memberId) } returns false
 
                 shouldThrow<EncryptionSettingsNotFoundException> {
                     encryptionSettingsService.deleteSettings(memberId)
