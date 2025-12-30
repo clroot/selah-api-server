@@ -30,6 +30,7 @@ val kotlinJdslVersion = "3.6.1"
 val kotestVersion = "6.0.7"
 val coroutinesVersion = "1.10.2"
 val testcontainersVersion = "1.20.4"
+val mockkVersion = "1.14.7"
 
 dependencies {
     // ===== Kotlin =====
@@ -72,7 +73,7 @@ dependencies {
     testImplementation("io.kotest:kotest-assertions-core:$kotestVersion")
 
     // ===== Testing: MockK =====
-    testImplementation("io.mockk:mockk:1.13.10")
+    testImplementation("io.mockk:mockk:$mockkVersion")
 
     // ===== Testing: Spring =====
     testImplementation("org.springframework.boot:spring-boot-starter-test")
