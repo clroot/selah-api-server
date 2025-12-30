@@ -1,0 +1,62 @@
+databaseChangeLog:
+  - changeSet:
+      id: 009-create-prayers
+      author: clroot
+      changes:
+        - createTable:
+            tableName: prayers
+            columns:
+              - column:
+                  name: id
+                  type: varchar(26)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: member_id
+                  type: varchar(26)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: content
+                  type: text
+                  constraints:
+                    nullable: false
+              - column:
+                  name: version
+                  type: bigint
+              - column:
+                  name: created_at
+                  type: timestamp
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: timestamp
+                  constraints:
+                    nullable: false
+        - createIndex:
+            indexName: idx_prayers_member_id
+            tableName: prayers
+            columns:
+              - column:
+                  name: member_id
+        - createIndex:
+            indexName: idx_prayers_member_created
+            tableName: prayers
+            columns:
+              - column:
+                  name: member_id
+              - column:
+                  name: created_at
+                  descending: true
+        - addForeignKeyConstraint:
+            constraintName: fk_prayers_member
+            baseTableName: prayers
+            baseColumnNames: member_id
+            referencedTableName: members
+            referencedColumnNames: id
+            onDelete: CASCADE
+      rollback:
+        - dropTable:
+            tableName: prayers
