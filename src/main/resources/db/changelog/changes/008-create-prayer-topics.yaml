@@ -1,0 +1,82 @@
+databaseChangeLog:
+  - changeSet:
+      id: 008-create-prayer-topics
+      author: clroot
+      changes:
+        - createTable:
+            tableName: prayer_topics
+            columns:
+              - column:
+                  name: id
+                  type: varchar(26)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: member_id
+                  type: varchar(26)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: title
+                  type: text
+                  constraints:
+                    nullable: false
+              - column:
+                  name: status
+                  type: varchar(20)
+                  defaultValue: PRAYING
+                  constraints:
+                    nullable: false
+              - column:
+                  name: answered_at
+                  type: timestamp
+              - column:
+                  name: reflection
+                  type: text
+              - column:
+                  name: version
+                  type: bigint
+              - column:
+                  name: created_at
+                  type: timestamp
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: timestamp
+                  constraints:
+                    nullable: false
+        - createIndex:
+            indexName: idx_prayer_topics_member_id
+            tableName: prayer_topics
+            columns:
+              - column:
+                  name: member_id
+        - createIndex:
+            indexName: idx_prayer_topics_member_status
+            tableName: prayer_topics
+            columns:
+              - column:
+                  name: member_id
+              - column:
+                  name: status
+        - createIndex:
+            indexName: idx_prayer_topics_member_created
+            tableName: prayer_topics
+            columns:
+              - column:
+                  name: member_id
+              - column:
+                  name: created_at
+                  descending: true
+        - addForeignKeyConstraint:
+            constraintName: fk_prayer_topics_member
+            baseTableName: prayer_topics
+            baseColumnNames: member_id
+            referencedTableName: members
+            referencedColumnNames: id
+            onDelete: CASCADE
+      rollback:
+        - dropTable:
+            tableName: prayer_topics
