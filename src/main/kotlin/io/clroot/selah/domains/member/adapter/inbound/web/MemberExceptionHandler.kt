@@ -3,8 +3,12 @@ package io.clroot.selah.domains.member.adapter.inbound.web
 import io.clroot.selah.common.response.ApiResponse
 import io.clroot.selah.common.response.ErrorResponse
 import io.clroot.selah.domains.member.domain.exception.EmailAlreadyExistsException
+import io.clroot.selah.domains.member.domain.exception.EmailAlreadyVerifiedException
 import io.clroot.selah.domains.member.domain.exception.EmailNotVerifiedException
+import io.clroot.selah.domains.member.domain.exception.EmailVerificationResendTooSoonException
+import io.clroot.selah.domains.member.domain.exception.EmailVerificationTokenExpiredException
 import io.clroot.selah.domains.member.domain.exception.EncryptionAlreadySetupException
+import io.clroot.selah.domains.member.domain.exception.InvalidEmailVerificationTokenException
 import io.clroot.selah.domains.member.domain.exception.EncryptionSettingsNotFoundException
 import io.clroot.selah.domains.member.domain.exception.InvalidApiKeyException
 import io.clroot.selah.domains.member.domain.exception.InvalidCredentialsException
@@ -114,6 +118,44 @@ class MemberExceptionHandler {
         logger.debug { "Encryption already setup: ${ex.message}" }
         return ResponseEntity
             .status(HttpStatus.CONFLICT)
+            .body(ApiResponse.error(ErrorResponse(ex.code, ex.message)))
+    }
+
+    @ExceptionHandler(InvalidEmailVerificationTokenException::class)
+    fun handleInvalidEmailVerificationToken(
+        ex: InvalidEmailVerificationTokenException,
+    ): ResponseEntity<ApiResponse<Nothing>> {
+        logger.debug { "Invalid email verification token" }
+        return ResponseEntity
+            .status(HttpStatus.BAD_REQUEST)
+            .body(ApiResponse.error(ErrorResponse(ex.code, ex.message)))
+    }
+
+    @ExceptionHandler(EmailVerificationTokenExpiredException::class)
+    fun handleEmailVerificationTokenExpired(
+        ex: EmailVerificationTokenExpiredException,
+    ): ResponseEntity<ApiResponse<Nothing>> {
+        logger.debug { "Email verification token expired" }
+        return ResponseEntity
+            .status(HttpStatus.GONE)
+            .body(ApiResponse.error(ErrorResponse(ex.code, ex.message)))
+    }
+
+    @ExceptionHandler(EmailAlreadyVerifiedException::class)
+    fun handleEmailAlreadyVerified(ex: EmailAlreadyVerifiedException): ResponseEntity<ApiResponse<Nothing>> {
+        logger.debug { "Email already verified: ${ex.message}" }
+        return ResponseEntity
+            .status(HttpStatus.CONFLICT)
+            .body(ApiResponse.error(ErrorResponse(ex.code, ex.message)))
+    }
+
+    @ExceptionHandler(EmailVerificationResendTooSoonException::class)
+    fun handleEmailVerificationResendTooSoon(
+        ex: EmailVerificationResendTooSoonException,
+    ): ResponseEntity<ApiResponse<Nothing>> {
+        logger.debug { "Email verification resend too soon: ${ex.remainingSeconds}s remaining" }
+        return ResponseEntity
+            .status(HttpStatus.TOO_MANY_REQUESTS)
             .body(ApiResponse.error(ErrorResponse(ex.code, ex.message)))
     }
 

@@ -9,3 +9,5 @@ databaseChangeLog:
       file: db/changelog/changes/004-create-api-keys.yaml
   - include:
       file: db/changelog/changes/005-create-encryption-settings.yaml
+  - include:
+      file: db/changelog/changes/006-create-email-verification-tokens.yaml

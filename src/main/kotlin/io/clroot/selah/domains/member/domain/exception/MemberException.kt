@@ -96,3 +96,37 @@ class EncryptionAlreadySetupException(memberId: String) : MemberException(
     code = "ENCRYPTION_ALREADY_SETUP",
     message = "Encryption already setup for member: $memberId",
 )
+
+/**
+ * 이메일 인증 토큰이 유효하지 않은 경우
+ */
+class InvalidEmailVerificationTokenException : MemberException(
+    code = "INVALID_EMAIL_VERIFICATION_TOKEN",
+    message = "Invalid or expired verification token",
+)
+
+/**
+ * 이메일 인증 토큰이 만료된 경우
+ */
+class EmailVerificationTokenExpiredException : MemberException(
+    code = "EMAIL_VERIFICATION_TOKEN_EXPIRED",
+    message = "Verification token has expired",
+)
+
+/**
+ * 이메일이 이미 인증된 경우
+ */
+class EmailAlreadyVerifiedException(email: String) : MemberException(
+    code = "EMAIL_ALREADY_VERIFIED",
+    message = "Email already verified: $email",
+)
+
+/**
+ * 이메일 인증 재발송 대기 시간 내에 재요청한 경우
+ */
+class EmailVerificationResendTooSoonException(
+    val remainingSeconds: Long,
+) : MemberException(
+    code = "EMAIL_VERIFICATION_RESEND_TOO_SOON",
+    message = "Please wait $remainingSeconds seconds before requesting another verification email",
+)

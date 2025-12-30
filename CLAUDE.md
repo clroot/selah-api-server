@@ -99,6 +99,209 @@ JPA Entity (Adapter) ↔ Domain Model (Domain)  # 반드시 Mapper로 분리
 
 ---
 
+## Context 간 통신 규칙
+
+### 이벤트 종류
+
+| 종류 | 목적 | 위치 | 페이로드 | 핸들러 위치 |
+|------|------|------|----------|------------|
+| **Domain Event** | 같은 Context 내부 통신 | `domain/event/` | Domain 객체 포함 가능 | `application/listener/` |
+| **Integration Event** | Context 간 통신 | `application/event/` | Snapshot DTO만 사용 | `adapter/inbound/event/` |
+
+### 이벤트 흐름
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                     Member Context                           │
+│                                                             │
+│  ┌───────────────────────────────────────────────────────┐  │
+│  │ Domain Layer                                          │  │
+│  │                                                       │  │
+│  │   Member.createWithEmail() ──▶ MemberRegisteredEvent  │  │
+│  │                                       │               │  │
+│  └───────────────────────────────────────┼───────────────┘  │
+│                                          ▼                  │
+│  ┌───────────────────────────────────────────────────────┐  │
+│  │ Application Layer                                     │  │
+│  │                                                       │  │
+│  │   listener/                                           │  │
+│  │   └── MemberRegisteredEventListener ◀── 같은 Context  │  │
+│  │           │                              내부 이벤트   │  │
+│  │           └── 이메일 인증 메일 발송                     │  │
+│  │                                                       │  │
+│  │   service/                                            │  │
+│  │   └── RegisterMemberService                           │  │
+│  │           │                                           │  │
+│  │           └── Integration Event 발행 (필요시)          │  │
+│  │               ──▶ MemberCreatedIntegrationEvent       │  │
+│  │                                                       │  │
+│  └───────────────────────────────────────────────────────┘  │
+└─────────────────────────────┬───────────────────────────────┘
+                              │
+                              ▼  Context 경계
+┌─────────────────────────────────────────────────────────────┐
+│                     Prayer Context                           │
+│                                                             │
+│   adapter/inbound/event/  ◀── 다른 Context에서 온 이벤트     │
+│   └── MemberCreatedEventHandler                              │
+│               │                                              │
+│               └──▶ UseCase 호출 (필요시)                      │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### 핸들러 위치 규칙
+
+| 이벤트 발행 Context | 이벤트 처리 Context | 핸들러 위치 |
+|-------------------|-------------------|------------|
+| Member | Member (같은 Context) | `application/listener/` |
+| Member | Prayer (다른 Context) | `adapter/inbound/event/` |
+| Prayer | Prayer (같은 Context) | `application/listener/` |
+| Prayer | Member (다른 Context) | `adapter/inbound/event/` |
+
+### 패키지 구조 (이벤트 포함)
+
+```
+io.clroot.selah
+├── common/
+│   ├── domain/
+│   │   └── AggregateRoot.kt
+│   └── event/
+│       ├── DomainEvent.kt            # Domain Event 마커 인터페이스
+│       └── IntegrationEvent.kt       # Integration Event 마커 인터페이스
+│
+└── domains/
+    ├── member/
+    │   ├── domain/
+    │   │   ├── Member.kt
+    │   │   └── event/                # 🔵 Domain Event (내부용)
+    │   │       ├── MemberRegisteredEvent.kt
+    │   │       └── EmailVerifiedEvent.kt
+    │   │
+    │   ├── application/
+    │   │   ├── event/                # 🟢 Integration Event (외부용, 필요시)
+    │   │   │   └── MemberCreatedIntegrationEvent.kt
+    │   │   ├── listener/             # 🟣 같은 Context 이벤트 리스너
+    │   │   │   └── MemberRegisteredEventListener.kt
+    │   │   ├── port/
+    │   │   └── service/
+    │   │
+    │   └── adapter/
+    │       └── inbound/
+    │           └── event/            # 🟣 다른 Context 이벤트 핸들러 (필요시)
+    │
+    └── prayer/
+        ├── domain/
+        │   └── event/
+        ├── application/
+        │   ├── listener/             # 🟣 같은 Context 이벤트 리스너
+        │   └── service/
+        └── adapter/
+            └── inbound/
+                └── event/            # 🟣 다른 Context 이벤트 핸들러
+                    └── MemberCreatedEventHandler.kt  # Member → Prayer
+```
+
+### 구현 예시
+
+#### Domain Event (내부용)
+
+```kotlin
+// member/domain/event/MemberRegisteredEvent.kt
+data class MemberRegisteredEvent(
+    val member: Member              // ✅ 같은 Context의 Domain 객체 OK
+) : BaseDomainEvent()
+```
+
+#### 같은 Context 이벤트 리스너 (Application Layer)
+
+```kotlin
+// member/application/listener/MemberRegisteredEventListener.kt
+@Component
+class MemberRegisteredEventListener(
+    private val emailVerificationTokenPort: EmailVerificationTokenPort,
+    private val sendEmailPort: SendEmailPort,
+) {
+    @EventListener
+    fun handle(event: MemberRegisteredEvent) {
+        val member = event.member
+
+        // OAuth 가입이면 스킵 (이미 이메일 인증됨)
+        if (member.emailVerified) return
+
+        // 이메일 가입이면 인증 메일 발송
+        runBlocking {
+            val tokenResult = emailVerificationTokenPort.create(member.id)
+            sendEmailPort.sendVerificationEmail(
+                to = member.email,
+                nickname = member.nickname,
+                verificationToken = tokenResult.rawToken,
+            )
+        }
+    }
+}
+```
+
+#### Integration Event (외부용, 필요시)
+
+```kotlin
+// member/application/event/MemberCreatedIntegrationEvent.kt
+data class MemberCreatedIntegrationEvent(
+    val memberId: String,             // ✅ ID만 전달 (Domain 객체 X)
+    val nickname: String,
+    override val occurredAt: Instant = Instant.now()
+) : IntegrationEvent
+```
+
+#### 다른 Context 이벤트 핸들러 (Adapter Layer)
+
+```kotlin
+// prayer/adapter/inbound/event/MemberCreatedEventHandler.kt
+@Component
+class MemberCreatedEventHandler(
+    private val initializePrayerSettingsUseCase: InitializePrayerSettingsUseCase
+) {
+    @EventListener
+    @Async
+    fun handle(event: MemberCreatedIntegrationEvent) {
+        // Integration Event 수신 → UseCase 호출
+        initializePrayerSettingsUseCase.initialize(
+            memberId = MemberId.from(event.memberId)
+        )
+    }
+}
+```
+
+### 통신 규칙 요약
+
+#### ✅ 허용
+
+| 항목 | 설명 |
+|------|------|
+| ID 참조 (Weak Reference) | `memberId: MemberId` |
+| Shared Kernel의 Value Object | `Email`, `MemberId` 등 common에 정의된 타입 |
+| Integration Event 구독 | Application Layer의 Event DTO |
+| 같은 Context 내 Domain Event 구독 | Application Layer의 listener에서 처리 |
+
+#### ❌ 금지
+
+| 항목 | 이유 |
+|------|------|
+| 다른 Context의 Domain 객체 직접 참조 | Context 경계 침범 |
+| 다른 Context의 Repository/Port 직접 주입 | 강한 결합 발생 |
+| Integration Event에 Domain 객체 포함 | 외부 Context가 Domain에 의존 |
+| 다른 Context 이벤트를 Application Layer에서 처리 | Adapter Layer (`adapter/inbound/event/`)에서 처리해야 함 |
+
+### Selah 이벤트 목록
+
+| Event | 발행 Context | 구독 Context | 용도 |
+|-------|-------------|-------------|------|
+| `MemberRegisteredEvent` | Member | Member (내부) | 이메일 가입 시 인증 메일 발송 |
+| `EmailVerifiedEvent` | Member | Member (내부) | 이메일 인증 완료 처리 |
+| `PasswordChangedEvent` | Member | Member (내부) | 비밀번호 변경 알림 (향후) |
+| `PrayerAnsweredEvent` | Prayer | Prayer (내부) | 응답된 기도 통계 갱신 (향후) |
+
+---
+
 ## E2E 암호화 - Backend 역할
 
 클라이언트에서 암호화된 데이터를 저장/조회하는 역할만 수행합니다. **서버는 평문에 접근할 수 없습니다.**
@@ -789,6 +992,10 @@ class PrayerTopicServiceTest : BehaviorSpec({
 | 암호화 필드를 평문으로 검색 시도 | 암호문(Base64)으로만 저장/조회 |
 | SLF4J 직접 사용 (`LoggerFactory.getLogger`) | `kotlin-logging` 사용 (`KotlinLogging.logger {}`) |
 | 인스턴스 레벨 logger 정의 | `companion object` + `@JvmStatic`으로 static 정의 |
+| Integration Event에 Domain 객체 포함 | Snapshot DTO로 변환하여 전달 |
+| 다른 Context의 Domain 직접 import | ID 참조 또는 Integration Event 사용 |
+| 다른 Context 이벤트를 Application Layer에서 처리 | Adapter Layer (`adapter/inbound/event/`)에서 처리 |
+| 같은 Context 이벤트를 Adapter Layer에서 처리 | Application Layer (`application/listener/`)에서 처리 |
 
 ## 코드 생성 시 체크리스트
 
@@ -808,6 +1015,13 @@ class PrayerTopicServiceTest : BehaviorSpec({
 
 ### Application Layer
 - [ ] 도메인 이벤트 발행 후 `publishAndClearEvents()`를 호출하는가?
+- [ ] 같은 Context의 이벤트 리스너가 `application/listener/`에 위치하는가?
+
+### Event & Context 통신
+- [ ] Integration Event에 Domain 객체가 아닌 Snapshot DTO를 사용하는가?
+- [ ] Domain Event는 `domain/event/`에, Integration Event는 `application/event/`에 위치하는가?
+- [ ] 다른 Context의 Domain을 직접 import하지 않는가?
+- [ ] 다른 Context의 Event Handler가 `adapter/inbound/event/`에 위치하는가?
 
 ### Adapter Layer
 - [ ] API 응답이 `ApiResponse`로 감싸져 있는가?

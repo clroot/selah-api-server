@@ -7,6 +7,19 @@ spring:
     virtual:
       enabled: true
 
+  # Email 설정
+  mail:
+    host: ${MAIL_HOST:smtp.gmail.com}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail.smtp.auth: true
+      mail.smtp.starttls.enable: true
+      mail.smtp.connectiontimeout: 5000
+      mail.smtp.timeout: 5000
+      mail.smtp.writetimeout: 5000
+
   # Liquibase 설정
   liquibase:
     change-log: classpath:db/changelog/db.changelog-master.yaml
@@ -42,6 +55,14 @@ selah:
   # API Key 설정
   api-key:
     prefix: selah_                # API Key 접두사
+
+  # 이메일 인증 설정
+  email-verification:
+    ttl: P1D                      # 토큰 유효 기간 (24시간)
+    resend-cooldown: PT5M         # 재발송 대기 시간 (5분)
+    frontend-url: ${FRONTEND_URL:http://localhost:3000}
+    from-email: ${MAIL_FROM:noreply@selah.io}
+    from-name: ${MAIL_FROM_NAME:Selah}
 
 # 로깅 설정
 logging:

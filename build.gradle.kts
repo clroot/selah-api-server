@@ -61,6 +61,9 @@ dependencies {
     // ===== Crypto =====
     implementation("org.bouncycastle:bcpkix-jdk18on:1.81")
 
+    // ===== Email =====
+    implementation("org.springframework.boot:spring-boot-starter-mail")
+
     // ===== Logging =====
     implementation("io.github.oshai:kotlin-logging-jvm:7.0.3")
 
