@@ -2,7 +2,6 @@ package io.clroot.selah.domains.member.domain
 
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.DescribeSpec
-import io.kotest.matchers.booleans.shouldBeFalse
 import io.kotest.matchers.booleans.shouldBeTrue
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
@@ -16,20 +15,25 @@ class EncryptionSettingsTest : DescribeSpec({
         context("유효한 정보로 생성할 때") {
             val memberId = MemberId.new()
             val salt = Base64.getEncoder().encodeToString("test-salt-16bytes".toByteArray())
+            val encryptedDEK = Base64.getEncoder().encodeToString("encrypted-dek-value".toByteArray())
+            val recoveryEncryptedDEK = Base64.getEncoder().encodeToString("recovery-encrypted-dek".toByteArray())
             val recoveryKeyHash = "hashed-recovery-key-value"
 
             it("EncryptionSettings가 생성된다") {
                 val settings = EncryptionSettings.create(
                     memberId = memberId,
                     salt = salt,
+                    encryptedDEK = encryptedDEK,
+                    recoveryEncryptedDEK = recoveryEncryptedDEK,
                     recoveryKeyHash = recoveryKeyHash,
                 )
 
                 settings.id shouldNotBe null
                 settings.memberId shouldBe memberId
                 settings.salt shouldBe salt
+                settings.encryptedDEK shouldBe encryptedDEK
+                settings.recoveryEncryptedDEK shouldBe recoveryEncryptedDEK
                 settings.recoveryKeyHash shouldBe recoveryKeyHash
-                settings.isEnabled.shouldBeTrue()
             }
 
             it("생성 시점이 설정된다") {
@@ -37,6 +41,8 @@ class EncryptionSettingsTest : DescribeSpec({
                 val settings = EncryptionSettings.create(
                     memberId = memberId,
                     salt = salt,
+                    encryptedDEK = encryptedDEK,
+                    recoveryEncryptedDEK = recoveryEncryptedDEK,
                     recoveryKeyHash = recoveryKeyHash,
                 )
                 val after = LocalDateTime.now()
@@ -50,6 +56,8 @@ class EncryptionSettingsTest : DescribeSpec({
                 val settings = EncryptionSettings.create(
                     memberId = memberId,
                     salt = salt,
+                    encryptedDEK = encryptedDEK,
+                    recoveryEncryptedDEK = recoveryEncryptedDEK,
                     recoveryKeyHash = recoveryKeyHash,
                 )
 
@@ -64,6 +72,8 @@ class EncryptionSettingsTest : DescribeSpec({
                     EncryptionSettings.create(
                         memberId = MemberId.new(),
                         salt = "",
+                        encryptedDEK = "valid-encrypted-dek",
+                        recoveryEncryptedDEK = "valid-recovery-encrypted-dek",
                         recoveryKeyHash = "valid-hash",
                     )
                 }
@@ -74,6 +84,32 @@ class EncryptionSettingsTest : DescribeSpec({
                     EncryptionSettings.create(
                         memberId = MemberId.new(),
                         salt = "   ",
+                        encryptedDEK = "valid-encrypted-dek",
+                        recoveryEncryptedDEK = "valid-recovery-encrypted-dek",
+                        recoveryKeyHash = "valid-hash",
+                    )
+                }
+            }
+
+            it("encryptedDEK가 빈 문자열이면 실패한다") {
+                shouldThrow<IllegalArgumentException> {
+                    EncryptionSettings.create(
+                        memberId = MemberId.new(),
+                        salt = "valid-salt",
+                        encryptedDEK = "",
+                        recoveryEncryptedDEK = "valid-recovery-encrypted-dek",
+                        recoveryKeyHash = "valid-hash",
+                    )
+                }
+            }
+
+            it("recoveryEncryptedDEK가 빈 문자열이면 실패한다") {
+                shouldThrow<IllegalArgumentException> {
+                    EncryptionSettings.create(
+                        memberId = MemberId.new(),
+                        salt = "valid-salt",
+                        encryptedDEK = "valid-encrypted-dek",
+                        recoveryEncryptedDEK = "",
                         recoveryKeyHash = "valid-hash",
                     )
                 }
@@ -84,122 +120,71 @@ class EncryptionSettingsTest : DescribeSpec({
                     EncryptionSettings.create(
                         memberId = MemberId.new(),
                         salt = "valid-salt",
+                        encryptedDEK = "valid-encrypted-dek",
+                        recoveryEncryptedDEK = "valid-recovery-encrypted-dek",
                         recoveryKeyHash = "",
                     )
                 }
             }
-
-            it("recoveryKeyHash가 공백만 있으면 실패한다") {
-                shouldThrow<IllegalArgumentException> {
-                    EncryptionSettings.create(
-                        memberId = MemberId.new(),
-                        salt = "valid-salt",
-                        recoveryKeyHash = "   ",
-                    )
-                }
-            }
         }
     }
 
-    describe("Salt 업데이트") {
+    describe("암호화 키 업데이트 (비밀번호 변경 시)") {
 
-        it("새로운 Salt로 업데이트할 수 있다") {
+        it("새로운 Salt와 encryptedDEK로 업데이트할 수 있다") {
             val settings = createEncryptionSettings()
             val newSalt = "new-salt-value"
+            val newEncryptedDEK = "new-encrypted-dek-value"
 
-            settings.updateSalt(newSalt)
+            settings.updateEncryption(newSalt, newEncryptedDEK)
 
             settings.salt shouldBe newSalt
+            settings.encryptedDEK shouldBe newEncryptedDEK
         }
 
-        it("빈 문자열로 업데이트하면 실패한다") {
+        it("Salt가 빈 문자열이면 실패한다") {
             val settings = createEncryptionSettings()
 
             shouldThrow<IllegalArgumentException> {
-                settings.updateSalt("")
+                settings.updateEncryption("", "valid-encrypted-dek")
             }
         }
 
-        it("공백만 있는 문자열로 업데이트하면 실패한다") {
+        it("encryptedDEK가 빈 문자열이면 실패한다") {
             val settings = createEncryptionSettings()
 
             shouldThrow<IllegalArgumentException> {
-                settings.updateSalt("   ")
+                settings.updateEncryption("valid-salt", "")
             }
         }
     }
 
-    describe("복구 키 해시 업데이트") {
+    describe("복구 키 업데이트") {
 
-        it("새로운 복구 키 해시로 업데이트할 수 있다") {
+        it("새로운 recoveryEncryptedDEK와 recoveryKeyHash로 업데이트할 수 있다") {
             val settings = createEncryptionSettings()
-            val newHash = "new-recovery-key-hash"
+            val newRecoveryEncryptedDEK = "new-recovery-encrypted-dek"
+            val newRecoveryKeyHash = "new-recovery-key-hash"
 
-            settings.updateRecoveryKeyHash(newHash)
+            settings.updateRecoveryKey(newRecoveryEncryptedDEK, newRecoveryKeyHash)
 
-            settings.recoveryKeyHash shouldBe newHash
+            settings.recoveryEncryptedDEK shouldBe newRecoveryEncryptedDEK
+            settings.recoveryKeyHash shouldBe newRecoveryKeyHash
         }
 
-        it("빈 문자열로 업데이트하면 실패한다") {
-            val settings = createEncryptionSettings()
-
-            shouldThrow<IllegalArgumentException> {
-                settings.updateRecoveryKeyHash("")
-            }
-        }
-
-        it("공백만 있는 문자열로 업데이트하면 실패한다") {
+        it("recoveryEncryptedDEK가 빈 문자열이면 실패한다") {
             val settings = createEncryptionSettings()
 
             shouldThrow<IllegalArgumentException> {
-                settings.updateRecoveryKeyHash("   ")
-            }
-        }
-    }
-
-    describe("암호화 활성화/비활성화") {
-
-        context("활성화") {
-
-            it("비활성화된 상태에서 활성화할 수 있다") {
-                val settings = createEncryptionSettings()
-                settings.disable()
-                settings.isEnabled.shouldBeFalse()
-
-                settings.enable()
-
-                settings.isEnabled.shouldBeTrue()
-            }
-
-            it("이미 활성화된 상태에서 활성화해도 상태가 유지된다") {
-                val settings = createEncryptionSettings()
-                settings.isEnabled.shouldBeTrue()
-
-                settings.enable()
-
-                settings.isEnabled.shouldBeTrue()
+                settings.updateRecoveryKey("", "valid-hash")
             }
         }
 
-        context("비활성화") {
+        it("recoveryKeyHash가 빈 문자열이면 실패한다") {
+            val settings = createEncryptionSettings()
 
-            it("활성화된 상태에서 비활성화할 수 있다") {
-                val settings = createEncryptionSettings()
-                settings.isEnabled.shouldBeTrue()
-
-                settings.disable()
-
-                settings.isEnabled.shouldBeFalse()
-            }
-
-            it("이미 비활성화된 상태에서 비활성화해도 상태가 유지된다") {
-                val settings = createEncryptionSettings()
-                settings.disable()
-                settings.isEnabled.shouldBeFalse()
-
-                settings.disable()
-
-                settings.isEnabled.shouldBeFalse()
+            shouldThrow<IllegalArgumentException> {
+                settings.updateRecoveryKey("valid-recovery-encrypted-dek", "")
             }
         }
     }
@@ -211,11 +196,15 @@ class EncryptionSettingsTest : DescribeSpec({
 private fun createEncryptionSettings(
     memberId: MemberId = MemberId.new(),
     salt: String = Base64.getEncoder().encodeToString("test-salt-16bytes".toByteArray()),
+    encryptedDEK: String = Base64.getEncoder().encodeToString("test-encrypted-dek".toByteArray()),
+    recoveryEncryptedDEK: String = Base64.getEncoder().encodeToString("test-recovery-encrypted-dek".toByteArray()),
     recoveryKeyHash: String = "test-recovery-key-hash",
 ): EncryptionSettings {
     return EncryptionSettings.create(
         memberId = memberId,
         salt = salt,
+        encryptedDEK = encryptedDEK,
+        recoveryEncryptedDEK = recoveryEncryptedDEK,
         recoveryKeyHash = recoveryKeyHash,
     )
 }

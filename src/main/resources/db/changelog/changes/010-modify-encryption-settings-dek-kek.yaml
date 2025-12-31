@@ -1,0 +1,42 @@
+databaseChangeLog:
+  - changeSet:
+      id: 010-modify-encryption-settings-dek-kek
+      author: clroot
+      comment: DEK/KEK 구조 적용 - encryptedDEK, recoveryEncryptedDEK 추가, isEnabled 제거
+      changes:
+        # 새 컬럼 추가
+        - addColumn:
+            tableName: encryption_settings
+            columns:
+              - column:
+                  name: encrypted_dek
+                  type: varchar(512)
+                  constraints:
+                    nullable: false
+                  defaultValue: ""
+              - column:
+                  name: recovery_encrypted_dek
+                  type: varchar(512)
+                  constraints:
+                    nullable: false
+                  defaultValue: ""
+        # isEnabled 컬럼 제거
+        - dropColumn:
+            tableName: encryption_settings
+            columnName: is_enabled
+      rollback:
+        - addColumn:
+            tableName: encryption_settings
+            columns:
+              - column:
+                  name: is_enabled
+                  type: boolean
+                  defaultValueBoolean: true
+                  constraints:
+                    nullable: false
+        - dropColumn:
+            tableName: encryption_settings
+            columnName: encrypted_dek
+        - dropColumn:
+            tableName: encryption_settings
+            columnName: recovery_encrypted_dek

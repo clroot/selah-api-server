@@ -28,6 +28,7 @@
 | Build | Gradle | Kotlin DSL |
 | Persistence | Spring Data JPA | Hibernate |
 | Query DSL | Kotlin JDSL | 타입 안전한 쿼리 |
+| DB Migration | Liquibase | YAML 포맷 |
 | Security | Spring Security | OAuth2 + JWT |
 | Async | Kotlin Coroutines, Virtual Threads | 비동기 처리 |
 | Logging | kotlin-logging | SLF4J 래퍼 |
@@ -319,11 +320,26 @@ class MemberCreatedEventHandler(
 
 ```text
 // 암호화 설정 API
-POST   /api/v1/encryption/setup      // 암호화 설정 (salt, recoveryKeyHash 저장)
-GET    /api/v1/encryption/settings   // 암호화 설정 조회 (salt 반환)
-POST   /api/v1/encryption/verify-recovery  // 복구 키 검증
-DELETE /api/v1/encryption/settings   // 암호화 설정 삭제 (모든 데이터 삭제됨)
+POST   /api/v1/encryption/setup           // 암호화 설정 초기화 (salt, encryptedDEK, recoveryEncryptedDEK, recoveryKeyHash)
+GET    /api/v1/encryption/settings        // 암호화 설정 조회 (salt, encryptedDEK 반환)
+GET    /api/v1/encryption/recovery-settings  // 복구 설정 조회 (recoveryEncryptedDEK, recoveryKeyHash)
+PUT    /api/v1/encryption/encryption      // 암호화 키 업데이트 (비밀번호 변경 시)
+PUT    /api/v1/encryption/recovery-key    // 복구 키 재생성
+POST   /api/v1/encryption/verify-recovery // 복구 키 검증
+DELETE /api/v1/encryption/settings        // 암호화 설정 삭제 (모든 데이터 삭제됨)
 ```
+
+### UX 정책 (Backend 관점)
+
+| 정책 | Backend 역할 |
+|------|-------------|
+| **E2E 필수 적용** | 암호화 비활성화 API 제공 안함 (항상 활성화) |
+| **투명한 암호화** | 로그인 비밀번호 기반 KEK 파생 (별도 암호화 비밀번호 없음) |
+| **복구 키 1회 표시** | 복구 키 원본은 저장하지 않음, 해시만 저장 |
+| **복구 키 재생성** | 재생성 API 제공 시 기존 recoveryEncryptedDEK/해시 덮어쓰기 |
+| **비밀번호 변경** | 새 Salt/encryptedDEK로 업데이트 (DEK 자체는 변경 안됨) |
+
+> **📌 참고**: 전체 UX 정책은 [루트 CLAUDE.md](../CLAUDE.md#ux-정책) 참조
 
 ### 도메인 모델
 
@@ -332,13 +348,20 @@ DELETE /api/v1/encryption/settings   // 암호화 설정 삭제 (모든 데이�
 class EncryptionSettings(
     override val id: EncryptionSettingsId,
     val memberId: MemberId,
-    salt: String,                    // Base64 인코딩된 Salt
+    salt: String,                    // Base64 인코딩된 Salt (KEK 파생용)
+    encryptedDEK: String,            // Base64 인코딩된 암호화된 DEK (KEK로 암호화)
+    recoveryEncryptedDEK: String,    // Base64 인코딩된 복구용 암호화된 DEK (복구 키로 암호화)
     recoveryKeyHash: String,         // 복구 키 해시 (검증용)
-    isEnabled: Boolean,
+    version: Long?,
     createdAt: LocalDateTime,
     updatedAt: LocalDateTime,
-    val version: Long?
-) : AggregateRoot<EncryptionSettingsId>()
+) : AggregateRoot<EncryptionSettingsId>() {
+    // 비밀번호 변경 시 호출 (DEK는 변경되지 않음)
+    fun updateEncryption(newSalt: String, newEncryptedDEK: String)
+
+    // 복구 키 재생성 시 호출
+    fun updateRecoveryKey(newRecoveryEncryptedDEK: String, newRecoveryKeyHash: String)
+}
 ```
 
 ### 암호화 필드 처리

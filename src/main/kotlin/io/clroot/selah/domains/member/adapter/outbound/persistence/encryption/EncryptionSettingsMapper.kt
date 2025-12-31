@@ -19,8 +19,9 @@ class EncryptionSettingsMapper {
             id = domain.id.value,
             memberId = domain.memberId.value,
             salt = domain.salt,
+            encryptedDek = domain.encryptedDEK,
+            recoveryEncryptedDek = domain.recoveryEncryptedDEK,
             recoveryKeyHash = domain.recoveryKeyHash,
-            isEnabled = domain.isEnabled,
             version = domain.version,
             createdAt = domain.createdAt,
             updatedAt = domain.updatedAt,
@@ -35,8 +36,9 @@ class EncryptionSettingsMapper {
             id = EncryptionSettingsId.from(entity.id),
             memberId = MemberId.from(entity.memberId),
             salt = entity.salt,
+            encryptedDEK = entity.encryptedDek,
+            recoveryEncryptedDEK = entity.recoveryEncryptedDek,
             recoveryKeyHash = entity.recoveryKeyHash,
-            isEnabled = entity.isEnabled,
             version = entity.version,
             createdAt = entity.createdAt,
             updatedAt = entity.updatedAt,
@@ -48,8 +50,9 @@ class EncryptionSettingsMapper {
      */
     fun updateEntity(entity: EncryptionSettingsEntity, domain: EncryptionSettings) {
         entity.salt = domain.salt
+        entity.encryptedDek = domain.encryptedDEK
+        entity.recoveryEncryptedDek = domain.recoveryEncryptedDEK
         entity.recoveryKeyHash = domain.recoveryKeyHash
-        entity.isEnabled = domain.isEnabled
         entity.updatedAt = domain.updatedAt
     }
 }

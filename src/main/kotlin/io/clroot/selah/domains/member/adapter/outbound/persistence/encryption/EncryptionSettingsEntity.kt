@@ -12,6 +12,12 @@ import java.time.LocalDateTime
  * EncryptionSettings JPA Entity
  *
  * Domain의 EncryptionSettings와 분리된 Persistence Layer Entity입니다.
+ *
+ * DEK/KEK 구조:
+ * - salt: KEK 파생용
+ * - encryptedDek: KEK로 암호화된 DEK
+ * - recoveryEncryptedDek: 복구 키로 암호화된 DEK
+ * - recoveryKeyHash: 복구 키 검증용 해시
  */
 @Entity
 @Table(
@@ -31,11 +37,14 @@ class EncryptionSettingsEntity(
     @Column(name = "salt", nullable = false, columnDefinition = "TEXT")
     var salt: String,
 
+    @Column(name = "encrypted_dek", nullable = false, length = 512)
+    var encryptedDek: String,
+
+    @Column(name = "recovery_encrypted_dek", nullable = false, length = 512)
+    var recoveryEncryptedDek: String,
+
     @Column(name = "recovery_key_hash", nullable = false)
     var recoveryKeyHash: String,
-
-    @Column(name = "is_enabled", nullable = false)
-    var isEnabled: Boolean = true,
 
     @Version
     @Column(name = "version")

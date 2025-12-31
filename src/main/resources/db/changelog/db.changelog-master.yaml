@@ -17,3 +17,5 @@ databaseChangeLog:
       file: db/changelog/changes/008-create-prayer-topics.yaml
   - include:
       file: db/changelog/changes/009-create-prayers.yaml
+  - include:
+      file: db/changelog/changes/010-modify-encryption-settings-dek-kek.yaml

@@ -1,6 +1,8 @@
 package io.clroot.selah.domains.member.application.service
 
 import io.clroot.selah.domains.member.application.port.inbound.SetupEncryptionCommand
+import io.clroot.selah.domains.member.application.port.inbound.UpdateEncryptionCommand
+import io.clroot.selah.domains.member.application.port.inbound.UpdateRecoveryKeyCommand
 import io.clroot.selah.domains.member.application.port.outbound.DeleteEncryptionSettingsPort
 import io.clroot.selah.domains.member.application.port.outbound.LoadEncryptionSettingsPort
 import io.clroot.selah.domains.member.application.port.outbound.SaveEncryptionSettingsPort
@@ -51,9 +53,13 @@ class EncryptionSettingsServiceTest : DescribeSpec({
     describe("setup") {
         val memberId = MemberId.new()
         val salt = Base64.getEncoder().encodeToString("test-salt-16bytes".toByteArray())
+        val encryptedDEK = Base64.getEncoder().encodeToString("test-encrypted-dek".toByteArray())
+        val recoveryEncryptedDEK = Base64.getEncoder().encodeToString("test-recovery-encrypted-dek".toByteArray())
         val recoveryKeyHash = "hashed-recovery-key"
         val command = SetupEncryptionCommand(
             salt = salt,
+            encryptedDEK = encryptedDEK,
+            recoveryEncryptedDEK = recoveryEncryptedDEK,
             recoveryKeyHash = recoveryKeyHash,
         )
 
@@ -68,8 +74,9 @@ class EncryptionSettingsServiceTest : DescribeSpec({
                 result shouldNotBe null
                 result.memberId shouldBe memberId
                 result.salt shouldBe salt
+                result.encryptedDEK shouldBe encryptedDEK
+                result.recoveryEncryptedDEK shouldBe recoveryEncryptedDEK
                 result.recoveryKeyHash shouldBe recoveryKeyHash
-                result.isEnabled shouldBe true
 
                 coVerify(exactly = 1) { loadEncryptionSettingsPort.existsByMemberId(memberId) }
                 coVerify(exactly = 1) { saveEncryptionSettingsPort.save(any()) }
@@ -190,6 +197,108 @@ class EncryptionSettingsServiceTest : DescribeSpec({
         }
     }
 
+    describe("getRecoverySettings") {
+        val memberId = MemberId.new()
+
+        context("암호화 설정이 존재하는 경우") {
+
+            it("복구용 설정을 반환한다") {
+                val existingSettings = createEncryptionSettings(memberId)
+                coEvery { loadEncryptionSettingsPort.findByMemberId(memberId) } returns existingSettings
+
+                val result = encryptionSettingsService.getRecoverySettings(memberId)
+
+                result.recoveryEncryptedDEK shouldBe existingSettings.recoveryEncryptedDEK
+                result.recoveryKeyHash shouldBe existingSettings.recoveryKeyHash
+            }
+        }
+
+        context("암호화 설정이 없는 경우") {
+
+            it("EncryptionSettingsNotFoundException을 던진다") {
+                coEvery { loadEncryptionSettingsPort.findByMemberId(memberId) } returns null
+
+                shouldThrow<EncryptionSettingsNotFoundException> {
+                    encryptionSettingsService.getRecoverySettings(memberId)
+                }
+            }
+        }
+    }
+
+    describe("updateEncryption") {
+        val memberId = MemberId.new()
+        val newSalt = "new-salt-value"
+        val newEncryptedDEK = "new-encrypted-dek-value"
+        val command = UpdateEncryptionCommand(
+            salt = newSalt,
+            encryptedDEK = newEncryptedDEK,
+        )
+
+        context("암호화 설정이 존재하는 경우") {
+
+            it("암호화 키가 업데이트된다") {
+                val existingSettings = createEncryptionSettings(memberId)
+                coEvery { loadEncryptionSettingsPort.findByMemberId(memberId) } returns existingSettings
+                coEvery { saveEncryptionSettingsPort.save(any()) } answers { firstArg() }
+
+                val result = encryptionSettingsService.updateEncryption(memberId, command)
+
+                result.salt shouldBe newSalt
+                result.encryptedDEK shouldBe newEncryptedDEK
+
+                coVerify(exactly = 1) { saveEncryptionSettingsPort.save(any()) }
+            }
+        }
+
+        context("암호화 설정이 없는 경우") {
+
+            it("EncryptionSettingsNotFoundException을 던진다") {
+                coEvery { loadEncryptionSettingsPort.findByMemberId(memberId) } returns null
+
+                shouldThrow<EncryptionSettingsNotFoundException> {
+                    encryptionSettingsService.updateEncryption(memberId, command)
+                }
+            }
+        }
+    }
+
+    describe("updateRecoveryKey") {
+        val memberId = MemberId.new()
+        val newRecoveryEncryptedDEK = "new-recovery-encrypted-dek"
+        val newRecoveryKeyHash = "new-recovery-key-hash"
+        val command = UpdateRecoveryKeyCommand(
+            recoveryEncryptedDEK = newRecoveryEncryptedDEK,
+            recoveryKeyHash = newRecoveryKeyHash,
+        )
+
+        context("암호화 설정이 존재하는 경우") {
+
+            it("복구 키가 업데이트된다") {
+                val existingSettings = createEncryptionSettings(memberId)
+                coEvery { loadEncryptionSettingsPort.findByMemberId(memberId) } returns existingSettings
+                coEvery { saveEncryptionSettingsPort.save(any()) } answers { firstArg() }
+
+                val result = encryptionSettingsService.updateRecoveryKey(memberId, command)
+
+                result.recoveryEncryptedDEK shouldBe newRecoveryEncryptedDEK
+                result.recoveryKeyHash shouldBe newRecoveryKeyHash
+
+                coVerify(exactly = 1) { saveEncryptionSettingsPort.save(any()) }
+            }
+        }
+
+        context("암호화 설정이 없는 경우") {
+
+            it("EncryptionSettingsNotFoundException을 던진다") {
+                coEvery { loadEncryptionSettingsPort.findByMemberId(memberId) } returns null
+
+                shouldThrow<EncryptionSettingsNotFoundException> {
+                    encryptionSettingsService.updateRecoveryKey(memberId, command)
+                }
+            }
+        }
+    }
+
     describe("deleteSettings") {
         val memberId = MemberId.new()
 
@@ -233,11 +342,15 @@ class EncryptionSettingsServiceTest : DescribeSpec({
 private fun createEncryptionSettings(
     memberId: MemberId = MemberId.new(),
     salt: String = Base64.getEncoder().encodeToString("test-salt-16bytes".toByteArray()),
+    encryptedDEK: String = Base64.getEncoder().encodeToString("test-encrypted-dek".toByteArray()),
+    recoveryEncryptedDEK: String = Base64.getEncoder().encodeToString("test-recovery-encrypted-dek".toByteArray()),
     recoveryKeyHash: String = "test-recovery-key-hash",
 ): EncryptionSettings {
     return EncryptionSettings.create(
         memberId = memberId,
         salt = salt,
+        encryptedDEK = encryptedDEK,
+        recoveryEncryptedDEK = recoveryEncryptedDEK,
         recoveryKeyHash = recoveryKeyHash,
     )
 }

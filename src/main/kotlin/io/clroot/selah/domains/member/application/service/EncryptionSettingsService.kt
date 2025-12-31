@@ -2,7 +2,10 @@ package io.clroot.selah.domains.member.application.service
 
 import io.clroot.selah.domains.member.application.event.EncryptionSettingsDeletedIntegrationEvent
 import io.clroot.selah.domains.member.application.port.inbound.ManageEncryptionSettingsUseCase
+import io.clroot.selah.domains.member.application.port.inbound.RecoverySettingsResult
 import io.clroot.selah.domains.member.application.port.inbound.SetupEncryptionCommand
+import io.clroot.selah.domains.member.application.port.inbound.UpdateEncryptionCommand
+import io.clroot.selah.domains.member.application.port.inbound.UpdateRecoveryKeyCommand
 import io.clroot.selah.domains.member.application.port.outbound.DeleteEncryptionSettingsPort
 import io.clroot.selah.domains.member.application.port.outbound.LoadEncryptionSettingsPort
 import io.clroot.selah.domains.member.application.port.outbound.SaveEncryptionSettingsPort
@@ -16,6 +19,8 @@ import org.springframework.transaction.annotation.Transactional
 
 /**
  * E2E 암호화 설정 서비스
+ *
+ * DEK/KEK 구조 기반의 암호화 설정을 관리합니다.
  */
 @Service
 @Transactional
@@ -36,6 +41,8 @@ class EncryptionSettingsService(
         val encryptionSettings = EncryptionSettings.create(
             memberId = memberId,
             salt = command.salt,
+            encryptedDEK = command.encryptedDEK,
+            recoveryEncryptedDEK = command.recoveryEncryptedDEK,
             recoveryKeyHash = command.recoveryKeyHash,
         )
 
@@ -60,6 +67,47 @@ class EncryptionSettingsService(
             ?: throw EncryptionSettingsNotFoundException(memberId.value)
 
         return settings.recoveryKeyHash == recoveryKeyHash
+    }
+
+    @Transactional(readOnly = true)
+    override suspend fun getRecoverySettings(memberId: MemberId): RecoverySettingsResult {
+        val settings = loadEncryptionSettingsPort.findByMemberId(memberId)
+            ?: throw EncryptionSettingsNotFoundException(memberId.value)
+
+        return RecoverySettingsResult(
+            recoveryEncryptedDEK = settings.recoveryEncryptedDEK,
+            recoveryKeyHash = settings.recoveryKeyHash,
+        )
+    }
+
+    override suspend fun updateEncryption(
+        memberId: MemberId,
+        command: UpdateEncryptionCommand,
+    ): EncryptionSettings {
+        val settings = loadEncryptionSettingsPort.findByMemberId(memberId)
+            ?: throw EncryptionSettingsNotFoundException(memberId.value)
+
+        settings.updateEncryption(
+            newSalt = command.salt,
+            newEncryptedDEK = command.encryptedDEK,
+        )
+
+        return saveEncryptionSettingsPort.save(settings)
+    }
+
+    override suspend fun updateRecoveryKey(
+        memberId: MemberId,
+        command: UpdateRecoveryKeyCommand,
+    ): EncryptionSettings {
+        val settings = loadEncryptionSettingsPort.findByMemberId(memberId)
+            ?: throw EncryptionSettingsNotFoundException(memberId.value)
+
+        settings.updateRecoveryKey(
+            newRecoveryEncryptedDEK = command.recoveryEncryptedDEK,
+            newRecoveryKeyHash = command.recoveryKeyHash,
+        )
+
+        return saveEncryptionSettingsPort.save(settings)
     }
 
     override suspend fun deleteSettings(memberId: MemberId) {
