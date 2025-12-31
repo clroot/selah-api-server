@@ -8,17 +8,13 @@ import io.clroot.selah.domains.member.application.port.inbound.OAuthCallbackComm
 import io.clroot.selah.domains.member.application.port.inbound.OAuthCallbackUseCase
 import io.clroot.selah.domains.member.domain.OAuthProvider
 import io.github.oshai.kotlinlogging.KotlinLogging
-import jakarta.servlet.http.Cookie
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
-import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 import java.net.URI
 import java.security.SecureRandom
-import java.time.Duration
-import java.time.LocalDateTime
 import java.util.*
 
 /**
@@ -30,20 +26,12 @@ import java.util.*
 class OAuthController(
     private val oAuthCallbackUseCase: OAuthCallbackUseCase,
     private val oAuthProperties: OAuthProperties,
-    @Value($$"${selah.session.cookie-name:SELAH_SESSION}")
-    private val sessionCookieName: String,
-    @Value($$"${selah.session.cookie.secure:true}")
-    private val cookieSecure: Boolean,
-    @Value($$"${selah.session.cookie.same-site:Strict}")
-    private val cookieSameSite: String,
+    private val sessionCookieHelper: SessionCookieHelper,
 ) {
 
     companion object {
         @JvmStatic
         private val logger = KotlinLogging.logger {}
-
-        private const val STATE_COOKIE_NAME = "oauth_state"
-        private const val STATE_COOKIE_MAX_AGE = 600 // 10 minutes
     }
 
     /**
@@ -60,14 +48,7 @@ class OAuthController(
         val state = generateState()
 
         // state를 쿠키에 저장 (callback에서 검증)
-        val stateCookie = Cookie(STATE_COOKIE_NAME, state).apply {
-            isHttpOnly = true
-            secure = cookieSecure
-            path = "/api/v1/auth/oauth"
-            maxAge = STATE_COOKIE_MAX_AGE
-            setAttribute("SameSite", cookieSameSite)
-        }
-        httpResponse.addCookie(stateCookie)
+        sessionCookieHelper.addStateCookie(httpResponse, state)
 
         // Authorization URL 생성
         val authorizationUrl = oAuthCallbackUseCase.getAuthorizationUrl(
@@ -106,14 +87,14 @@ class OAuthController(
         }
 
         // State 검증
-        val savedState = httpRequest.cookies?.find { it.name == STATE_COOKIE_NAME }?.value
+        val savedState = sessionCookieHelper.extractState(httpRequest)
         if (savedState == null || savedState != state) {
             logger.warn { "OAuth state mismatch: expected=$savedState, received=$state" }
             return redirectToFrontendWithError("state_mismatch")
         }
 
         // State 쿠키 삭제
-        clearStateCookie(httpResponse)
+        sessionCookieHelper.clearStateCookie(httpResponse)
 
         return try {
             // OAuth 콜백 처리 (token 교환, 사용자 정보 조회, 로그인)
@@ -128,7 +109,7 @@ class OAuthController(
             )
 
             // 세션 쿠키 설정
-            addSessionCookie(httpResponse, result.session.token, result.session.expiresAt)
+            sessionCookieHelper.addSessionCookie(httpResponse, result.session.token, result.session.expiresAt)
 
             // 프론트엔드로 리다이렉트 (성공)
             val redirectUrl = buildFrontendCallbackUrl(
@@ -163,33 +144,5 @@ class OAuthController(
             .status(HttpStatus.FOUND)
             .location(URI.create(redirectUrl))
             .build()
-    }
-
-    private fun addSessionCookie(
-        response: HttpServletResponse,
-        token: String,
-        expiresAt: LocalDateTime,
-    ) {
-        val maxAge = Duration.between(LocalDateTime.now(), expiresAt).seconds.toInt()
-
-        val cookie = Cookie(sessionCookieName, token).apply {
-            isHttpOnly = true
-            secure = cookieSecure
-            path = "/"
-            this.maxAge = maxAge
-            setAttribute("SameSite", cookieSameSite)
-        }
-        response.addCookie(cookie)
-    }
-
-    private fun clearStateCookie(response: HttpServletResponse) {
-        val cookie = Cookie(STATE_COOKIE_NAME, "").apply {
-            isHttpOnly = true
-            secure = cookieSecure
-            path = "/api/v1/auth/oauth"
-            maxAge = 0
-            setAttribute("SameSite", cookieSameSite)
-        }
-        response.addCookie(cookie)
     }
 }

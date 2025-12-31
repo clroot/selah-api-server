@@ -9,17 +9,13 @@ import io.clroot.selah.domains.member.application.port.inbound.*
 import io.clroot.selah.domains.member.domain.Email
 import io.clroot.selah.domains.member.domain.NewPassword
 import io.clroot.selah.domains.member.domain.RawPassword
-import jakarta.servlet.http.Cookie
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
-import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
-import java.time.Duration
-import java.time.LocalDateTime
 
 /**
  * 인증 관련 Controller
@@ -30,12 +26,7 @@ class AuthController(
     private val registerMemberUseCase: RegisterMemberUseCase,
     private val loginUseCase: LoginUseCase,
     private val logoutUseCase: LogoutUseCase,
-    @Value($$"${selah.session.cookie-name:SELAH_SESSION}")
-    private val sessionCookieName: String,
-    @Value($$"${selah.session.cookie.secure:true}")
-    private val cookieSecure: Boolean,
-    @Value($$"${selah.session.cookie.same-site:Strict}")
-    private val cookieSameSite: String,
+    private val sessionCookieHelper: SessionCookieHelper,
 ) {
 
     /**
@@ -84,7 +75,7 @@ class AuthController(
         )
 
         // 세션 쿠키 설정
-        addSessionCookie(httpResponse, result.session.token, result.session.expiresAt)
+        sessionCookieHelper.addSessionCookie(httpResponse, result.session.token, result.session.expiresAt)
 
         return ResponseEntity.ok(ApiResponse.success(result.toResponse()))
     }
@@ -112,7 +103,7 @@ class AuthController(
         )
 
         // 세션 쿠키 설정
-        addSessionCookie(httpResponse, result.session.token, result.session.expiresAt)
+        sessionCookieHelper.addSessionCookie(httpResponse, result.session.token, result.session.expiresAt)
 
         return ResponseEntity.ok(ApiResponse.success(result.toResponse()))
     }
@@ -125,11 +116,11 @@ class AuthController(
         httpRequest: HttpServletRequest,
         httpResponse: HttpServletResponse,
     ): ResponseEntity<ApiResponse<Unit>> {
-        val sessionToken = extractSessionToken(httpRequest)
+        val sessionToken = sessionCookieHelper.extractSessionToken(httpRequest)
         if (sessionToken != null) {
             logoutUseCase.logout(sessionToken)
         }
-        clearSessionCookie(httpResponse)
+        sessionCookieHelper.clearSessionCookie(httpResponse)
 
         return ResponseEntity.ok(ApiResponse.success(Unit))
     }
@@ -144,40 +135,8 @@ class AuthController(
     ): ResponseEntity<ApiResponse<Unit>> {
         val memberId = SecurityUtils.requireCurrentMemberId()
         logoutUseCase.logoutAll(memberId)
-        clearSessionCookie(httpResponse)
+        sessionCookieHelper.clearSessionCookie(httpResponse)
 
         return ResponseEntity.ok(ApiResponse.success(Unit))
-    }
-
-    private fun extractSessionToken(request: HttpServletRequest): String? {
-        return request.cookies?.find { it.name == sessionCookieName }?.value
-    }
-
-    private fun addSessionCookie(
-        response: HttpServletResponse,
-        token: String,
-        expiresAt: LocalDateTime,
-    ) {
-        val maxAge = Duration.between(LocalDateTime.now(), expiresAt).seconds.toInt()
-
-        val cookie = Cookie(sessionCookieName, token).apply {
-            isHttpOnly = true
-            secure = cookieSecure
-            path = "/"
-            this.maxAge = maxAge
-            setAttribute("SameSite", cookieSameSite)
-        }
-        response.addCookie(cookie)
-    }
-
-    private fun clearSessionCookie(response: HttpServletResponse) {
-        val cookie = Cookie(sessionCookieName, "").apply {
-            isHttpOnly = true
-            secure = cookieSecure
-            path = "/"
-            maxAge = 0
-            setAttribute("SameSite", cookieSameSite)
-        }
-        response.addCookie(cookie)
     }
 }

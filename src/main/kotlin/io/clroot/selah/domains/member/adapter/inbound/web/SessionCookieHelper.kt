@@ -1,0 +1,108 @@
+package io.clroot.selah.domains.member.adapter.inbound.web
+
+import jakarta.servlet.http.Cookie
+import jakarta.servlet.http.HttpServletRequest
+import jakarta.servlet.http.HttpServletResponse
+import org.springframework.beans.factory.annotation.Value
+import org.springframework.stereotype.Component
+import java.time.Duration
+import java.time.LocalDateTime
+
+/**
+ * 인증 관련 쿠키 관리 Helper
+ */
+@Component
+class SessionCookieHelper(
+    @Value($$"${selah.session.cookie-name:SELAH_SESSION}")
+    private val sessionCookieName: String,
+    @Value($$"${selah.session.cookie.secure:true}")
+    private val cookieSecure: Boolean,
+    @Value($$"${selah.session.cookie.same-site:Strict}")
+    private val cookieSameSite: String,
+) {
+    companion object {
+        private const val STATE_COOKIE_NAME = "oauth_state"
+        private const val STATE_COOKIE_PATH = "/api/v1/auth/oauth"
+        private const val STATE_COOKIE_MAX_AGE = 600 // 10 minutes
+    }
+
+    // ===== Session Cookie =====
+
+    /**
+     * 세션 쿠키 추가
+     */
+    fun addSessionCookie(
+        response: HttpServletResponse,
+        token: String,
+        expiresAt: LocalDateTime,
+    ) {
+        val maxAge = Duration.between(LocalDateTime.now(), expiresAt).seconds.toInt()
+
+        val cookie = Cookie(sessionCookieName, token).apply {
+            isHttpOnly = true
+            secure = cookieSecure
+            path = "/"
+            this.maxAge = maxAge
+            setAttribute("SameSite", cookieSameSite)
+        }
+        response.addCookie(cookie)
+    }
+
+    /**
+     * 세션 쿠키 삭제
+     */
+    fun clearSessionCookie(response: HttpServletResponse) {
+        val cookie = Cookie(sessionCookieName, "").apply {
+            isHttpOnly = true
+            secure = cookieSecure
+            path = "/"
+            maxAge = 0
+            setAttribute("SameSite", cookieSameSite)
+        }
+        response.addCookie(cookie)
+    }
+
+    /**
+     * 세션 토큰 추출
+     */
+    fun extractSessionToken(request: HttpServletRequest): String? {
+        return request.cookies?.find { it.name == sessionCookieName }?.value
+    }
+
+    // ===== OAuth State Cookie =====
+
+    /**
+     * OAuth state 쿠키 추가 (CSRF 방지용)
+     */
+    fun addStateCookie(response: HttpServletResponse, state: String) {
+        val cookie = Cookie(STATE_COOKIE_NAME, state).apply {
+            isHttpOnly = true
+            secure = cookieSecure
+            path = STATE_COOKIE_PATH
+            maxAge = STATE_COOKIE_MAX_AGE
+            setAttribute("SameSite", cookieSameSite)
+        }
+        response.addCookie(cookie)
+    }
+
+    /**
+     * OAuth state 쿠키 삭제
+     */
+    fun clearStateCookie(response: HttpServletResponse) {
+        val cookie = Cookie(STATE_COOKIE_NAME, "").apply {
+            isHttpOnly = true
+            secure = cookieSecure
+            path = STATE_COOKIE_PATH
+            maxAge = 0
+            setAttribute("SameSite", cookieSameSite)
+        }
+        response.addCookie(cookie)
+    }
+
+    /**
+     * OAuth state 추출
+     */
+    fun extractState(request: HttpServletRequest): String? {
+        return request.cookies?.find { it.name == STATE_COOKIE_NAME }?.value
+    }
+}
