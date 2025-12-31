@@ -18,6 +18,10 @@ spring:
 
 # 테스트용 세션 설정
 selah:
+  encryption:
+    # 테스트용 Base64 인코딩된 256-bit AES 키 (32 bytes)
+    master-key: "dGVzdC1lbmNyeXB0aW9uLW1hc3Rlci1rZXktMzJiISE="
+
   session:
     cookie-name: SELAH_SESSION_TEST
     ttl: PT1H

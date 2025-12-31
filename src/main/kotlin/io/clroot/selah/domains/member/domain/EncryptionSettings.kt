@@ -73,15 +73,20 @@ class EncryptionSettings(
     }
 
     companion object {
+        /**
+         * 초기 설정 시 사용되는 encryptedDEK 플레이스홀더
+         * 클라이언트가 serverKey를 받은 후 updateEncryption으로 실제 값을 설정합니다.
+         */
+        const val PLACEHOLDER_ENCRYPTED_DEK = "PENDING"
+
         fun create(
             memberId: MemberId,
             salt: String,
-            encryptedDEK: String,
+            encryptedDEK: String?, // null이면 placeholder 사용
             recoveryEncryptedDEK: String,
             recoveryKeyHash: String,
         ): EncryptionSettings {
             require(salt.isNotBlank()) { "Salt cannot be blank" }
-            require(encryptedDEK.isNotBlank()) { "Encrypted DEK cannot be blank" }
             require(recoveryEncryptedDEK.isNotBlank()) { "Recovery encrypted DEK cannot be blank" }
             require(recoveryKeyHash.isNotBlank()) { "Recovery key hash cannot be blank" }
 
@@ -90,7 +95,7 @@ class EncryptionSettings(
                 id = EncryptionSettingsId.new(),
                 memberId = memberId,
                 salt = salt,
-                encryptedDEK = encryptedDEK,
+                encryptedDEK = encryptedDEK?.takeIf { it.isNotBlank() } ?: PLACEHOLDER_ENCRYPTED_DEK,
                 recoveryEncryptedDEK = recoveryEncryptedDEK,
                 recoveryKeyHash = recoveryKeyHash,
                 version = null,

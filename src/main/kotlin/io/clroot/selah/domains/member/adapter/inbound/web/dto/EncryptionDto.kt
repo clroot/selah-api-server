@@ -11,10 +11,13 @@ import java.time.LocalDateTime
 
 /**
  * 암호화 설정 초기화 요청 (회원가입 시)
+ *
+ * encryptedDEK는 초기 설정 시 비어있을 수 있습니다.
+ * 서버가 serverKey를 반환한 후, 클라이언트가 updateEncryption으로 encryptedDEK를 업데이트합니다.
  */
 data class SetupEncryptionRequest(
     val salt: String,
-    val encryptedDEK: String,
+    val encryptedDEK: String?, // null 허용 - serverKey 반환 후 업데이트
     val recoveryEncryptedDEK: String,
     val recoveryKeyHash: String,
 )
