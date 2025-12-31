@@ -148,3 +148,43 @@ class PasswordResetResendTooSoonException(
     code = "PASSWORD_RESET_RESEND_TOO_SOON",
     message = "Please wait $remainingSeconds seconds before requesting another password reset email",
 )
+
+/**
+ * OAuth 토큰 검증 실패
+ */
+class OAuthTokenValidationFailedException(provider: String) : MemberException(
+    code = "OAUTH_TOKEN_VALIDATION_FAILED",
+    message = "Failed to validate OAuth token for provider: $provider",
+)
+
+/**
+ * OAuth 토큰 교환 실패
+ */
+class OAuthTokenExchangeFailedException(provider: String) : MemberException(
+    code = "OAUTH_TOKEN_EXCHANGE_FAILED",
+    message = "Failed to exchange OAuth token for provider: $provider",
+)
+
+/**
+ * OAuth 상태 검증 실패 (CSRF 방지)
+ */
+class OAuthStateValidationFailedException : MemberException(
+    code = "OAUTH_STATE_VALIDATION_FAILED",
+    message = "OAuth state validation failed",
+)
+
+/**
+ * OAuth가 이미 다른 계정에 연결된 경우
+ */
+class OAuthAlreadyLinkedToAnotherMemberException(provider: String) : MemberException(
+    code = "OAUTH_ALREADY_LINKED_TO_ANOTHER_MEMBER",
+    message = "This $provider account is already linked to another member",
+)
+
+/**
+ * 마지막 로그인 방법을 해제하려고 시도한 경우
+ */
+class CannotDisconnectLastLoginMethodException : MemberException(
+    code = "CANNOT_DISCONNECT_LAST_LOGIN_METHOD",
+    message = "Cannot disconnect the last login method. Please set a password or connect another OAuth provider first.",
+)

@@ -38,6 +38,7 @@ dependencies {
 
     // ===== Kotlin Coroutines =====
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:$coroutinesVersion")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactor:$coroutinesVersion")
 
     // ===== Spring Boot =====
     implementation("org.springframework.boot:spring-boot-starter-actuator")

@@ -25,12 +25,10 @@ class OAuthConnectionTest : DescribeSpec({
             val googleConnection = OAuthConnection.create(OAuthProvider.GOOGLE, "google_id")
             val kakaoConnection = OAuthConnection.create(OAuthProvider.KAKAO, "kakao_id")
             val naverConnection = OAuthConnection.create(OAuthProvider.NAVER, "naver_id")
-            val appleConnection = OAuthConnection.create(OAuthProvider.APPLE, "apple_id")
 
             googleConnection.provider shouldBe OAuthProvider.GOOGLE
             kakaoConnection.provider shouldBe OAuthProvider.KAKAO
             naverConnection.provider shouldBe OAuthProvider.NAVER
-            appleConnection.provider shouldBe OAuthProvider.APPLE
         }
 
         it("providerId가 빈 문자열이면 실패한다") {
@@ -56,7 +54,7 @@ class OAuthConnectionTest : DescribeSpec({
 
         it("각 연결은 고유한 ID를 갖는다") {
             val connection1 = OAuthConnection.create(OAuthProvider.GOOGLE, "google_1")
-            val connection2 = OAuthConnection.create(OAuthProvider.GOOGLE, "google_2")
+            OAuthConnection.create(OAuthProvider.GOOGLE, "google_2")
 
             connection1.id shouldBe connection1.id // 동일 객체는 같은 ID
             connection1.id.value shouldBe connection1.id.value

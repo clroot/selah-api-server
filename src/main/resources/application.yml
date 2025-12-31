@@ -61,13 +61,37 @@ selah:
     ttl: P1D                      # 토큰 유효 기간 (24시간)
     resend-cooldown: PT5M         # 재발송 대기 시간 (5분)
     frontend-url: ${FRONTEND_URL:http://localhost:3000}
-    from-email: ${MAIL_FROM:noreply@selah.io}
+    from-email: ${MAIL_FROM:noreply@selah.clroot.io}
     from-name: ${MAIL_FROM_NAME:Selah}
 
   # 비밀번호 재설정 설정
   password-reset:
     ttl: PT1H                     # 토큰 유효 기간 (1시간)
     resend-cooldown: PT1M         # 재발송 대기 시간 (1분)
+
+  # OAuth 설정
+  oauth:
+    backend-base-url: ${BACKEND_URL:http://localhost:8080}
+    frontend-callback-url: ${FRONTEND_URL:http://localhost:3000}/auth/oauth-complete
+    providers:
+      google:
+        client-id: ${GOOGLE_CLIENT_ID}
+        client-secret: ${GOOGLE_CLIENT_SECRET}
+        auth-url: https://accounts.google.com/o/oauth2/v2/auth
+        token-url: https://oauth2.googleapis.com/token
+        scope: openid email profile
+      kakao:
+        client-id: ${KAKAO_CLIENT_ID}
+        client-secret: ${KAKAO_CLIENT_SECRET}
+        auth-url: https://kauth.kakao.com/oauth/authorize
+        token-url: https://kauth.kakao.com/oauth/token
+        scope: profile_nickname profile_image account_email
+      naver:
+        client-id: ${NAVER_CLIENT_ID}
+        client-secret: ${NAVER_CLIENT_SECRET}
+        auth-url: https://nid.naver.com/oauth2.0/authorize
+        token-url: https://nid.naver.com/oauth2.0/token
+        scope: ""
 
 # 로깅 설정
 logging:

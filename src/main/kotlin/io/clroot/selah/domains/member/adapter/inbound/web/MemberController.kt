@@ -4,10 +4,14 @@ import io.clroot.selah.common.response.ApiResponse
 import io.clroot.selah.common.util.HttpRequestUtils
 import io.clroot.selah.domains.member.adapter.inbound.security.SecurityUtils
 import io.clroot.selah.domains.member.adapter.inbound.web.dto.*
+import io.clroot.selah.domains.member.application.port.inbound.ConnectOAuthCommand
 import io.clroot.selah.domains.member.application.port.inbound.GetCurrentMemberUseCase
 import io.clroot.selah.domains.member.application.port.inbound.ManageApiKeyUseCase
+import io.clroot.selah.domains.member.application.port.inbound.ManageOAuthConnectionUseCase
 import io.clroot.selah.domains.member.application.port.inbound.UpdateProfileCommand
+import io.clroot.selah.domains.member.domain.OAuthProvider
 import jakarta.servlet.http.HttpServletRequest
+import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 
@@ -19,6 +23,7 @@ import org.springframework.web.bind.annotation.*
 class MemberController(
     private val getCurrentMemberUseCase: GetCurrentMemberUseCase,
     private val manageApiKeyUseCase: ManageApiKeyUseCase,
+    private val manageOAuthConnectionUseCase: ManageOAuthConnectionUseCase,
 ) {
 
     /**
@@ -89,5 +94,54 @@ class MemberController(
         manageApiKeyUseCase.deleteApiKey(memberId, apiKeyId)
 
         return ResponseEntity.ok(ApiResponse.success(Unit))
+    }
+
+    // === OAuth 연결 관리 ===
+
+    /**
+     * OAuth 연결 목록 조회
+     */
+    @GetMapping("/me/oauth-connections")
+    suspend fun getOAuthConnections(): ResponseEntity<ApiResponse<OAuthConnectionsResponse>> {
+        val memberId = SecurityUtils.requireCurrentMemberId()
+        val info = manageOAuthConnectionUseCase.getConnections(memberId)
+
+        return ResponseEntity.ok(ApiResponse.success(info.toResponse()))
+    }
+
+    /**
+     * OAuth 연결 추가
+     */
+    @PostMapping("/me/oauth-connections")
+    suspend fun connectOAuth(
+        @RequestBody request: ConnectOAuthRequest,
+    ): ResponseEntity<ApiResponse<OAuthConnectionResponse>> {
+        val memberId = SecurityUtils.requireCurrentMemberId()
+        val connection = manageOAuthConnectionUseCase.connect(
+            memberId = memberId,
+            command = ConnectOAuthCommand(
+                provider = request.provider,
+                accessToken = request.accessToken,
+            ),
+        )
+
+        return ResponseEntity.status(HttpStatus.CREATED)
+            .body(ApiResponse.success(connection.toResponse()))
+    }
+
+    /**
+     * OAuth 연결 해제
+     */
+    @DeleteMapping("/me/oauth-connections/{provider}")
+    suspend fun disconnectOAuth(
+        @PathVariable provider: OAuthProvider,
+    ): ResponseEntity<Unit> {
+        val memberId = SecurityUtils.requireCurrentMemberId()
+        manageOAuthConnectionUseCase.disconnect(
+            memberId = memberId,
+            provider = provider,
+        )
+
+        return ResponseEntity.noContent().build()
     }
 }

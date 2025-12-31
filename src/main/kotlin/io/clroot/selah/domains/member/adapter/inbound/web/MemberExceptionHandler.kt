@@ -49,6 +49,11 @@ class MemberExceptionHandler {
             // OAuth
             is OAuthProviderAlreadyConnectedException -> HttpStatus.CONFLICT to "이미 연결된 소셜 계정입니다"
             is OAuthProviderNotConnectedException -> HttpStatus.NOT_FOUND to "연결되지 않은 소셜 계정입니다"
+            is OAuthTokenValidationFailedException -> HttpStatus.UNAUTHORIZED to "소셜 계정 인증에 실패했습니다"
+            is OAuthTokenExchangeFailedException -> HttpStatus.BAD_GATEWAY to "소셜 계정 인증 토큰 교환에 실패했습니다"
+            is OAuthStateValidationFailedException -> HttpStatus.BAD_REQUEST to "잘못된 인증 요청입니다"
+            is OAuthAlreadyLinkedToAnotherMemberException -> HttpStatus.CONFLICT to "이미 다른 계정에 연결된 소셜 계정입니다"
+            is CannotDisconnectLastLoginMethodException -> HttpStatus.BAD_REQUEST to "마지막 로그인 방법은 해제할 수 없습니다. 비밀번호를 설정하거나 다른 소셜 계정을 연결해주세요."
 
             // 암호화 설정
             is EncryptionSettingsNotFoundException -> HttpStatus.NOT_FOUND to "암호화 설정을 찾을 수 없습니다"

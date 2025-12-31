@@ -3,8 +3,7 @@ package io.clroot.selah.domains.member.domain
 enum class OAuthProvider(val displayName: String) {
     GOOGLE("Google"),
     KAKAO("Kakao"),
-    NAVER("Naver"),
-    APPLE("Apple");
+    NAVER("Naver");
 
     companion object {
         fun fromString(value: String): OAuthProvider {

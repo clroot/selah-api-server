@@ -184,7 +184,6 @@ class ValueObjectsTest : DescribeSpec({
             OAuthProvider.fromString("google") shouldBe OAuthProvider.GOOGLE
             OAuthProvider.fromString("KAKAO") shouldBe OAuthProvider.KAKAO
             OAuthProvider.fromString("Naver") shouldBe OAuthProvider.NAVER
-            OAuthProvider.fromString("APPLE") shouldBe OAuthProvider.APPLE
         }
 
         it("유효하지 않은 문자열이면 실패한다") {

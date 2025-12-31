@@ -1,9 +1,11 @@
 package io.clroot.selah
 
 import org.springframework.boot.autoconfigure.SpringBootApplication
+import org.springframework.boot.context.properties.ConfigurationPropertiesScan
 import org.springframework.boot.runApplication
 
 @SpringBootApplication
+@ConfigurationPropertiesScan
 class SelahApplication
 
 fun main(args: Array<String>) {
