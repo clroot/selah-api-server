@@ -23,11 +23,27 @@ class SessionAuthenticationFilter(
     private val sessionCookieName: String,
 ) : OncePerRequestFilter() {
 
+    /**
+     * ASYNC_DISPATCH는 건너뛰기 (suspend 함수의 continuation)
+     * 이미 첫 번째 요청에서 인증이 완료됨
+     */
+    override fun shouldNotFilterAsyncDispatch(): Boolean = false
+
     override fun doFilterInternal(
         request: HttpServletRequest,
         response: HttpServletResponse,
         filterChain: FilterChain,
     ) {
+        // ASYNC_DISPATCH인 경우: request attribute에서 Authentication 복구
+        if (request.dispatcherType == jakarta.servlet.DispatcherType.ASYNC) {
+            val savedAuth = request.getAttribute(AUTH_ATTRIBUTE_KEY) as? org.springframework.security.core.Authentication
+            if (savedAuth != null) {
+                SecurityContextHolder.getContext().authentication = savedAuth
+            }
+            filterChain.doFilter(request, response)
+            return
+        }
+
         // 이미 인증되었으면 스킵 (API Key로 인증된 경우)
         if (SecurityContextHolder.getContext().authentication != null) {
             filterChain.doFilter(request, response)
@@ -35,12 +51,23 @@ class SessionAuthenticationFilter(
         }
 
         val sessionToken = extractSessionToken(request)
+
         if (sessionToken != null) {
             val ipAddress = HttpRequestUtils.extractIpAddress(request)
             authenticateWithSession(sessionToken, ipAddress)
+            val auth = SecurityContextHolder.getContext().authentication
+
+            // ASYNC_DISPATCH를 위해 request attribute에 저장
+            if (auth != null) {
+                request.setAttribute(AUTH_ATTRIBUTE_KEY, auth)
+            }
         }
 
         filterChain.doFilter(request, response)
+    }
+
+    companion object {
+        private const val AUTH_ATTRIBUTE_KEY = "io.clroot.selah.security.AUTHENTICATION"
     }
 
     private fun extractSessionToken(request: HttpServletRequest): String? {

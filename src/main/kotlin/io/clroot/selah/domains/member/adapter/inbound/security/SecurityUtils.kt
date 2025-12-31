@@ -22,7 +22,7 @@ object SecurityUtils {
         }
 
         val principal = authentication.principal
-        return if (principal is MemberPrincipal) principal else null
+        return principal as? MemberPrincipal
     }
 
     /**
