@@ -24,8 +24,8 @@ class SessionAuthenticationFilter(
 ) : OncePerRequestFilter() {
 
     /**
-     * ASYNC_DISPATCH는 건너뛰기 (suspend 함수의 continuation)
-     * 이미 첫 번째 요청에서 인증이 완료됨
+     * 비동기 디스패치 시에도 필터를 적용하도록 설정
+     * doFilterInternal 내에서 ASYNC_DISPATCH 시 인증 객체를 복구함
      */
     override fun shouldNotFilterAsyncDispatch(): Boolean = false
 
@@ -36,7 +36,8 @@ class SessionAuthenticationFilter(
     ) {
         // ASYNC_DISPATCH인 경우: request attribute에서 Authentication 복구
         if (request.dispatcherType == jakarta.servlet.DispatcherType.ASYNC) {
-            val savedAuth = request.getAttribute(AUTH_ATTRIBUTE_KEY) as? org.springframework.security.core.Authentication
+            val savedAuth =
+                request.getAttribute(AUTH_ATTRIBUTE_KEY) as? org.springframework.security.core.Authentication
             if (savedAuth != null) {
                 SecurityContextHolder.getContext().authentication = savedAuth
             }
