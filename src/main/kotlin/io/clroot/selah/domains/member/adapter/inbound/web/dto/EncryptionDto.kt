@@ -1,6 +1,9 @@
 package io.clroot.selah.domains.member.adapter.inbound.web.dto
 
+import io.clroot.selah.domains.member.application.port.inbound.EncryptionSettingsWithServerKey
 import io.clroot.selah.domains.member.application.port.inbound.RecoverySettingsResult
+import io.clroot.selah.domains.member.application.port.inbound.SetupEncryptionResult
+import io.clroot.selah.domains.member.application.port.inbound.UpdateEncryptionResult
 import io.clroot.selah.domains.member.domain.EncryptionSettings
 import java.time.LocalDateTime
 
@@ -47,13 +50,14 @@ data class VerifyRecoveryKeyRequest(
 data class EncryptionSettingsResponse(
     val salt: String,
     val encryptedDEK: String,
-    val createdAt: LocalDateTime,
+    val serverKey: String,
 )
 
 /**
  * 암호화 설정 초기화 응답
  */
 data class SetupEncryptionResponse(
+    val serverKey: String,
     val createdAt: LocalDateTime,
 )
 
@@ -76,6 +80,7 @@ data class VerifyRecoveryKeyResponse(
  * 암호화 키 업데이트 응답
  */
 data class UpdateEncryptionResponse(
+    val serverKey: String,
     val updatedAt: LocalDateTime,
 )
 
@@ -88,14 +93,15 @@ data class UpdateRecoveryKeyResponse(
 
 // === Extension Functions ===
 
-fun EncryptionSettings.toResponse(): EncryptionSettingsResponse = EncryptionSettingsResponse(
+fun EncryptionSettingsWithServerKey.toResponse(): EncryptionSettingsResponse = EncryptionSettingsResponse(
     salt = salt,
     encryptedDEK = encryptedDEK,
-    createdAt = createdAt,
+    serverKey = serverKey,
 )
 
-fun EncryptionSettings.toSetupResponse(): SetupEncryptionResponse = SetupEncryptionResponse(
-    createdAt = createdAt,
+fun SetupEncryptionResult.toResponse(): SetupEncryptionResponse = SetupEncryptionResponse(
+    serverKey = serverKey,
+    createdAt = settings.createdAt,
 )
 
 fun RecoverySettingsResult.toResponse(): RecoverySettingsResponse = RecoverySettingsResponse(
@@ -103,8 +109,9 @@ fun RecoverySettingsResult.toResponse(): RecoverySettingsResponse = RecoverySett
     recoveryKeyHash = recoveryKeyHash,
 )
 
-fun EncryptionSettings.toUpdateEncryptionResponse(): UpdateEncryptionResponse = UpdateEncryptionResponse(
-    updatedAt = updatedAt,
+fun UpdateEncryptionResult.toResponse(): UpdateEncryptionResponse = UpdateEncryptionResponse(
+    serverKey = serverKey,
+    updatedAt = settings.updatedAt,
 )
 
 fun EncryptionSettings.toUpdateRecoveryKeyResponse(): UpdateRecoveryKeyResponse = UpdateRecoveryKeyResponse(

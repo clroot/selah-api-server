@@ -58,6 +58,7 @@ class MemberExceptionHandler {
             // 암호화 설정
             is EncryptionSettingsNotFoundException -> HttpStatus.NOT_FOUND to "암호화 설정을 찾을 수 없습니다"
             is EncryptionAlreadySetupException -> HttpStatus.CONFLICT to "이미 암호화가 설정되어 있습니다"
+            is ServerKeyNotFoundException -> HttpStatus.NOT_FOUND to "서버 키를 찾을 수 없습니다"
         }
 
         return ResponseEntity

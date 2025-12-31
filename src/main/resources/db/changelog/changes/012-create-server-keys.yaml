@@ -1,0 +1,65 @@
+databaseChangeLog:
+  - changeSet:
+      id: 012-create-server-keys
+      author: clroot
+      comment: |
+        Server Key 테이블 생성
+        - 6자리 PIN의 보안 취약점을 보완하기 위한 서버 측 키
+        - Client KEK와 결합하여 Combined KEK 생성
+        - Master Key로 암호화되어 저장됨
+      changes:
+        - createTable:
+            tableName: server_keys
+            columns:
+              - column:
+                  name: id
+                  type: varchar(26)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: member_id
+                  type: varchar(26)
+                  constraints:
+                    nullable: false
+                    unique: true
+              - column:
+                  name: encrypted_server_key
+                  type: varchar(512)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: iv
+                  type: varchar(64)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: version
+                  type: bigint
+              - column:
+                  name: created_at
+                  type: timestamp
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: timestamp
+                  constraints:
+                    nullable: false
+        - createIndex:
+            indexName: idx_server_keys_member_id
+            tableName: server_keys
+            unique: true
+            columns:
+              - column:
+                  name: member_id
+        - addForeignKeyConstraint:
+            baseTableName: server_keys
+            baseColumnNames: member_id
+            referencedTableName: members
+            referencedColumnNames: id
+            constraintName: fk_server_keys_member
+            onDelete: CASCADE
+      rollback:
+        - dropTable:
+            tableName: server_keys

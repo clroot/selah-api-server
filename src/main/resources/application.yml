@@ -43,6 +43,8 @@ spring:
 
 # Selah 커스텀 설정
 selah:
+  encryption:
+    master-key: ${ENCRYPTION_MASTER_KEY}
   # 세션 설정
   session:
     cookie-name: SELAH_SESSION

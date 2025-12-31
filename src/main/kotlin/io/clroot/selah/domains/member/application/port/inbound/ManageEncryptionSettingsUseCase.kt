@@ -8,24 +8,30 @@ import io.clroot.selah.domains.member.domain.exception.EncryptionSettingsNotFoun
 /**
  * E2E 암호화 설정 관리 UseCase
  *
- * DEK/KEK 구조:
+ * 키 구조:
  * - DEK (Data Encryption Key): 실제 데이터 암호화 키
- * - KEK (Key Encryption Key): 로그인 비밀번호에서 파생, DEK 암호화에 사용
+ * - Client KEK: 6자리 PIN에서 파생
+ * - Server Key: 서버에서 생성, Master Key로 암호화하여 저장
+ * - Combined KEK = HKDF(Client KEK + Server Key): DEK 암호화에 사용
  */
 interface ManageEncryptionSettingsUseCase {
     /**
      * 암호화 설정 초기화 (회원가입 시)
+     * Server Key를 생성하고 암호화 설정을 저장합니다.
      *
+     * @return SetupEncryptionResult (설정 + 평문 Server Key)
      * @throws EncryptionAlreadySetupException 이미 설정된 경우
      */
-    suspend fun setup(memberId: MemberId, command: SetupEncryptionCommand): EncryptionSettings
+    suspend fun setup(memberId: MemberId, command: SetupEncryptionCommand): SetupEncryptionResult
 
     /**
      * 암호화 설정 조회 (로그인 시 DEK 복호화용)
+     * Server Key를 복호화하여 함께 반환합니다.
      *
+     * @return EncryptionSettingsWithServerKey
      * @throws EncryptionSettingsNotFoundException 설정이 없는 경우
      */
-    suspend fun getSettings(memberId: MemberId): EncryptionSettings
+    suspend fun getSettings(memberId: MemberId): EncryptionSettingsWithServerKey
 
     /**
      * 암호화 설정 존재 여부 확인
@@ -47,12 +53,13 @@ interface ManageEncryptionSettingsUseCase {
     suspend fun getRecoverySettings(memberId: MemberId): RecoverySettingsResult
 
     /**
-     * 비밀번호 변경 시 암호화 키 업데이트
-     * (새 KEK로 DEK 재암호화)
+     * PIN 변경 시 암호화 키 업데이트
+     * (새 Client KEK + 새 Server Key로 DEK 재암호화)
      *
+     * @return UpdateEncryptionResult (설정 + 새 평문 Server Key)
      * @throws EncryptionSettingsNotFoundException 설정이 없는 경우
      */
-    suspend fun updateEncryption(memberId: MemberId, command: UpdateEncryptionCommand): EncryptionSettings
+    suspend fun updateEncryption(memberId: MemberId, command: UpdateEncryptionCommand): UpdateEncryptionResult
 
     /**
      * 복구 키 재생성
@@ -104,4 +111,32 @@ data class UpdateRecoveryKeyCommand(
 data class RecoverySettingsResult(
     val recoveryEncryptedDEK: String,
     val recoveryKeyHash: String,
+)
+
+/**
+ * 암호화 설정 초기화 Result
+ * Server Key를 생성하고 클라이언트에 전달합니다.
+ */
+data class SetupEncryptionResult(
+    val settings: EncryptionSettings,
+    val serverKey: String,  // Base64 인코딩된 평문 Server Key (클라이언트 전달용)
+)
+
+/**
+ * 암호화 설정 조회 Result
+ * Server Key를 복호화하여 함께 반환합니다.
+ */
+data class EncryptionSettingsWithServerKey(
+    val salt: String,
+    val encryptedDEK: String,
+    val serverKey: String,  // Base64 인코딩된 평문 Server Key
+)
+
+/**
+ * 암호화 키 업데이트 Result
+ * 새 Server Key를 생성하여 반환합니다.
+ */
+data class UpdateEncryptionResult(
+    val settings: EncryptionSettings,
+    val serverKey: String,  // Base64 인코딩된 새 평문 Server Key
 )

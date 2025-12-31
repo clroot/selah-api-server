@@ -4,10 +4,16 @@ import io.clroot.selah.domains.member.application.port.inbound.SetupEncryptionCo
 import io.clroot.selah.domains.member.application.port.inbound.UpdateEncryptionCommand
 import io.clroot.selah.domains.member.application.port.inbound.UpdateRecoveryKeyCommand
 import io.clroot.selah.domains.member.application.port.outbound.DeleteEncryptionSettingsPort
+import io.clroot.selah.domains.member.application.port.outbound.DeleteServerKeyPort
+import io.clroot.selah.domains.member.application.port.outbound.EncryptedServerKeyResult
 import io.clroot.selah.domains.member.application.port.outbound.LoadEncryptionSettingsPort
+import io.clroot.selah.domains.member.application.port.outbound.LoadServerKeyPort
 import io.clroot.selah.domains.member.application.port.outbound.SaveEncryptionSettingsPort
+import io.clroot.selah.domains.member.application.port.outbound.SaveServerKeyPort
+import io.clroot.selah.domains.member.application.port.outbound.ServerKeyEncryptionPort
 import io.clroot.selah.domains.member.domain.EncryptionSettings
 import io.clroot.selah.domains.member.domain.MemberId
+import io.clroot.selah.domains.member.domain.ServerKey
 import io.clroot.selah.domains.member.domain.exception.EncryptionAlreadySetupException
 import io.clroot.selah.domains.member.domain.exception.EncryptionSettingsNotFoundException
 import io.kotest.assertions.throwables.shouldThrow
@@ -32,12 +38,20 @@ class EncryptionSettingsServiceTest : DescribeSpec({
     val loadEncryptionSettingsPort = mockk<LoadEncryptionSettingsPort>()
     val saveEncryptionSettingsPort = mockk<SaveEncryptionSettingsPort>()
     val deleteEncryptionSettingsPort = mockk<DeleteEncryptionSettingsPort>()
+    val loadServerKeyPort = mockk<LoadServerKeyPort>()
+    val saveServerKeyPort = mockk<SaveServerKeyPort>()
+    val deleteServerKeyPort = mockk<DeleteServerKeyPort>()
+    val serverKeyEncryptionPort = mockk<ServerKeyEncryptionPort>()
     val eventPublisher = mockk<ApplicationEventPublisher>(relaxed = true)
 
     val encryptionSettingsService = EncryptionSettingsService(
         loadEncryptionSettingsPort = loadEncryptionSettingsPort,
         saveEncryptionSettingsPort = saveEncryptionSettingsPort,
         deleteEncryptionSettingsPort = deleteEncryptionSettingsPort,
+        loadServerKeyPort = loadServerKeyPort,
+        saveServerKeyPort = saveServerKeyPort,
+        deleteServerKeyPort = deleteServerKeyPort,
+        serverKeyEncryptionPort = serverKeyEncryptionPort,
         eventPublisher = eventPublisher,
     )
 
@@ -46,6 +60,10 @@ class EncryptionSettingsServiceTest : DescribeSpec({
             loadEncryptionSettingsPort,
             saveEncryptionSettingsPort,
             deleteEncryptionSettingsPort,
+            loadServerKeyPort,
+            saveServerKeyPort,
+            deleteServerKeyPort,
+            serverKeyEncryptionPort,
             eventPublisher,
         )
     }
@@ -62,23 +80,33 @@ class EncryptionSettingsServiceTest : DescribeSpec({
             recoveryEncryptedDEK = recoveryEncryptedDEK,
             recoveryKeyHash = recoveryKeyHash,
         )
+        val serverKeyResult = EncryptedServerKeyResult(
+            encryptedServerKey = "encrypted-server-key",
+            iv = "server-key-iv",
+            plainServerKey = "plain-server-key",
+        )
 
         context("암호화 설정이 없는 경우") {
 
-            it("새 암호화 설정이 생성되고 저장된다") {
+            it("새 암호화 설정과 Server Key가 생성되고 저장된다") {
                 coEvery { loadEncryptionSettingsPort.existsByMemberId(memberId) } returns false
+                every { serverKeyEncryptionPort.generateAndEncryptServerKey() } returns serverKeyResult
+                coEvery { saveServerKeyPort.save(any()) } answers { firstArg() }
                 coEvery { saveEncryptionSettingsPort.save(any()) } answers { firstArg() }
 
                 val result = encryptionSettingsService.setup(memberId, command)
 
                 result shouldNotBe null
-                result.memberId shouldBe memberId
-                result.salt shouldBe salt
-                result.encryptedDEK shouldBe encryptedDEK
-                result.recoveryEncryptedDEK shouldBe recoveryEncryptedDEK
-                result.recoveryKeyHash shouldBe recoveryKeyHash
+                result.settings.memberId shouldBe memberId
+                result.settings.salt shouldBe salt
+                result.settings.encryptedDEK shouldBe encryptedDEK
+                result.settings.recoveryEncryptedDEK shouldBe recoveryEncryptedDEK
+                result.settings.recoveryKeyHash shouldBe recoveryKeyHash
+                result.serverKey shouldBe serverKeyResult.plainServerKey
 
                 coVerify(exactly = 1) { loadEncryptionSettingsPort.existsByMemberId(memberId) }
+                coVerify(exactly = 1) { serverKeyEncryptionPort.generateAndEncryptServerKey() }
+                coVerify(exactly = 1) { saveServerKeyPort.save(any()) }
                 coVerify(exactly = 1) { saveEncryptionSettingsPort.save(any()) }
             }
         }
@@ -96,23 +124,36 @@ class EncryptionSettingsServiceTest : DescribeSpec({
 
                 coVerify(exactly = 1) { loadEncryptionSettingsPort.existsByMemberId(memberId) }
                 coVerify(exactly = 0) { saveEncryptionSettingsPort.save(any()) }
+                coVerify(exactly = 0) { saveServerKeyPort.save(any()) }
             }
         }
     }
 
     describe("getSettings") {
         val memberId = MemberId.new()
+        val plainServerKey = "decrypted-server-key"
 
         context("암호화 설정이 존재하는 경우") {
 
-            it("설정을 반환한다") {
+            it("설정과 복호화된 Server Key를 반환한다") {
                 val existingSettings = createEncryptionSettings(memberId)
+                val existingServerKey = createServerKey(memberId)
                 coEvery { loadEncryptionSettingsPort.findByMemberId(memberId) } returns existingSettings
+                coEvery { loadServerKeyPort.findByMemberId(memberId) } returns existingServerKey
+                every {
+                    serverKeyEncryptionPort.decryptServerKey(
+                        existingServerKey.encryptedServerKey,
+                        existingServerKey.iv
+                    )
+                } returns plainServerKey
 
                 val result = encryptionSettingsService.getSettings(memberId)
 
-                result shouldBe existingSettings
+                result.salt shouldBe existingSettings.salt
+                result.encryptedDEK shouldBe existingSettings.encryptedDEK
+                result.serverKey shouldBe plainServerKey
                 coVerify(exactly = 1) { loadEncryptionSettingsPort.findByMemberId(memberId) }
+                coVerify(exactly = 1) { loadServerKeyPort.findByMemberId(memberId) }
             }
         }
 
@@ -233,20 +274,31 @@ class EncryptionSettingsServiceTest : DescribeSpec({
             salt = newSalt,
             encryptedDEK = newEncryptedDEK,
         )
+        val newServerKeyResult = EncryptedServerKeyResult(
+            encryptedServerKey = "new-encrypted-server-key",
+            iv = "new-server-key-iv",
+            plainServerKey = "new-plain-server-key",
+        )
 
         context("암호화 설정이 존재하는 경우") {
 
-            it("암호화 키가 업데이트된다") {
+            it("암호화 키와 Server Key가 업데이트된다") {
                 val existingSettings = createEncryptionSettings(memberId)
+                val existingServerKey = createServerKey(memberId)
                 coEvery { loadEncryptionSettingsPort.findByMemberId(memberId) } returns existingSettings
+                coEvery { loadServerKeyPort.findByMemberId(memberId) } returns existingServerKey
+                every { serverKeyEncryptionPort.generateAndEncryptServerKey() } returns newServerKeyResult
+                coEvery { saveServerKeyPort.save(any()) } answers { firstArg() }
                 coEvery { saveEncryptionSettingsPort.save(any()) } answers { firstArg() }
 
                 val result = encryptionSettingsService.updateEncryption(memberId, command)
 
-                result.salt shouldBe newSalt
-                result.encryptedDEK shouldBe newEncryptedDEK
+                result.settings.salt shouldBe newSalt
+                result.settings.encryptedDEK shouldBe newEncryptedDEK
+                result.serverKey shouldBe newServerKeyResult.plainServerKey
 
                 coVerify(exactly = 1) { saveEncryptionSettingsPort.save(any()) }
+                coVerify(exactly = 1) { saveServerKeyPort.save(any()) }
             }
         }
 
@@ -304,16 +356,18 @@ class EncryptionSettingsServiceTest : DescribeSpec({
 
         context("암호화 설정이 존재하는 경우") {
 
-            it("설정을 삭제하고 Integration Event를 발행한다") {
+            it("암호화 설정과 Server Key를 삭제하고 Integration Event를 발행한다") {
                 val eventSlot = slot<Any>()
                 coEvery { loadEncryptionSettingsPort.existsByMemberId(memberId) } returns true
                 coEvery { deleteEncryptionSettingsPort.deleteByMemberId(memberId) } just Runs
+                coEvery { deleteServerKeyPort.deleteByMemberId(memberId) } just Runs
                 every { eventPublisher.publishEvent(capture(eventSlot)) } just Runs
 
                 encryptionSettingsService.deleteSettings(memberId)
 
                 coVerify(exactly = 1) { loadEncryptionSettingsPort.existsByMemberId(memberId) }
                 coVerify(exactly = 1) { deleteEncryptionSettingsPort.deleteByMemberId(memberId) }
+                coVerify(exactly = 1) { deleteServerKeyPort.deleteByMemberId(memberId) }
 
                 // 발행된 Integration Event 검증
                 eventSlot.isCaptured shouldBe true
@@ -332,6 +386,7 @@ class EncryptionSettingsServiceTest : DescribeSpec({
                 }
 
                 coVerify(exactly = 0) { deleteEncryptionSettingsPort.deleteByMemberId(memberId) }
+                coVerify(exactly = 0) { deleteServerKeyPort.deleteByMemberId(memberId) }
             }
         }
     }
@@ -352,6 +407,18 @@ private fun createEncryptionSettings(
         encryptedDEK = encryptedDEK,
         recoveryEncryptedDEK = recoveryEncryptedDEK,
         recoveryKeyHash = recoveryKeyHash,
+    )
+}
+
+private fun createServerKey(
+    memberId: MemberId = MemberId.new(),
+    encryptedServerKey: String = "test-encrypted-server-key",
+    iv: String = "test-server-key-iv",
+): ServerKey {
+    return ServerKey.create(
+        memberId = memberId,
+        encryptedServerKey = encryptedServerKey,
+        iv = iv,
     )
 }
 

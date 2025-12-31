@@ -188,3 +188,11 @@ class CannotDisconnectLastLoginMethodException : MemberException(
     code = "CANNOT_DISCONNECT_LAST_LOGIN_METHOD",
     message = "Cannot disconnect the last login method. Please set a password or connect another OAuth provider first.",
 )
+
+/**
+ * Server Key를 찾을 수 없는 경우
+ */
+class ServerKeyNotFoundException(memberId: String) : MemberException(
+    code = "SERVER_KEY_NOT_FOUND",
+    message = "Server key not found for member: $memberId",
+)

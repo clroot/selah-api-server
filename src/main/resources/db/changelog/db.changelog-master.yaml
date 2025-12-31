@@ -21,3 +21,5 @@ databaseChangeLog:
       file: db/changelog/changes/010-modify-encryption-settings-dek-kek.yaml
   - include:
       file: db/changelog/changes/011-modify-members-profile-image-url.yaml
+  - include:
+      file: db/changelog/changes/012-create-server-keys.yaml

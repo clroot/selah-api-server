@@ -31,7 +31,7 @@ class EncryptionController(
     ): ResponseEntity<ApiResponse<SetupEncryptionResponse>> {
         val memberId = SecurityUtils.requireCurrentMemberId()
 
-        val settings = manageEncryptionSettingsUseCase.setup(
+        val result = manageEncryptionSettingsUseCase.setup(
             memberId = memberId,
             command = SetupEncryptionCommand(
                 salt = request.salt,
@@ -43,7 +43,7 @@ class EncryptionController(
 
         return ResponseEntity
             .status(HttpStatus.CREATED)
-            .body(ApiResponse.success(settings.toSetupResponse()))
+            .body(ApiResponse.success(result.toResponse()))
     }
 
     /**
@@ -69,7 +69,7 @@ class EncryptionController(
     }
 
     /**
-     * 암호화 키 업데이트 (비밀번호 변경 시)
+     * 암호화 키 업데이트 (PIN 변경 시)
      */
     @PutMapping("/encryption")
     suspend fun updateEncryption(
@@ -77,7 +77,7 @@ class EncryptionController(
     ): ResponseEntity<ApiResponse<UpdateEncryptionResponse>> {
         val memberId = SecurityUtils.requireCurrentMemberId()
 
-        val settings = manageEncryptionSettingsUseCase.updateEncryption(
+        val result = manageEncryptionSettingsUseCase.updateEncryption(
             memberId = memberId,
             command = UpdateEncryptionCommand(
                 salt = request.salt,
@@ -85,7 +85,7 @@ class EncryptionController(
             )
         )
 
-        return ResponseEntity.ok(ApiResponse.success(settings.toUpdateEncryptionResponse()))
+        return ResponseEntity.ok(ApiResponse.success(result.toResponse()))
     }
 
     /**
