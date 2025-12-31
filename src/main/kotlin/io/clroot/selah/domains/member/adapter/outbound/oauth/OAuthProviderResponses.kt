@@ -45,6 +45,7 @@ data class KakaoUserInfoResponse(
  * Naver OAuth2 UserInfo 응답
  * https://openapi.naver.com/v1/nid/me
  */
+@Suppress("SpellCheckingInspection")
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class NaverUserInfoResponse(
     val resultcode: String?,

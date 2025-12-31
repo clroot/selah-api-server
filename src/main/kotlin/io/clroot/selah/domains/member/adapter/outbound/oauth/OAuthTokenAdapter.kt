@@ -1,5 +1,6 @@
 package io.clroot.selah.domains.member.adapter.outbound.oauth
 
+import com.fasterxml.jackson.annotation.JsonProperty
 import io.clroot.selah.domains.member.application.port.outbound.OAuthTokenPort
 import io.clroot.selah.domains.member.application.port.outbound.OAuthTokenResult
 import io.clroot.selah.domains.member.domain.OAuthProvider
@@ -105,12 +106,12 @@ class OAuthTokenAdapter(
  * OAuth Token 응답 DTO
  */
 data class TokenResponse(
-    @com.fasterxml.jackson.annotation.JsonProperty("access_token")
+    @JsonProperty("access_token")
     val accessToken: String,
-    @com.fasterxml.jackson.annotation.JsonProperty("token_type")
+    @JsonProperty("token_type")
     val tokenType: String?,
-    @com.fasterxml.jackson.annotation.JsonProperty("expires_in")
+    @JsonProperty("expires_in")
     val expiresIn: Int?,
-    @com.fasterxml.jackson.annotation.JsonProperty("refresh_token")
+    @JsonProperty("refresh_token")
     val refreshToken: String?,
 )
