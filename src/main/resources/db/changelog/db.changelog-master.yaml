@@ -19,3 +19,5 @@ databaseChangeLog:
       file: db/changelog/changes/009-create-prayers.yaml
   - include:
       file: db/changelog/changes/010-modify-encryption-settings-dek-kek.yaml
+  - include:
+      file: db/changelog/changes/011-modify-members-profile-image-url.yaml

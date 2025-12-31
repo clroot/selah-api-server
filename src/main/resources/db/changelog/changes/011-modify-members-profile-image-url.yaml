@@ -1,0 +1,15 @@
+databaseChangeLog:
+  - changeSet:
+      id: 011-modify-members-profile-image-url
+      author: clroot
+      comment: Increase profile_image_url column size for long OAuth provider URLs
+      changes:
+        - modifyDataType:
+            tableName: members
+            columnName: profile_image_url
+            newDataType: varchar(2048)
+      rollback:
+        - modifyDataType:
+            tableName: members
+            columnName: profile_image_url
+            newDataType: varchar(500)
