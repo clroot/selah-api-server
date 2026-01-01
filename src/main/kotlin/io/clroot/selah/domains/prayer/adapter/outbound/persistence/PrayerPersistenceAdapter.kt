@@ -170,4 +170,33 @@ class PrayerPersistenceAdapter(
 
             PageImpl(entities.map { mapper.toDomain(it) }, pageable, total)
         }
+
+    override suspend fun countByPrayerTopicIds(prayerTopicIds: List<PrayerTopicId>): Map<PrayerTopicId, Long> =
+        withContext(Dispatchers.IO) {
+            if (prayerTopicIds.isEmpty()) {
+                return@withContext emptyMap()
+            }
+
+            val topicIdValues = prayerTopicIds.map { it.value }
+
+            data class PrayerTopicPrayerCount(
+                val prayerTopicId: String,
+                val count: Long,
+            )
+
+            val query =
+                jpql {
+                    selectNew<PrayerTopicPrayerCount>(
+                        path(PrayerPrayerTopicEntity::prayerTopicId),
+                        count(path(PrayerPrayerTopicEntity::prayerId)),
+                    ).from(entity(PrayerPrayerTopicEntity::class))
+                        .where(path(PrayerPrayerTopicEntity::prayerTopicId).`in`(topicIdValues))
+                        .groupBy(path(PrayerPrayerTopicEntity::prayerTopicId))
+                }
+
+            entityManager
+                .createQuery(query, jpqlRenderContext)
+                .resultList
+                .associate { PrayerTopicId.from(it.prayerTopicId) to it.count }
+        }
 }

@@ -15,6 +15,7 @@ import io.clroot.selah.domains.prayer.application.port.inbound.CreatePrayerTopic
 import io.clroot.selah.domains.prayer.application.port.inbound.CreatePrayerTopicUseCase
 import io.clroot.selah.domains.prayer.application.port.inbound.DeletePrayerTopicUseCase
 import io.clroot.selah.domains.prayer.application.port.inbound.GetPrayerTopicUseCase
+import io.clroot.selah.domains.prayer.application.port.inbound.GetPrayerUseCase
 import io.clroot.selah.domains.prayer.application.port.inbound.MarkAsAnsweredCommand
 import io.clroot.selah.domains.prayer.application.port.inbound.UpdatePrayerTopicTitleCommand
 import io.clroot.selah.domains.prayer.application.port.inbound.UpdatePrayerTopicUseCase
@@ -42,6 +43,7 @@ import org.springframework.web.bind.annotation.RestController
 class PrayerTopicController(
     private val createPrayerTopicUseCase: CreatePrayerTopicUseCase,
     private val getPrayerTopicUseCase: GetPrayerTopicUseCase,
+    private val getPrayerUseCase: GetPrayerUseCase,
     private val updatePrayerTopicUseCase: UpdatePrayerTopicUseCase,
     private val deletePrayerTopicUseCase: DeletePrayerTopicUseCase,
     private val answerPrayerTopicUseCase: AnswerPrayerTopicUseCase,
@@ -66,9 +68,6 @@ class PrayerTopicController(
             .body(ApiResponse.success(prayerTopic.toResponse()))
     }
 
-    /**
-     * 기도제목 목록 조회
-     */
     @GetMapping
     suspend fun list(
         @RequestParam(defaultValue = "0") page: Int,
@@ -83,10 +82,13 @@ class PrayerTopicController(
                 pageable = PageRequest.of(page, size),
             )
 
+        val prayerTopicIds = result.content.map { it.id }
+        val prayerCounts = getPrayerUseCase.countByPrayerTopicIds(prayerTopicIds)
+
         return ResponseEntity.ok(
             ApiResponse.success(
                 PageResponse(
-                    content = result.content.map { it.toResponse() },
+                    content = result.content.map { it.toResponse(prayerCounts[it.id] ?: 0) },
                     page = result.number,
                     size = result.size,
                     totalElements = result.totalElements,
@@ -96,20 +98,19 @@ class PrayerTopicController(
         )
     }
 
-    /**
-     * 기도제목 단건 조회
-     */
     @GetMapping("/{id}")
     suspend fun getById(
         @PathVariable id: String,
     ): ResponseEntity<ApiResponse<PrayerTopicResponse>> {
         val memberId = SecurityUtils.requireCurrentMemberId()
+        val prayerTopicId = PrayerTopicId.from(id)
         val prayerTopic =
             getPrayerTopicUseCase.getById(
-                id = PrayerTopicId.from(id),
+                id = prayerTopicId,
                 memberId = memberId,
             )
-        return ResponseEntity.ok(ApiResponse.success(prayerTopic.toResponse()))
+        val prayerCounts = getPrayerUseCase.countByPrayerTopicIds(listOf(prayerTopicId))
+        return ResponseEntity.ok(ApiResponse.success(prayerTopic.toResponse(prayerCounts[prayerTopicId] ?: 0)))
     }
 
     /**

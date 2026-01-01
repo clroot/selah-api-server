@@ -30,19 +30,21 @@ data class PrayerTopicResponse(
     val status: PrayerTopicStatus,
     val answeredAt: LocalDateTime?,
     val reflection: String?,
+    val prayerCount: Long,
     val createdAt: LocalDateTime,
     val updatedAt: LocalDateTime,
 )
 
 // === Extension Functions ===
 
-fun PrayerTopic.toResponse(): PrayerTopicResponse =
+fun PrayerTopic.toResponse(prayerCount: Long = 0): PrayerTopicResponse =
     PrayerTopicResponse(
         id = id.value,
         title = title,
         status = status,
         answeredAt = answeredAt,
         reflection = reflection,
+        prayerCount = prayerCount,
         createdAt = createdAt,
         updatedAt = updatedAt,
     )

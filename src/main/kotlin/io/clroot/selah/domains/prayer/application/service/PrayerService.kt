@@ -80,6 +80,10 @@ class PrayerService(
         pageable: Pageable,
     ): Page<Prayer> = loadPrayerPort.findAllByMemberIdAndPrayerTopicId(memberId, prayerTopicId, pageable)
 
+    @Transactional(readOnly = true)
+    override suspend fun countByPrayerTopicIds(prayerTopicIds: List<PrayerTopicId>): Map<PrayerTopicId, Long> =
+        loadPrayerPort.countByPrayerTopicIds(prayerTopicIds)
+
     override suspend fun updateContent(command: UpdatePrayerContentCommand): Prayer {
         val prayer =
             loadPrayerPort.findById(command.id)

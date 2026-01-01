@@ -25,4 +25,6 @@ interface LoadPrayerPort {
         prayerTopicId: PrayerTopicId,
         pageable: Pageable,
     ): Page<Prayer>
+
+    suspend fun countByPrayerTopicIds(prayerTopicIds: List<PrayerTopicId>): Map<PrayerTopicId, Long>
 }
