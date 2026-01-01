@@ -63,9 +63,10 @@ class PrayerTopicController(
                     title = request.title,
                 ),
             )
+        val prayerCounts = getPrayerUseCase.countByPrayerTopicIds(listOf(prayerTopic.id))
         return ResponseEntity
             .status(HttpStatus.CREATED)
-            .body(ApiResponse.success(prayerTopic.toResponse()))
+            .body(ApiResponse.success(prayerTopic.toResponse(prayerCounts[prayerTopic.id] ?: 0)))
     }
 
     @GetMapping
@@ -130,7 +131,8 @@ class PrayerTopicController(
                     title = request.title,
                 ),
             )
-        return ResponseEntity.ok(ApiResponse.success(prayerTopic.toResponse()))
+        val prayerCounts = getPrayerUseCase.countByPrayerTopicIds(listOf(prayerTopic.id))
+        return ResponseEntity.ok(ApiResponse.success(prayerTopic.toResponse(prayerCounts[prayerTopic.id] ?: 0)))
     }
 
     /**
@@ -165,7 +167,8 @@ class PrayerTopicController(
                     reflection = request?.reflection,
                 ),
             )
-        return ResponseEntity.ok(ApiResponse.success(prayerTopic.toResponse()))
+        val prayerCounts = getPrayerUseCase.countByPrayerTopicIds(listOf(prayerTopic.id))
+        return ResponseEntity.ok(ApiResponse.success(prayerTopic.toResponse(prayerCounts[prayerTopic.id] ?: 0)))
     }
 
     /**
@@ -183,7 +186,8 @@ class PrayerTopicController(
                     memberId = memberId,
                 ),
             )
-        return ResponseEntity.ok(ApiResponse.success(prayerTopic.toResponse()))
+        val prayerCounts = getPrayerUseCase.countByPrayerTopicIds(listOf(prayerTopic.id))
+        return ResponseEntity.ok(ApiResponse.success(prayerTopic.toResponse(prayerCounts[prayerTopic.id] ?: 0)))
     }
 
     /**
@@ -203,6 +207,7 @@ class PrayerTopicController(
                     reflection = request.reflection,
                 ),
             )
-        return ResponseEntity.ok(ApiResponse.success(prayerTopic.toResponse()))
+        val prayerCounts = getPrayerUseCase.countByPrayerTopicIds(listOf(prayerTopic.id))
+        return ResponseEntity.ok(ApiResponse.success(prayerTopic.toResponse(prayerCounts[prayerTopic.id] ?: 0)))
     }
 }
