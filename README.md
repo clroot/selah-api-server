@@ -36,7 +36,7 @@
 | Framework    | Spring Boot       | 4.x          |
 | Build        | Gradle            | Kotlin DSL   |
 | Architecture | Hexagonal + DDD   | -            |
-| Security     | Spring Security   | OAuth2 + JWT |
+| Security     | Spring Security   | OAuth2       |
 | Persistence  | Spring Data JPA   | -            |
 | Database     | PostgreSQL        | (TBD)        |
 | Async        | Kotlin Coroutines | -            |
@@ -95,10 +95,11 @@ Adapter → Application → Domain
 | 책임     | 설명                         |
 |--------|----------------------------|
 | 인증/인가  | OAuth 2.0 소셜 로그인 + 이메일 로그인 |
-| JWT 관리 | 토큰 발급, 검증, 갱신              |
 | 프로필 관리 | 닉네임, 프로필 이미지 등             |
+| OAuth 연동 관리 | 소셜 계정 연결/해제 |
+| E2E 암호화 설정 | Salt, encryptedDEK, Server Key 관리 |
 
-**Aggregates**: `Member`
+**Aggregates**: `Member`, `OAuthConnection`, `EncryptionSettings`, `ServerKey`
 
 ### 2. Prayer Context (기도 도메인)
 

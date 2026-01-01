@@ -29,7 +29,7 @@
 | Persistence | Spring Data JPA | Hibernate |
 | Query DSL | Kotlin JDSL | 타입 안전한 쿼리 |
 | DB Migration | Liquibase | YAML 포맷 |
-| Security | Spring Security | OAuth2 + JWT |
+| Security | Spring Security | OAuth2 |
 | Async | Kotlin Coroutines, Virtual Threads | 비동기 처리 |
 | Logging | kotlin-logging | SLF4J 래퍼 |
 | Testing | Kotest, MockK | Spec 스타일 |
@@ -74,7 +74,6 @@ JPA Entity (Adapter) ↔ Domain Model (Domain)  # 반드시 Mapper로 분리
 | 책임 | 설명 |
 |------|------|
 | 인증/인가 | OAuth 2.0 소셜 로그인 + 이메일 로그인 |
-| JWT 관리 | 토큰 발급, 검증, 갱신 |
 | 프로필 관리 | 닉네임, 프로필 이미지 등 |
 | OAuth 연동 관리 | 소셜 계정 연결/해제 |
 
@@ -312,6 +311,7 @@ class MemberCreatedEventHandler(
 | 책임 | 설명 |
 |------|------|
 | Salt 저장 | 키 파생용 Salt 저장 (암호화 키 아님) |
+| Server Key 관리 | Server Key 생성, Master Key로 암호화하여 보관 |
 | 암호문 CRUD | 암호화된 데이터 저장/조회/수정/삭제 |
 | 암호화 설정 관리 | 사용자별 암호화 활성화 상태 관리 |
 | 복구 키 해시 저장 | 복구 키 검증용 해시 저장 (복구 키 자체는 저장 금지) |
@@ -320,26 +320,39 @@ class MemberCreatedEventHandler(
 
 ```text
 // 암호화 설정 API
-POST   /api/v1/encryption/setup           // 암호화 설정 초기화 (salt, encryptedDEK, recoveryEncryptedDEK, recoveryKeyHash)
-GET    /api/v1/encryption/settings        // 암호화 설정 조회 (salt, encryptedDEK 반환)
+POST   /api/v1/encryption/setup           // 암호화 설정 초기화 (salt, encryptedDEK, recoveryEncryptedDEK, recoveryKeyHash + Server Key 생성)
+GET    /api/v1/encryption/settings        // 암호화 설정 조회 (salt, encryptedDEK, serverKey 반환)
 GET    /api/v1/encryption/recovery-settings  // 복구 설정 조회 (recoveryEncryptedDEK, recoveryKeyHash)
-PUT    /api/v1/encryption/encryption      // 암호화 키 업데이트 (비밀번호 변경 시)
+PUT    /api/v1/encryption/encryption      // 암호화 키 업데이트 (PIN 변경 시, 새 Server Key 발급)
 PUT    /api/v1/encryption/recovery-key    // 복구 키 재생성
 POST   /api/v1/encryption/verify-recovery // 복구 키 검증
 DELETE /api/v1/encryption/settings        // 암호화 설정 삭제 (모든 데이터 삭제됨)
+
+// Server Key API
+POST   /api/v1/encryption/server-key      // 새 Server Key 생성 요청
 ```
+
+### 키 구조 (PIN + Server Key)
+
+| 키 | 저장 위치 | 설명 |
+|------|---------|------|
+| **DEK** | 클라이언트만 | 실제 데이터 암호화 키 (서버는 암호화된 형태만 보관) |
+| **Client KEK** | 클라이언트만 | 6자리 PIN에서 파생 (서버에 전송 금지) |
+| **Server Key** | 서버 (암호화) | 랜덤 생성, Master Key로 암호화하여 보관 |
+| **Combined KEK** | 클라이언트만 | Client KEK + Server Key → HKDF로 결합 |
 
 ### UX 정책 (Backend 관점)
 
 | 정책 | Backend 역할 |
 |------|-------------|
 | **E2E 필수 적용** | 암호화 비활성화 API 제공 안함 (항상 활성화) |
-| **투명한 암호화** | 로그인 비밀번호 기반 KEK 파생 (별도 암호화 비밀번호 없음) |
+| **6자리 PIN 분리** | 로그인과 별도의 암호화 PIN 사용 (OAuth 지원 위해) |
+| **Server Key 관리** | Server Key 생성, Master Key로 암호화하여 보관 |
 | **복구 키 1회 표시** | 복구 키 원본은 저장하지 않음, 해시만 저장 |
 | **복구 키 재생성** | 재생성 API 제공 시 기존 recoveryEncryptedDEK/해시 덮어쓰기 |
-| **비밀번호 변경** | 새 Salt/encryptedDEK로 업데이트 (DEK 자체는 변경 안됨) |
+| **PIN 변경** | 새 Salt, 새 Server Key, 새 encryptedDEK로 업데이트 |
 
-> **📌 참고**: 전체 UX 정책은 [루트 CLAUDE.md](../CLAUDE.md#ux-정책) 참조
+> **📌 참고**: 전체 암호화 아키텍처는 [루트 CLAUDE.md](../CLAUDE.md#e2e-암호화-end-to-end-encryption) 참조
 
 ### 도메인 모델
 
@@ -356,13 +369,32 @@ class EncryptionSettings(
     createdAt: LocalDateTime,
     updatedAt: LocalDateTime,
 ) : AggregateRoot<EncryptionSettingsId>() {
-    // 비밀번호 변경 시 호출 (DEK는 변경되지 않음)
+    // PIN 변경 시 호출 (DEK는 변경되지 않음, 새 Server Key 필요)
     fun updateEncryption(newSalt: String, newEncryptedDEK: String)
 
     // 복구 키 재생성 시 호출
     fun updateRecoveryKey(newRecoveryEncryptedDEK: String, newRecoveryKeyHash: String)
 }
+
+// ServerKey - Server Key 보관 (별도 Aggregate)
+class ServerKey(
+    override val id: ServerKeyId,
+    val memberId: MemberId,
+    encryptedServerKey: String,  // Master Key로 암호화된 Server Key (Base64)
+    iv: String,                  // 암호화에 사용된 IV (Base64)
+    version: Long?,
+    createdAt: LocalDateTime,
+    updatedAt: LocalDateTime,
+) : AggregateRoot<ServerKeyId>() {
+    // Server Key는 생성 후 변경되지 않음 (PIN 변경 시 새로 생성)
+
+    companion object {
+        fun create(memberId: MemberId, encryptedServerKey: String, iv: String): ServerKey
+    }
+}
 ```
+
+> **📌 Server Key 보관 전략**: Server Key는 환경변수의 `ENCRYPTION_MASTER_KEY`로 암호화되어 저장됩니다. 향후 AWS KMS/GCP Cloud HSM으로 업그레이드 예정.
 
 ### 암호화 필드 처리
 
@@ -976,6 +1008,18 @@ class PrayerTopicServiceTest : BehaviorSpec({
     }
 })
 ```
+
+## Git Commit 규칙
+
+> **📌 참고**: 커밋 메시지 형식은 [루트 CLAUDE.md](../CLAUDE.md#git-commit-규칙) 참조
+
+백엔드 관련 주요 scope:
+- `member`: 회원/인증 도메인
+- `prayer`: 기도문/기도제목 도메인
+- `encryption`: E2E 암호화 (Server Key 관리)
+- `api`: API 공통
+
+---
 
 ## 빠른 참조 명령어
 
