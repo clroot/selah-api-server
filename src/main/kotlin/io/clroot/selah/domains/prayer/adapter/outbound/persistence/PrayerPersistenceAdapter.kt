@@ -9,6 +9,7 @@ import io.clroot.selah.domains.prayer.application.port.outbound.LoadPrayerPort
 import io.clroot.selah.domains.prayer.application.port.outbound.SavePrayerPort
 import io.clroot.selah.domains.prayer.domain.Prayer
 import io.clroot.selah.domains.prayer.domain.PrayerId
+import io.clroot.selah.domains.prayer.domain.PrayerTopicId
 import jakarta.persistence.EntityManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -112,5 +113,61 @@ class PrayerPersistenceAdapter(
     override suspend fun deleteById(id: PrayerId) =
         withContext(Dispatchers.IO) {
             repository.deleteById(id.value)
+        }
+
+    override suspend fun findAllByMemberIdAndPrayerTopicId(
+        memberId: MemberId,
+        prayerTopicId: PrayerTopicId,
+        pageable: Pageable,
+    ): Page<Prayer> =
+        withContext(Dispatchers.IO) {
+            val countQuery =
+                jpql {
+                    val prayerIdsWithTopic =
+                        select(path(PrayerPrayerTopicEntity::prayerId))
+                            .from(entity(PrayerPrayerTopicEntity::class))
+                            .where(path(PrayerPrayerTopicEntity::prayerTopicId).eq(prayerTopicId.value))
+                            .asSubquery()
+
+                    select(count(entity(PrayerEntity::class)))
+                        .from(entity(PrayerEntity::class))
+                        .where(
+                            and(
+                                path(PrayerEntity::memberId).eq(memberId.value),
+                                path(PrayerEntity::id).`in`(prayerIdsWithTopic),
+                            ),
+                        )
+                }
+            val total =
+                entityManager
+                    .createQuery(countQuery, jpqlRenderContext)
+                    .resultList
+                    .firstOrNull() ?: 0L
+
+            val dataQuery =
+                jpql {
+                    val prayerIdsWithTopic =
+                        select(path(PrayerPrayerTopicEntity::prayerId))
+                            .from(entity(PrayerPrayerTopicEntity::class))
+                            .where(path(PrayerPrayerTopicEntity::prayerTopicId).eq(prayerTopicId.value))
+                            .asSubquery()
+
+                    select(entity(PrayerEntity::class))
+                        .from(entity(PrayerEntity::class))
+                        .where(
+                            and(
+                                path(PrayerEntity::memberId).eq(memberId.value),
+                                path(PrayerEntity::id).`in`(prayerIdsWithTopic),
+                            ),
+                        ).orderBy(path(PrayerEntity::createdAt).desc())
+                }
+            val entities =
+                entityManager
+                    .createQuery(dataQuery, jpqlRenderContext)
+                    .setFirstResult(pageable.offset.toInt())
+                    .setMaxResults(pageable.pageSize)
+                    .resultList
+
+            PageImpl(entities.map { mapper.toDomain(it) }, pageable, total)
         }
 }

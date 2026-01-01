@@ -14,6 +14,7 @@ import io.clroot.selah.domains.prayer.application.port.outbound.LoadPrayerPort
 import io.clroot.selah.domains.prayer.application.port.outbound.SavePrayerPort
 import io.clroot.selah.domains.prayer.domain.Prayer
 import io.clroot.selah.domains.prayer.domain.PrayerId
+import io.clroot.selah.domains.prayer.domain.PrayerTopicId
 import io.clroot.selah.domains.prayer.domain.exception.PrayerAccessDeniedException
 import io.clroot.selah.domains.prayer.domain.exception.PrayerNotFoundException
 import org.springframework.context.ApplicationEventPublisher
@@ -71,6 +72,13 @@ class PrayerService(
         memberId: MemberId,
         pageable: Pageable,
     ): Page<Prayer> = loadPrayerPort.findAllByMemberId(memberId, pageable)
+
+    @Transactional(readOnly = true)
+    override suspend fun listByPrayerTopicId(
+        memberId: MemberId,
+        prayerTopicId: PrayerTopicId,
+        pageable: Pageable,
+    ): Page<Prayer> = loadPrayerPort.findAllByMemberIdAndPrayerTopicId(memberId, prayerTopicId, pageable)
 
     override suspend fun updateContent(command: UpdatePrayerContentCommand): Prayer {
         val prayer =

@@ -60,20 +60,28 @@ class PrayerController(
             .body(ApiResponse.success(prayer.toResponse()))
     }
 
-    /**
-     * 기도문 목록 조회
-     */
     @GetMapping
     suspend fun list(
         @RequestParam(defaultValue = "0") page: Int,
         @RequestParam(defaultValue = "20") size: Int,
+        @RequestParam(required = false) prayerTopicId: String?,
     ): ResponseEntity<ApiResponse<PageResponse<PrayerResponse>>> {
         val memberId = SecurityUtils.requireCurrentMemberId()
+        val pageable = PageRequest.of(page, size)
+
         val result =
-            getPrayerUseCase.listByMemberId(
-                memberId = memberId,
-                pageable = PageRequest.of(page, size),
-            )
+            if (prayerTopicId != null) {
+                getPrayerUseCase.listByPrayerTopicId(
+                    memberId = memberId,
+                    prayerTopicId = PrayerTopicId.from(prayerTopicId),
+                    pageable = pageable,
+                )
+            } else {
+                getPrayerUseCase.listByMemberId(
+                    memberId = memberId,
+                    pageable = pageable,
+                )
+            }
 
         return ResponseEntity.ok(
             ApiResponse.success(

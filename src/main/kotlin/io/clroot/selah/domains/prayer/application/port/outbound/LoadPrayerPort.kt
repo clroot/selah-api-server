@@ -3,6 +3,7 @@ package io.clroot.selah.domains.prayer.application.port.outbound
 import io.clroot.selah.domains.member.domain.MemberId
 import io.clroot.selah.domains.prayer.domain.Prayer
 import io.clroot.selah.domains.prayer.domain.PrayerId
+import io.clroot.selah.domains.prayer.domain.PrayerTopicId
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 
@@ -16,6 +17,12 @@ interface LoadPrayerPort {
 
     suspend fun findAllByMemberId(
         memberId: MemberId,
+        pageable: Pageable,
+    ): Page<Prayer>
+
+    suspend fun findAllByMemberIdAndPrayerTopicId(
+        memberId: MemberId,
+        prayerTopicId: PrayerTopicId,
         pageable: Pageable,
     ): Page<Prayer>
 }
