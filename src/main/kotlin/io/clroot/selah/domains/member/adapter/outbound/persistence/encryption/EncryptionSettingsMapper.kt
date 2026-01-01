@@ -10,12 +10,11 @@ import org.springframework.stereotype.Component
  */
 @Component
 class EncryptionSettingsMapper {
-
     /**
      * Domain → Entity
      */
-    fun toEntity(domain: EncryptionSettings): EncryptionSettingsEntity {
-        return EncryptionSettingsEntity(
+    fun toEntity(domain: EncryptionSettings): EncryptionSettingsEntity =
+        EncryptionSettingsEntity(
             id = domain.id.value,
             memberId = domain.memberId.value,
             salt = domain.salt,
@@ -26,13 +25,12 @@ class EncryptionSettingsMapper {
             createdAt = domain.createdAt,
             updatedAt = domain.updatedAt,
         )
-    }
 
     /**
      * Entity → Domain
      */
-    fun toDomain(entity: EncryptionSettingsEntity): EncryptionSettings {
-        return EncryptionSettings(
+    fun toDomain(entity: EncryptionSettingsEntity): EncryptionSettings =
+        EncryptionSettings(
             id = EncryptionSettingsId.from(entity.id),
             memberId = MemberId.from(entity.memberId),
             salt = entity.salt,
@@ -43,12 +41,14 @@ class EncryptionSettingsMapper {
             createdAt = entity.createdAt,
             updatedAt = entity.updatedAt,
         )
-    }
 
     /**
      * 기존 Entity 업데이트 (낙관적 락 유지)
      */
-    fun updateEntity(entity: EncryptionSettingsEntity, domain: EncryptionSettings) {
+    fun updateEntity(
+        entity: EncryptionSettingsEntity,
+        domain: EncryptionSettings,
+    ) {
         entity.salt = domain.salt
         entity.encryptedDek = domain.encryptedDEK
         entity.recoveryEncryptedDek = domain.recoveryEncryptedDEK

@@ -97,27 +97,32 @@ data class UpdateRecoveryKeyResponse(
 
 // === Extension Functions ===
 
-fun EncryptionSettingsWithServerKey.toResponse(): EncryptionSettingsResponse = EncryptionSettingsResponse(
-    salt = salt,
-    encryptedDEK = encryptedDEK,
-    serverKey = serverKey,
-)
+fun EncryptionSettingsWithServerKey.toResponse(): EncryptionSettingsResponse =
+    EncryptionSettingsResponse(
+        salt = salt,
+        encryptedDEK = encryptedDEK,
+        serverKey = serverKey,
+    )
 
-fun SetupEncryptionResult.toResponse(): SetupEncryptionResponse = SetupEncryptionResponse(
-    serverKey = serverKey,
-    createdAt = settings.createdAt,
-)
+fun SetupEncryptionResult.toResponse(): SetupEncryptionResponse =
+    SetupEncryptionResponse(
+        serverKey = serverKey,
+        createdAt = settings.createdAt,
+    )
 
-fun RecoverySettingsResult.toResponse(): RecoverySettingsResponse = RecoverySettingsResponse(
-    recoveryEncryptedDEK = recoveryEncryptedDEK,
-    recoveryKeyHash = recoveryKeyHash,
-)
+fun RecoverySettingsResult.toResponse(): RecoverySettingsResponse =
+    RecoverySettingsResponse(
+        recoveryEncryptedDEK = recoveryEncryptedDEK,
+        recoveryKeyHash = recoveryKeyHash,
+    )
 
-fun UpdateEncryptionResult.toResponse(): UpdateEncryptionResponse = UpdateEncryptionResponse(
-    serverKey = serverKey,
-    updatedAt = settings.updatedAt,
-)
+fun UpdateEncryptionResult.toResponse(): UpdateEncryptionResponse =
+    UpdateEncryptionResponse(
+        serverKey = serverKey,
+        updatedAt = settings.updatedAt,
+    )
 
-fun EncryptionSettings.toUpdateRecoveryKeyResponse(): UpdateRecoveryKeyResponse = UpdateRecoveryKeyResponse(
-    updatedAt = updatedAt,
-)
+fun EncryptionSettings.toUpdateRecoveryKeyResponse(): UpdateRecoveryKeyResponse =
+    UpdateRecoveryKeyResponse(
+        updatedAt = updatedAt,
+    )

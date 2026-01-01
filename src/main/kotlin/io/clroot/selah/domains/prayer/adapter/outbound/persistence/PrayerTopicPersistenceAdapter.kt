@@ -30,36 +30,45 @@ class PrayerTopicPersistenceAdapter(
     private val entityManager: EntityManager,
     private val jpqlRenderContext: JpqlRenderContext,
     private val mapper: PrayerTopicMapper,
-) : SavePrayerTopicPort, LoadPrayerTopicPort, DeletePrayerTopicPort {
-
-    override suspend fun save(prayerTopic: PrayerTopic): PrayerTopic = withContext(Dispatchers.IO) {
-        val savedEntity = if (repository.existsById(prayerTopic.id.value)) {
-            val existingEntity = repository.findById(prayerTopic.id.value).get()
-            mapper.updateEntity(existingEntity, prayerTopic)
-            repository.save(existingEntity)
-        } else {
-            repository.save(mapper.toEntity(prayerTopic))
-        }
-        mapper.toDomain(savedEntity)
-    }
-
-    override suspend fun findById(id: PrayerTopicId): PrayerTopic? = withContext(Dispatchers.IO) {
-        repository.findById(id.value).orElse(null)?.let { mapper.toDomain(it) }
-    }
-
-    override suspend fun findByIdAndMemberId(id: PrayerTopicId, memberId: MemberId): PrayerTopic? =
+) : SavePrayerTopicPort,
+    LoadPrayerTopicPort,
+    DeletePrayerTopicPort {
+    override suspend fun save(prayerTopic: PrayerTopic): PrayerTopic =
         withContext(Dispatchers.IO) {
-            val query = jpql {
-                select(entity(PrayerTopicEntity::class))
-                    .from(entity(PrayerTopicEntity::class))
-                    .where(
-                        and(
-                            path(PrayerTopicEntity::id).eq(id.value),
-                            path(PrayerTopicEntity::memberId).eq(memberId.value),
-                        ),
-                    )
-            }
-            entityManager.createQuery(query, jpqlRenderContext)
+            val savedEntity =
+                if (repository.existsById(prayerTopic.id.value)) {
+                    val existingEntity = repository.findById(prayerTopic.id.value).get()
+                    mapper.updateEntity(existingEntity, prayerTopic)
+                    repository.save(existingEntity)
+                } else {
+                    repository.save(mapper.toEntity(prayerTopic))
+                }
+            mapper.toDomain(savedEntity)
+        }
+
+    override suspend fun findById(id: PrayerTopicId): PrayerTopic? =
+        withContext(Dispatchers.IO) {
+            repository.findById(id.value).orElse(null)?.let { mapper.toDomain(it) }
+        }
+
+    override suspend fun findByIdAndMemberId(
+        id: PrayerTopicId,
+        memberId: MemberId,
+    ): PrayerTopic? =
+        withContext(Dispatchers.IO) {
+            val query =
+                jpql {
+                    select(entity(PrayerTopicEntity::class))
+                        .from(entity(PrayerTopicEntity::class))
+                        .where(
+                            and(
+                                path(PrayerTopicEntity::id).eq(id.value),
+                                path(PrayerTopicEntity::memberId).eq(memberId.value),
+                            ),
+                        )
+                }
+            entityManager
+                .createQuery(query, jpqlRenderContext)
                 .resultList
                 .firstOrNull()
                 ?.let { mapper.toDomain(it) }
@@ -69,39 +78,74 @@ class PrayerTopicPersistenceAdapter(
         memberId: MemberId,
         status: PrayerTopicStatus?,
         pageable: Pageable,
-    ): Page<PrayerTopic> = withContext(Dispatchers.IO) {
-        // Count query
-        val countQuery = jpql {
-            select(count(entity(PrayerTopicEntity::class)))
-                .from(entity(PrayerTopicEntity::class))
-                .whereAnd(
-                    path(PrayerTopicEntity::memberId).eq(memberId.value),
-                    status?.let { path(PrayerTopicEntity::status).eq(it) },
-                )
+    ): Page<PrayerTopic> =
+        withContext(Dispatchers.IO) {
+            // Count query
+            val countQuery =
+                jpql {
+                    select(count(entity(PrayerTopicEntity::class)))
+                        .from(entity(PrayerTopicEntity::class))
+                        .whereAnd(
+                            path(PrayerTopicEntity::memberId).eq(memberId.value),
+                            status?.let { path(PrayerTopicEntity::status).eq(it) },
+                        )
+                }
+            val total =
+                entityManager
+                    .createQuery(countQuery, jpqlRenderContext)
+                    .resultList
+                    .firstOrNull() ?: 0L
+
+            // Data query
+            val dataQuery =
+                jpql {
+                    select(entity(PrayerTopicEntity::class))
+                        .from(entity(PrayerTopicEntity::class))
+                        .whereAnd(
+                            path(PrayerTopicEntity::memberId).eq(memberId.value),
+                            status?.let { path(PrayerTopicEntity::status).eq(it) },
+                        ).orderBy(path(PrayerTopicEntity::createdAt).desc())
+                }
+            val entities =
+                entityManager
+                    .createQuery(dataQuery, jpqlRenderContext)
+                    .setFirstResult(pageable.offset.toInt())
+                    .setMaxResults(pageable.pageSize)
+                    .resultList
+
+            PageImpl(entities.map { mapper.toDomain(it) }, pageable, total)
         }
-        val total = entityManager.createQuery(countQuery, jpqlRenderContext)
-            .resultList
-            .firstOrNull() ?: 0L
 
-        // Data query
-        val dataQuery = jpql {
-            select(entity(PrayerTopicEntity::class))
-                .from(entity(PrayerTopicEntity::class))
-                .whereAnd(
-                    path(PrayerTopicEntity::memberId).eq(memberId.value),
-                    status?.let { path(PrayerTopicEntity::status).eq(it) },
-                )
-                .orderBy(path(PrayerTopicEntity::createdAt).desc())
+    override suspend fun deleteById(id: PrayerTopicId) =
+        withContext(Dispatchers.IO) {
+            repository.deleteById(id.value)
         }
-        val entities = entityManager.createQuery(dataQuery, jpqlRenderContext)
-            .setFirstResult(pageable.offset.toInt())
-            .setMaxResults(pageable.pageSize)
-            .resultList
 
-        PageImpl(entities.map { mapper.toDomain(it) }, pageable, total)
-    }
+    override suspend fun findCandidatesForLookback(
+        memberId: MemberId,
+        cutoffDate: java.time.LocalDateTime,
+        excludeIds: List<PrayerTopicId>,
+    ): List<PrayerTopic> =
+        withContext(Dispatchers.IO) {
+            val excludeIdValues = excludeIds.map { it.value }
 
-    override suspend fun deleteById(id: PrayerTopicId) = withContext(Dispatchers.IO) {
-        repository.deleteById(id.value)
-    }
+            val query =
+                jpql {
+                    select(entity(PrayerTopicEntity::class))
+                        .from(entity(PrayerTopicEntity::class))
+                        .whereAnd(
+                            path(PrayerTopicEntity::memberId).eq(memberId.value),
+                            path(PrayerTopicEntity::createdAt).lt(cutoffDate),
+                            if (excludeIdValues.isNotEmpty()) {
+                                path(PrayerTopicEntity::id).notIn(excludeIdValues)
+                            } else {
+                                null
+                            },
+                        )
+                }
+            entityManager
+                .createQuery(query, jpqlRenderContext)
+                .resultList
+                .map { mapper.toDomain(it) }
+        }
 }

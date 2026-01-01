@@ -17,7 +17,6 @@ class OAuthConnection(
     val providerId: String,
     val connectedAt: LocalDateTime,
 ) : DomainEntity<OAuthConnectionId>(id) {
-
     init {
         require(providerId.isNotBlank()) { "Provider ID must not be blank" }
     }
@@ -26,11 +25,12 @@ class OAuthConnection(
         fun create(
             provider: OAuthProvider,
             providerId: String,
-        ): OAuthConnection = OAuthConnection(
-            id = OAuthConnectionId.new(),
-            provider = provider,
-            providerId = providerId,
-            connectedAt = LocalDateTime.now(),
-        )
+        ): OAuthConnection =
+            OAuthConnection(
+                id = OAuthConnectionId.new(),
+                provider = provider,
+                providerId = providerId,
+                connectedAt = LocalDateTime.now(),
+            )
     }
 }

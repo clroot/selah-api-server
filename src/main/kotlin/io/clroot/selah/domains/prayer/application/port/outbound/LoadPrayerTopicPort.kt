@@ -9,10 +9,21 @@ import org.springframework.data.domain.Pageable
 
 interface LoadPrayerTopicPort {
     suspend fun findById(id: PrayerTopicId): PrayerTopic?
-    suspend fun findByIdAndMemberId(id: PrayerTopicId, memberId: MemberId): PrayerTopic?
+
+    suspend fun findByIdAndMemberId(
+        id: PrayerTopicId,
+        memberId: MemberId,
+    ): PrayerTopic?
+
     suspend fun findAllByMemberId(
         memberId: MemberId,
         status: PrayerTopicStatus?,
         pageable: Pageable,
     ): Page<PrayerTopic>
+
+    suspend fun findCandidatesForLookback(
+        memberId: MemberId,
+        cutoffDate: java.time.LocalDateTime,
+        excludeIds: List<PrayerTopicId>,
+    ): List<PrayerTopic>
 }

@@ -10,22 +10,18 @@ import org.springframework.core.convert.converter.ConverterFactory
  * 예: /api/v1/members/me/oauth-connections/google → OAuthProvider.GOOGLE
  */
 class CaseInsensitiveEnumConverterFactory : ConverterFactory<String, Enum<*>> {
-
-    override fun <T : Enum<*>> getConverter(targetType: Class<T>): Converter<String, T> {
-        return CaseInsensitiveEnumConverter(targetType)
-    }
+    override fun <T : Enum<*>> getConverter(targetType: Class<T>): Converter<String, T> = CaseInsensitiveEnumConverter(targetType)
 
     private class CaseInsensitiveEnumConverter<T : Enum<*>>(
         private val enumType: Class<T>,
     ) : Converter<String, T> {
-
         override fun convert(source: String): T? {
             if (source.isBlank()) return null
 
             return enumType.enumConstants.firstOrNull { constant ->
                 constant.name.equals(source, ignoreCase = true)
             } ?: throw IllegalArgumentException(
-                "No enum constant ${enumType.canonicalName}.$source (case-insensitive)"
+                "No enum constant ${enumType.canonicalName}.$source (case-insensitive)",
             )
         }
     }

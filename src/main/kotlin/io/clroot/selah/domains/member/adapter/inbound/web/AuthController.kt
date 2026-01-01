@@ -28,7 +28,6 @@ class AuthController(
     private val logoutUseCase: LogoutUseCase,
     private val sessionCookieHelper: SessionCookieHelper,
 ) {
-
     /**
      * 이메일 회원가입
      */
@@ -37,21 +36,22 @@ class AuthController(
     suspend fun registerWithEmail(
         @RequestBody request: RegisterWithEmailRequest,
     ): ResponseEntity<ApiResponse<RegisterResponse>> {
-        val member = registerMemberUseCase.registerWithEmail(
-            RegisterWithEmailCommand(
-                email = Email(request.email),
-                nickname = request.nickname,
-                password = NewPassword.from(request.password),
+        val member =
+            registerMemberUseCase.registerWithEmail(
+                RegisterWithEmailCommand(
+                    email = Email(request.email),
+                    nickname = request.nickname,
+                    password = NewPassword.from(request.password),
+                ),
             )
-        )
 
         return ResponseEntity.ok(
             ApiResponse.success(
                 RegisterResponse(
                     memberId = member.id.value,
                     nickname = member.nickname,
-                )
-            )
+                ),
+            ),
         )
     }
 
@@ -65,14 +65,15 @@ class AuthController(
         httpRequest: HttpServletRequest,
         httpResponse: HttpServletResponse,
     ): ResponseEntity<ApiResponse<LoginResponse>> {
-        val result = loginUseCase.loginWithEmail(
-            LoginWithEmailCommand(
-                email = Email(request.email),
-                password = RawPassword(request.password),
-                userAgent = httpRequest.getHeader("User-Agent"),
-                ipAddress = HttpRequestUtils.extractIpAddress(httpRequest),
+        val result =
+            loginUseCase.loginWithEmail(
+                LoginWithEmailCommand(
+                    email = Email(request.email),
+                    password = RawPassword(request.password),
+                    userAgent = httpRequest.getHeader("User-Agent"),
+                    ipAddress = HttpRequestUtils.extractIpAddress(httpRequest),
+                ),
             )
-        )
 
         // 세션 쿠키 설정
         sessionCookieHelper.addSessionCookie(httpResponse, result.session.token, result.session.expiresAt)
@@ -90,17 +91,18 @@ class AuthController(
         httpRequest: HttpServletRequest,
         httpResponse: HttpServletResponse,
     ): ResponseEntity<ApiResponse<LoginResponse>> {
-        val result = loginUseCase.loginWithOAuth(
-            LoginWithOAuthCommand(
-                email = Email(request.email),
-                nickname = request.nickname,
-                provider = request.provider,
-                providerId = request.providerId,
-                profileImageUrl = request.profileImageUrl,
-                userAgent = httpRequest.getHeader("User-Agent"),
-                ipAddress = HttpRequestUtils.extractIpAddress(httpRequest),
+        val result =
+            loginUseCase.loginWithOAuth(
+                LoginWithOAuthCommand(
+                    email = Email(request.email),
+                    nickname = request.nickname,
+                    provider = request.provider,
+                    providerId = request.providerId,
+                    profileImageUrl = request.profileImageUrl,
+                    userAgent = httpRequest.getHeader("User-Agent"),
+                    ipAddress = HttpRequestUtils.extractIpAddress(httpRequest),
+                ),
             )
-        )
 
         // 세션 쿠키 설정
         sessionCookieHelper.addSessionCookie(httpResponse, result.session.token, result.session.expiresAt)

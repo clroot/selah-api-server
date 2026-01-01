@@ -1,8 +1,8 @@
 package io.clroot.selah.test.container
 
+import io.github.oshai.kotlinlogging.KotlinLogging
 import io.kotest.core.extensions.SpecExtension
 import io.kotest.core.spec.Spec
-import io.github.oshai.kotlinlogging.KotlinLogging
 
 /**
  * Kotest Spec 레벨 Extension

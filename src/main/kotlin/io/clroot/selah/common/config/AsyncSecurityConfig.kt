@@ -12,7 +12,6 @@ import org.springframework.security.core.context.SecurityContextHolder
  */
 @Configuration
 class AsyncSecurityConfig {
-
     @PostConstruct
     fun init() {
         // Virtual Threads와 함께 사용하기 위해 MODE_INHERITABLETHREADLOCAL 설정

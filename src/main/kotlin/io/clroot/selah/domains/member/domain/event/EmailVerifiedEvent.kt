@@ -9,5 +9,5 @@ import io.clroot.selah.domains.member.domain.Member
  * 사용자가 이메일 인증을 완료했을 때 발행됩니다.
  */
 data class EmailVerifiedEvent(
-    val member: Member
+    val member: Member,
 ) : BaseDomainEvent()

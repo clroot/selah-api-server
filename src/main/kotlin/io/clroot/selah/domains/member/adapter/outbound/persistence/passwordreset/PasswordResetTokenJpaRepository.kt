@@ -7,7 +7,6 @@ import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDateTime
 
 interface PasswordResetTokenJpaRepository : JpaRepository<PasswordResetTokenEntity, String> {
-
     fun findByTokenHash(tokenHash: String): PasswordResetTokenEntity?
 
     fun findTopByMemberIdOrderByCreatedAtDesc(memberId: String): PasswordResetTokenEntity?

@@ -21,7 +21,6 @@ import org.springframework.web.bind.annotation.RestController
 class EmailVerificationController(
     private val emailVerificationUseCase: EmailVerificationUseCase,
 ) {
-
     /**
      * 이메일 인증 메일 발송 (재발송)
      * 로그인된 사용자가 자신의 이메일 인증을 요청합니다.
@@ -31,7 +30,7 @@ class EmailVerificationController(
         val memberId = SecurityUtils.requireCurrentMemberId()
 
         emailVerificationUseCase.sendVerificationEmail(
-            SendVerificationEmailCommand(memberId = memberId)
+            SendVerificationEmailCommand(memberId = memberId),
         )
 
         return ResponseEntity.ok(ApiResponse.success(Unit))
@@ -46,9 +45,10 @@ class EmailVerificationController(
     suspend fun verifyEmail(
         @RequestBody request: EmailVerificationDto.VerifyRequest,
     ): ResponseEntity<ApiResponse<EmailVerificationDto.VerifyResponse>> {
-        val member = emailVerificationUseCase.verifyEmail(
-            VerifyEmailCommand(token = request.token)
-        )
+        val member =
+            emailVerificationUseCase.verifyEmail(
+                VerifyEmailCommand(token = request.token),
+            )
 
         return ResponseEntity.ok(
             ApiResponse.success(
@@ -56,8 +56,8 @@ class EmailVerificationController(
                     memberId = member.id!!.value,
                     email = member.email.value,
                     emailVerified = member.emailVerified,
-                )
-            )
+                ),
+            ),
         )
     }
 }

@@ -22,7 +22,6 @@ class Prayer(
     createdAt: LocalDateTime,
     updatedAt: LocalDateTime,
 ) : AggregateRoot<PrayerId>(id, version, createdAt, updatedAt) {
-
     init {
         require(content.isNotBlank()) { "Content cannot be blank" }
     }
@@ -59,7 +58,10 @@ class Prayer(
     /**
      * 기도문 내용과 연결된 기도제목을 함께 수정합니다.
      */
-    fun update(newContent: String, newPrayerTopicIds: List<PrayerTopicId>) {
+    fun update(
+        newContent: String,
+        newPrayerTopicIds: List<PrayerTopicId>,
+    ) {
         require(newContent.isNotBlank()) { "Content cannot be blank" }
 
         val contentChanged = content != newContent

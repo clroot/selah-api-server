@@ -36,12 +36,13 @@ data class PrayerTopicResponse(
 
 // === Extension Functions ===
 
-fun PrayerTopic.toResponse(): PrayerTopicResponse = PrayerTopicResponse(
-    id = id.value,
-    title = title,
-    status = status,
-    answeredAt = answeredAt,
-    reflection = reflection,
-    createdAt = createdAt,
-    updatedAt = updatedAt,
-)
+fun PrayerTopic.toResponse(): PrayerTopicResponse =
+    PrayerTopicResponse(
+        id = id.value,
+        title = title,
+        status = status,
+        answeredAt = answeredAt,
+        reflection = reflection,
+        createdAt = createdAt,
+        updatedAt = updatedAt,
+    )

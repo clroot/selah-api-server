@@ -26,7 +26,6 @@ class EmailVerificationTokenPersistenceAdapter(
     @Value($$"${selah.email-verification.ttl:P1D}")
     private val tokenTtl: Duration,
 ) : EmailVerificationTokenPort {
-
     companion object {
         private const val TOKEN_LENGTH = 32
         private val SECURE_RANDOM = SecureRandom()
@@ -42,13 +41,14 @@ class EmailVerificationTokenPersistenceAdapter(
             val rawToken = generateToken()
             val tokenHash = hashToken(rawToken)
 
-            val entity = EmailVerificationTokenEntity(
-                id = id,
-                tokenHash = tokenHash,
-                memberId = memberId.value,
-                expiresAt = now.plus(tokenTtl),
-                createdAt = now,
-            )
+            val entity =
+                EmailVerificationTokenEntity(
+                    id = id,
+                    tokenHash = tokenHash,
+                    memberId = memberId.value,
+                    expiresAt = now.plus(tokenTtl),
+                    createdAt = now,
+                )
 
             repository.save(entity)
 

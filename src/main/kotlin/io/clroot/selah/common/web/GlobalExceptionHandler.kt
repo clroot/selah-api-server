@@ -23,7 +23,6 @@ import org.springframework.web.servlet.NoHandlerFoundException
  */
 @RestControllerAdvice
 class GlobalExceptionHandler {
-
     companion object {
         @JvmStatic
         private val logger = KotlinLogging.logger {}
@@ -41,9 +40,10 @@ class GlobalExceptionHandler {
 
     @ExceptionHandler(MethodArgumentNotValidException::class)
     fun handleMethodArgumentNotValid(ex: MethodArgumentNotValidException): ResponseEntity<ApiResponse<Nothing>> {
-        val errors = ex.bindingResult.fieldErrors
-            .map { "${it.field}: ${it.defaultMessage}" }
-            .joinToString(", ")
+        val errors =
+            ex.bindingResult.fieldErrors
+                .map { "${it.field}: ${it.defaultMessage}" }
+                .joinToString(", ")
         logger.debug { "Validation failed: $errors" }
 
         return ResponseEntity
@@ -60,9 +60,7 @@ class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(MissingServletRequestParameterException::class)
-    fun handleMissingServletRequestParameter(
-        ex: MissingServletRequestParameterException,
-    ): ResponseEntity<ApiResponse<Nothing>> {
+    fun handleMissingServletRequestParameter(ex: MissingServletRequestParameterException): ResponseEntity<ApiResponse<Nothing>> {
         logger.debug { "Missing parameter: ${ex.parameterName}" }
         return ResponseEntity
             .status(HttpStatus.BAD_REQUEST)
@@ -70,9 +68,7 @@ class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(MethodArgumentTypeMismatchException::class)
-    fun handleMethodArgumentTypeMismatch(
-        ex: MethodArgumentTypeMismatchException,
-    ): ResponseEntity<ApiResponse<Nothing>> {
+    fun handleMethodArgumentTypeMismatch(ex: MethodArgumentTypeMismatchException): ResponseEntity<ApiResponse<Nothing>> {
         logger.debug { "Type mismatch: ${ex.name} = ${ex.value}" }
         return ResponseEntity
             .status(HttpStatus.BAD_REQUEST)
@@ -102,9 +98,7 @@ class GlobalExceptionHandler {
     // ========== 405 Method Not Allowed ==========
 
     @ExceptionHandler(HttpRequestMethodNotSupportedException::class)
-    fun handleHttpRequestMethodNotSupported(
-        ex: HttpRequestMethodNotSupportedException,
-    ): ResponseEntity<ApiResponse<Nothing>> {
+    fun handleHttpRequestMethodNotSupported(ex: HttpRequestMethodNotSupportedException): ResponseEntity<ApiResponse<Nothing>> {
         logger.debug { "Method not supported: ${ex.method}" }
         return ResponseEntity
             .status(HttpStatus.METHOD_NOT_ALLOWED)

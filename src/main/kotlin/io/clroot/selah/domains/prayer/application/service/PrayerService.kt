@@ -32,14 +32,17 @@ class PrayerService(
     private val loadPrayerPort: LoadPrayerPort,
     private val deletePrayerPort: DeletePrayerPort,
     private val eventPublisher: ApplicationEventPublisher,
-) : CreatePrayerUseCase, GetPrayerUseCase, UpdatePrayerUseCase, DeletePrayerUseCase {
-
+) : CreatePrayerUseCase,
+    GetPrayerUseCase,
+    UpdatePrayerUseCase,
+    DeletePrayerUseCase {
     override suspend fun create(command: CreatePrayerCommand): Prayer {
-        val prayer = Prayer.create(
-            memberId = command.memberId,
-            prayerTopicIds = command.prayerTopicIds,
-            content = command.content,
-        )
+        val prayer =
+            Prayer.create(
+                memberId = command.memberId,
+                prayerTopicIds = command.prayerTopicIds,
+                content = command.content,
+            )
 
         val saved = savePrayerPort.save(prayer)
         saved.publishAndClearEvents(eventPublisher)
@@ -48,9 +51,13 @@ class PrayerService(
     }
 
     @Transactional(readOnly = true)
-    override suspend fun getById(id: PrayerId, memberId: MemberId): Prayer {
-        val prayer = loadPrayerPort.findById(id)
-            ?: throw PrayerNotFoundException(id.value)
+    override suspend fun getById(
+        id: PrayerId,
+        memberId: MemberId,
+    ): Prayer {
+        val prayer =
+            loadPrayerPort.findById(id)
+                ?: throw PrayerNotFoundException(id.value)
 
         if (prayer.memberId != memberId) {
             throw PrayerAccessDeniedException(id.value)
@@ -63,13 +70,12 @@ class PrayerService(
     override suspend fun listByMemberId(
         memberId: MemberId,
         pageable: Pageable,
-    ): Page<Prayer> {
-        return loadPrayerPort.findAllByMemberId(memberId, pageable)
-    }
+    ): Page<Prayer> = loadPrayerPort.findAllByMemberId(memberId, pageable)
 
     override suspend fun updateContent(command: UpdatePrayerContentCommand): Prayer {
-        val prayer = loadPrayerPort.findById(command.id)
-            ?: throw PrayerNotFoundException(command.id.value)
+        val prayer =
+            loadPrayerPort.findById(command.id)
+                ?: throw PrayerNotFoundException(command.id.value)
 
         if (prayer.memberId != command.memberId) {
             throw PrayerAccessDeniedException(command.id.value)
@@ -84,8 +90,9 @@ class PrayerService(
     }
 
     override suspend fun update(command: UpdatePrayerCommand): Prayer {
-        val prayer = loadPrayerPort.findById(command.id)
-            ?: throw PrayerNotFoundException(command.id.value)
+        val prayer =
+            loadPrayerPort.findById(command.id)
+                ?: throw PrayerNotFoundException(command.id.value)
 
         if (prayer.memberId != command.memberId) {
             throw PrayerAccessDeniedException(command.id.value)
@@ -99,9 +106,13 @@ class PrayerService(
         return saved
     }
 
-    override suspend fun delete(id: PrayerId, memberId: MemberId) {
-        val prayer = loadPrayerPort.findById(id)
-            ?: throw PrayerNotFoundException(id.value)
+    override suspend fun delete(
+        id: PrayerId,
+        memberId: MemberId,
+    ) {
+        val prayer =
+            loadPrayerPort.findById(id)
+                ?: throw PrayerNotFoundException(id.value)
 
         if (prayer.memberId != memberId) {
             throw PrayerAccessDeniedException(id.value)

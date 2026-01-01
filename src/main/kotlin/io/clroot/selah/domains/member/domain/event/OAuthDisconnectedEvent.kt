@@ -11,5 +11,5 @@ import io.clroot.selah.domains.member.domain.OAuthProvider
  */
 data class OAuthDisconnectedEvent(
     val member: Member,
-    val disconnectedProvider: OAuthProvider
+    val disconnectedProvider: OAuthProvider,
 ) : BaseDomainEvent()

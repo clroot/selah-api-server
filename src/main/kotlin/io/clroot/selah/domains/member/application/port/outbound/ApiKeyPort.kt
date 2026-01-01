@@ -55,7 +55,10 @@ interface ApiKeyPort {
      * @param id API Key ID
      * @param ipAddress 마지막 사용 IP 주소
      */
-    suspend fun updateLastUsedAt(id: String, ipAddress: String?)
+    suspend fun updateLastUsedAt(
+        id: String,
+        ipAddress: String?,
+    )
 }
 
 /**

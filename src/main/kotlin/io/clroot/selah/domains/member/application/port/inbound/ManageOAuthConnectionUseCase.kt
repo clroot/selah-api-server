@@ -21,7 +21,10 @@ interface ManageOAuthConnectionUseCase {
      * @throws OAuthProviderAlreadyConnectedException 이미 연결된 Provider인 경우
      * @throws OAuthAlreadyLinkedToAnotherMemberException 다른 계정에 이미 연결된 OAuth인 경우
      */
-    suspend fun connect(memberId: MemberId, command: ConnectOAuthCommand): OAuthConnectionInfo
+    suspend fun connect(
+        memberId: MemberId,
+        command: ConnectOAuthCommand,
+    ): OAuthConnectionInfo
 
     /**
      * OAuth Provider 연결을 해제합니다.
@@ -29,7 +32,10 @@ interface ManageOAuthConnectionUseCase {
      * @throws OAuthProviderNotConnectedException 연결되지 않은 Provider인 경우
      * @throws CannotDisconnectLastLoginMethodException 마지막 로그인 방법인 경우
      */
-    suspend fun disconnect(memberId: MemberId, provider: OAuthProvider)
+    suspend fun disconnect(
+        memberId: MemberId,
+        provider: OAuthProvider,
+    )
 }
 
 /**

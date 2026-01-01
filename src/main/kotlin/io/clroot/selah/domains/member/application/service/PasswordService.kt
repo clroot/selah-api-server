@@ -28,15 +28,18 @@ class PasswordService(
     private val sessionPort: SessionPort,
     private val sendEmailPort: SendEmailPort,
 ) : ChangePasswordUseCase {
-
     companion object {
         @JvmStatic
         private val logger = KotlinLogging.logger {}
     }
 
-    override suspend fun changePassword(memberId: MemberId, command: ChangePasswordCommand) {
-        val member = loadMemberPort.findById(memberId)
-            ?: throw MemberNotFoundException(memberId.value)
+    override suspend fun changePassword(
+        memberId: MemberId,
+        command: ChangePasswordCommand,
+    ) {
+        val member =
+            loadMemberPort.findById(memberId)
+                ?: throw MemberNotFoundException(memberId.value)
 
         if (!member.hasPassword) {
             throw PasswordNotSetException()
@@ -63,9 +66,13 @@ class PasswordService(
         logger.info { "Password changed for member ${memberId.value}" }
     }
 
-    override suspend fun setPassword(memberId: MemberId, command: SetPasswordCommand) {
-        val member = loadMemberPort.findById(memberId)
-            ?: throw MemberNotFoundException(memberId.value)
+    override suspend fun setPassword(
+        memberId: MemberId,
+        command: SetPasswordCommand,
+    ) {
+        val member =
+            loadMemberPort.findById(memberId)
+                ?: throw MemberNotFoundException(memberId.value)
 
         if (member.hasPassword) {
             throw PasswordAlreadySetException()

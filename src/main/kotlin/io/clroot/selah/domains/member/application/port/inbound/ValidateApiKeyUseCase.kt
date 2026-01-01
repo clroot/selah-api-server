@@ -13,5 +13,8 @@ interface ValidateApiKeyUseCase {
      * @param ipAddress 클라이언트 IP 주소
      * @return API Key 정보 또는 null (유효하지 않은 경우)
      */
-    suspend fun validate(apiKey: String, ipAddress: String?): ApiKeyInfo?
+    suspend fun validate(
+        apiKey: String,
+        ipAddress: String?,
+    ): ApiKeyInfo?
 }

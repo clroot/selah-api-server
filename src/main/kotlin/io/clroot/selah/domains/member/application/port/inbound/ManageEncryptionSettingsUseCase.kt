@@ -22,7 +22,10 @@ interface ManageEncryptionSettingsUseCase {
      * @return SetupEncryptionResult (설정 + 평문 Server Key)
      * @throws EncryptionAlreadySetupException 이미 설정된 경우
      */
-    suspend fun setup(memberId: MemberId, command: SetupEncryptionCommand): SetupEncryptionResult
+    suspend fun setup(
+        memberId: MemberId,
+        command: SetupEncryptionCommand,
+    ): SetupEncryptionResult
 
     /**
      * 암호화 설정 조회 (로그인 시 DEK 복호화용)
@@ -43,7 +46,10 @@ interface ManageEncryptionSettingsUseCase {
      *
      * @throws EncryptionSettingsNotFoundException 설정이 없는 경우
      */
-    suspend fun verifyRecoveryKey(memberId: MemberId, recoveryKeyHash: String): Boolean
+    suspend fun verifyRecoveryKey(
+        memberId: MemberId,
+        recoveryKeyHash: String,
+    ): Boolean
 
     /**
      * 복구용 설정 조회 (비밀번호 분실 시 DEK 복구용)
@@ -59,7 +65,10 @@ interface ManageEncryptionSettingsUseCase {
      * @return UpdateEncryptionResult (설정 + 새 평문 Server Key)
      * @throws EncryptionSettingsNotFoundException 설정이 없는 경우
      */
-    suspend fun updateEncryption(memberId: MemberId, command: UpdateEncryptionCommand): UpdateEncryptionResult
+    suspend fun updateEncryption(
+        memberId: MemberId,
+        command: UpdateEncryptionCommand,
+    ): UpdateEncryptionResult
 
     /**
      * 복구 키 재생성
@@ -67,7 +76,10 @@ interface ManageEncryptionSettingsUseCase {
      *
      * @throws EncryptionSettingsNotFoundException 설정이 없는 경우
      */
-    suspend fun updateRecoveryKey(memberId: MemberId, command: UpdateRecoveryKeyCommand): EncryptionSettings
+    suspend fun updateRecoveryKey(
+        memberId: MemberId,
+        command: UpdateRecoveryKeyCommand,
+    ): EncryptionSettings
 
     /**
      * 암호화 설정 삭제
@@ -123,7 +135,7 @@ data class RecoverySettingsResult(
  */
 data class SetupEncryptionResult(
     val settings: EncryptionSettings,
-    val serverKey: String,  // Base64 인코딩된 평문 Server Key (클라이언트 전달용)
+    val serverKey: String, // Base64 인코딩된 평문 Server Key (클라이언트 전달용)
 )
 
 /**
@@ -133,7 +145,7 @@ data class SetupEncryptionResult(
 data class EncryptionSettingsWithServerKey(
     val salt: String,
     val encryptedDEK: String,
-    val serverKey: String,  // Base64 인코딩된 평문 Server Key
+    val serverKey: String, // Base64 인코딩된 평문 Server Key
 )
 
 /**
@@ -142,5 +154,5 @@ data class EncryptionSettingsWithServerKey(
  */
 data class UpdateEncryptionResult(
     val settings: EncryptionSettings,
-    val serverKey: String,  // Base64 인코딩된 새 평문 Server Key
+    val serverKey: String, // Base64 인코딩된 새 평문 Server Key
 )

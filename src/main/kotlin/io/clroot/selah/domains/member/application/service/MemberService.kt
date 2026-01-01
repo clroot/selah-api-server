@@ -22,16 +22,18 @@ class MemberService(
     private val saveMemberPort: SaveMemberPort,
     private val eventPublisher: ApplicationEventPublisher,
 ) : GetCurrentMemberUseCase {
-
     @Transactional(readOnly = true)
-    override suspend fun getMember(memberId: MemberId): Member {
-        return loadMemberPort.findById(memberId)
+    override suspend fun getMember(memberId: MemberId): Member =
+        loadMemberPort.findById(memberId)
             ?: throw MemberNotFoundException(memberId.value)
-    }
 
-    override suspend fun updateProfile(memberId: MemberId, command: UpdateProfileCommand): Member {
-        val member = loadMemberPort.findById(memberId)
-            ?: throw MemberNotFoundException(memberId.value)
+    override suspend fun updateProfile(
+        memberId: MemberId,
+        command: UpdateProfileCommand,
+    ): Member {
+        val member =
+            loadMemberPort.findById(memberId)
+                ?: throw MemberNotFoundException(memberId.value)
 
         member.updateProfile(
             newNickname = command.nickname,

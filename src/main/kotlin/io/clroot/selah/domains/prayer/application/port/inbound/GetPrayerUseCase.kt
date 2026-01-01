@@ -7,7 +7,11 @@ import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 
 interface GetPrayerUseCase {
-    suspend fun getById(id: PrayerId, memberId: MemberId): Prayer
+    suspend fun getById(
+        id: PrayerId,
+        memberId: MemberId,
+    ): Prayer
+
     suspend fun listByMemberId(
         memberId: MemberId,
         pageable: Pageable,

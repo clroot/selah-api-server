@@ -29,37 +29,39 @@ class SessionPersistenceAdapter(
     @Value($$"${selah.session.extend-threshold:P1D}")
     private val extendThreshold: Duration,
 ) : SessionPort {
-
     override suspend fun create(
         memberId: MemberId,
         role: Member.Role,
         userAgent: String?,
         ipAddress: String?,
-    ): SessionInfo = withContext(Dispatchers.IO) {
-        val now = LocalDateTime.now()
-        val token = UUID.randomUUID().toString()
-        val expiresAt = now.plus(sessionTtl)
+    ): SessionInfo =
+        withContext(Dispatchers.IO) {
+            val now = LocalDateTime.now()
+            val token = UUID.randomUUID().toString()
+            val expiresAt = now.plus(sessionTtl)
 
-        val entity = SessionEntity(
-            token = token,
-            memberId = memberId.value,
-            role = role,
-            userAgent = userAgent?.take(500), // 최대 500자
-            createdIp = ipAddress?.take(45),
-            lastAccessedIp = ipAddress?.take(45),
-            expiresAt = expiresAt,
-            createdAt = now,
-        )
+            val entity =
+                SessionEntity(
+                    token = token,
+                    memberId = memberId.value,
+                    role = role,
+                    userAgent = userAgent?.take(500), // 최대 500자
+                    createdIp = ipAddress?.take(45),
+                    lastAccessedIp = ipAddress?.take(45),
+                    expiresAt = expiresAt,
+                    createdAt = now,
+                )
 
-        transactionTemplate.execute {
-            repository.save(entity)
+            transactionTemplate.execute {
+                repository.save(entity)
+            }
+            entity.toSessionInfo()
         }
-        entity.toSessionInfo()
-    }
 
-    override suspend fun findByToken(token: String): SessionInfo? = withContext(Dispatchers.IO) {
-        repository.findByIdOrNull(token)?.toSessionInfo()
-    }
+    override suspend fun findByToken(token: String): SessionInfo? =
+        withContext(Dispatchers.IO) {
+            repository.findByIdOrNull(token)?.toSessionInfo()
+        }
 
     override suspend fun delete(token: String) {
         withContext(Dispatchers.IO) {
@@ -77,7 +79,10 @@ class SessionPersistenceAdapter(
         }
     }
 
-    override suspend fun extendExpiry(token: String, ipAddress: String?) {
+    override suspend fun extendExpiry(
+        token: String,
+        ipAddress: String?,
+    ) {
         withContext(Dispatchers.IO) {
             transactionTemplate.execute {
                 val entity = repository.findByIdOrNull(token) ?: return@execute
@@ -96,20 +101,22 @@ class SessionPersistenceAdapter(
         }
     }
 
-    override suspend fun deleteExpiredSessions(): Int = withContext(Dispatchers.IO) {
-        transactionTemplate.execute {
-            repository.deleteExpiredSessions(LocalDateTime.now())
-        } ?: 0
-    }
+    override suspend fun deleteExpiredSessions(): Int =
+        withContext(Dispatchers.IO) {
+            transactionTemplate.execute {
+                repository.deleteExpiredSessions(LocalDateTime.now())
+            } ?: 0
+        }
 
-    private fun SessionEntity.toSessionInfo(): SessionInfo = SessionInfo(
-        token = token,
-        memberId = MemberId.from(memberId),
-        role = role,
-        userAgent = userAgent,
-        createdIp = createdIp,
-        lastAccessedIp = lastAccessedIp,
-        expiresAt = expiresAt,
-        createdAt = createdAt,
-    )
+    private fun SessionEntity.toSessionInfo(): SessionInfo =
+        SessionInfo(
+            token = token,
+            memberId = MemberId.from(memberId),
+            role = role,
+            userAgent = userAgent,
+            createdIp = createdIp,
+            lastAccessedIp = lastAccessedIp,
+            expiresAt = expiresAt,
+            createdAt = createdAt,
+        )
 }

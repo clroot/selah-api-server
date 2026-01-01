@@ -47,8 +47,10 @@ class EncryptionSettingsService(
     private val serverKeyEncryptionPort: ServerKeyEncryptionPort,
     private val eventPublisher: ApplicationEventPublisher,
 ) : ManageEncryptionSettingsUseCase {
-
-    override suspend fun setup(memberId: MemberId, command: SetupEncryptionCommand): SetupEncryptionResult {
+    override suspend fun setup(
+        memberId: MemberId,
+        command: SetupEncryptionCommand,
+    ): SetupEncryptionResult {
         // 이미 설정되어 있는지 확인
         if (loadEncryptionSettingsPort.existsByMemberId(memberId)) {
             throw EncryptionAlreadySetupException(memberId.value)
@@ -58,21 +60,23 @@ class EncryptionSettingsService(
         val serverKeyResult = serverKeyEncryptionPort.generateAndEncryptServerKey()
 
         // Server Key 저장
-        val serverKey = ServerKey.create(
-            memberId = memberId,
-            encryptedServerKey = serverKeyResult.encryptedServerKey,
-            iv = serverKeyResult.iv,
-        )
+        val serverKey =
+            ServerKey.create(
+                memberId = memberId,
+                encryptedServerKey = serverKeyResult.encryptedServerKey,
+                iv = serverKeyResult.iv,
+            )
         saveServerKeyPort.save(serverKey)
 
         // 암호화 설정 생성 및 저장
-        val encryptionSettings = EncryptionSettings.create(
-            memberId = memberId,
-            salt = command.salt,
-            encryptedDEK = command.encryptedDEK,
-            recoveryEncryptedDEK = command.recoveryEncryptedDEK,
-            recoveryKeyHash = command.recoveryKeyHash,
-        )
+        val encryptionSettings =
+            EncryptionSettings.create(
+                memberId = memberId,
+                salt = command.salt,
+                encryptedDEK = command.encryptedDEK,
+                recoveryEncryptedDEK = command.recoveryEncryptedDEK,
+                recoveryKeyHash = command.recoveryKeyHash,
+            )
         val savedSettings = saveEncryptionSettingsPort.save(encryptionSettings)
 
         return SetupEncryptionResult(
@@ -83,17 +87,20 @@ class EncryptionSettingsService(
 
     @Transactional(readOnly = true)
     override suspend fun getSettings(memberId: MemberId): EncryptionSettingsWithServerKey {
-        val settings = loadEncryptionSettingsPort.findByMemberId(memberId)
-            ?: throw EncryptionSettingsNotFoundException(memberId.value)
+        val settings =
+            loadEncryptionSettingsPort.findByMemberId(memberId)
+                ?: throw EncryptionSettingsNotFoundException(memberId.value)
 
-        val serverKey = loadServerKeyPort.findByMemberId(memberId)
-            ?: throw ServerKeyNotFoundException(memberId.value)
+        val serverKey =
+            loadServerKeyPort.findByMemberId(memberId)
+                ?: throw ServerKeyNotFoundException(memberId.value)
 
         // Server Key 복호화
-        val plainServerKey = serverKeyEncryptionPort.decryptServerKey(
-            encryptedServerKey = serverKey.encryptedServerKey,
-            iv = serverKey.iv,
-        )
+        val plainServerKey =
+            serverKeyEncryptionPort.decryptServerKey(
+                encryptedServerKey = serverKey.encryptedServerKey,
+                iv = serverKey.iv,
+            )
 
         return EncryptionSettingsWithServerKey(
             salt = settings.salt,
@@ -103,22 +110,25 @@ class EncryptionSettingsService(
     }
 
     @Transactional(readOnly = true)
-    override suspend fun hasSettings(memberId: MemberId): Boolean {
-        return loadEncryptionSettingsPort.existsByMemberId(memberId)
-    }
+    override suspend fun hasSettings(memberId: MemberId): Boolean = loadEncryptionSettingsPort.existsByMemberId(memberId)
 
     @Transactional(readOnly = true)
-    override suspend fun verifyRecoveryKey(memberId: MemberId, recoveryKeyHash: String): Boolean {
-        val settings = loadEncryptionSettingsPort.findByMemberId(memberId)
-            ?: throw EncryptionSettingsNotFoundException(memberId.value)
+    override suspend fun verifyRecoveryKey(
+        memberId: MemberId,
+        recoveryKeyHash: String,
+    ): Boolean {
+        val settings =
+            loadEncryptionSettingsPort.findByMemberId(memberId)
+                ?: throw EncryptionSettingsNotFoundException(memberId.value)
 
         return settings.recoveryKeyHash == recoveryKeyHash
     }
 
     @Transactional(readOnly = true)
     override suspend fun getRecoverySettings(memberId: MemberId): RecoverySettingsResult {
-        val settings = loadEncryptionSettingsPort.findByMemberId(memberId)
-            ?: throw EncryptionSettingsNotFoundException(memberId.value)
+        val settings =
+            loadEncryptionSettingsPort.findByMemberId(memberId)
+                ?: throw EncryptionSettingsNotFoundException(memberId.value)
 
         return RecoverySettingsResult(
             recoveryEncryptedDEK = settings.recoveryEncryptedDEK,
@@ -130,28 +140,31 @@ class EncryptionSettingsService(
         memberId: MemberId,
         command: UpdateEncryptionCommand,
     ): UpdateEncryptionResult {
-        val settings = loadEncryptionSettingsPort.findByMemberId(memberId)
-            ?: throw EncryptionSettingsNotFoundException(memberId.value)
+        val settings =
+            loadEncryptionSettingsPort.findByMemberId(memberId)
+                ?: throw EncryptionSettingsNotFoundException(memberId.value)
 
-        val existingServerKey = loadServerKeyPort.findByMemberId(memberId)
-            ?: throw ServerKeyNotFoundException(memberId.value)
+        val existingServerKey =
+            loadServerKeyPort.findByMemberId(memberId)
+                ?: throw ServerKeyNotFoundException(memberId.value)
 
-        val plainServerKey = if (command.rotateServerKey) {
-            // PIN 변경: 새 Server Key 생성
-            val serverKeyResult = serverKeyEncryptionPort.generateAndEncryptServerKey()
-            existingServerKey.updateServerKey(
-                newEncryptedServerKey = serverKeyResult.encryptedServerKey,
-                newIv = serverKeyResult.iv,
-            )
-            saveServerKeyPort.save(existingServerKey)
-            serverKeyResult.plainServerKey
-        } else {
-            // 초기 설정 완료 또는 Server Key 유지: 기존 Server Key 복호화
-            serverKeyEncryptionPort.decryptServerKey(
-                encryptedServerKey = existingServerKey.encryptedServerKey,
-                iv = existingServerKey.iv,
-            )
-        }
+        val plainServerKey =
+            if (command.rotateServerKey) {
+                // PIN 변경: 새 Server Key 생성
+                val serverKeyResult = serverKeyEncryptionPort.generateAndEncryptServerKey()
+                existingServerKey.updateServerKey(
+                    newEncryptedServerKey = serverKeyResult.encryptedServerKey,
+                    newIv = serverKeyResult.iv,
+                )
+                saveServerKeyPort.save(existingServerKey)
+                serverKeyResult.plainServerKey
+            } else {
+                // 초기 설정 완료 또는 Server Key 유지: 기존 Server Key 복호화
+                serverKeyEncryptionPort.decryptServerKey(
+                    encryptedServerKey = existingServerKey.encryptedServerKey,
+                    iv = existingServerKey.iv,
+                )
+            }
 
         // 암호화 설정 업데이트
         settings.updateEncryption(
@@ -170,8 +183,9 @@ class EncryptionSettingsService(
         memberId: MemberId,
         command: UpdateRecoveryKeyCommand,
     ): EncryptionSettings {
-        val settings = loadEncryptionSettingsPort.findByMemberId(memberId)
-            ?: throw EncryptionSettingsNotFoundException(memberId.value)
+        val settings =
+            loadEncryptionSettingsPort.findByMemberId(memberId)
+                ?: throw EncryptionSettingsNotFoundException(memberId.value)
 
         settings.updateRecoveryKey(
             newRecoveryEncryptedDEK = command.recoveryEncryptedDEK,
@@ -195,7 +209,7 @@ class EncryptionSettingsService(
 
         // Integration Event 발행 (Prayer 도메인에서 관련 데이터 삭제)
         eventPublisher.publishEvent(
-            EncryptionSettingsDeletedIntegrationEvent(memberId = memberId.value)
+            EncryptionSettingsDeletedIntegrationEvent(memberId = memberId.value),
         )
     }
 }

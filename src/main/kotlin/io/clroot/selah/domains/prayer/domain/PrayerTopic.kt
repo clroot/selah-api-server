@@ -23,7 +23,6 @@ class PrayerTopic(
     createdAt: LocalDateTime,
     updatedAt: LocalDateTime,
 ) : AggregateRoot<PrayerTopicId>(id, version, createdAt, updatedAt) {
-
     init {
         require(title.isNotBlank()) { "Title cannot be blank" }
     }
@@ -108,7 +107,10 @@ class PrayerTopic(
          * @param memberId 소유자 ID
          * @param title 기도제목 (암호문)
          */
-        fun create(memberId: MemberId, title: String): PrayerTopic {
+        fun create(
+            memberId: MemberId,
+            title: String,
+        ): PrayerTopic {
             require(title.isNotBlank()) { "Title cannot be blank" }
 
             val now = LocalDateTime.now()

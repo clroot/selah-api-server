@@ -54,7 +54,10 @@ interface SessionPort {
      * @param token 세션 토큰
      * @param ipAddress 클라이언트 IP 주소
      */
-    suspend fun extendExpiry(token: String, ipAddress: String?)
+    suspend fun extendExpiry(
+        token: String,
+        ipAddress: String?,
+    )
 
     /**
      * 만료된 세션을 정리합니다.

@@ -23,7 +23,6 @@ class EmailSendAdapter(
     @Value($$"${selah.email-verification.from-name:Selah}")
     private val fromName: String,
 ) : SendEmailPort {
-
     companion object {
         @JvmStatic
         private val logger = KotlinLogging.logger {}
@@ -92,7 +91,11 @@ class EmailSendAdapter(
         }
     }
 
-    private fun buildEmailContent(nickname: String, verificationUrl: String): String = """
+    private fun buildEmailContent(
+        nickname: String,
+        verificationUrl: String,
+    ): String =
+        """
         <!DOCTYPE html>
         <html>
         <head>
@@ -142,9 +145,13 @@ class EmailSendAdapter(
             </div>
         </body>
         </html>
-    """.trimIndent()
+        """.trimIndent()
 
-    private fun buildPasswordResetEmailContent(nickname: String, resetUrl: String): String = """
+    private fun buildPasswordResetEmailContent(
+        nickname: String,
+        resetUrl: String,
+    ): String =
+        """
         <!DOCTYPE html>
         <html>
         <head>
@@ -198,9 +205,10 @@ class EmailSendAdapter(
             </div>
         </body>
         </html>
-    """.trimIndent()
+        """.trimIndent()
 
-    private fun buildPasswordChangedEmailContent(nickname: String): String = """
+    private fun buildPasswordChangedEmailContent(nickname: String): String =
+        """
         <!DOCTYPE html>
         <html>
         <head>
@@ -237,5 +245,5 @@ class EmailSendAdapter(
             </div>
         </body>
         </html>
-    """.trimIndent()
+        """.trimIndent()
 }

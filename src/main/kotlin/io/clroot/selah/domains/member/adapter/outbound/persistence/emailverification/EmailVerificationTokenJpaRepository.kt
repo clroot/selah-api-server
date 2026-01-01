@@ -7,7 +7,6 @@ import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDateTime
 
 interface EmailVerificationTokenJpaRepository : JpaRepository<EmailVerificationTokenEntity, String> {
-
     fun findByTokenHash(tokenHash: String): EmailVerificationTokenEntity?
 
     fun findTopByMemberIdOrderByCreatedAtDesc(memberId: String): EmailVerificationTokenEntity?

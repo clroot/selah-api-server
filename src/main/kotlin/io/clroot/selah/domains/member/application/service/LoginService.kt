@@ -20,15 +20,16 @@ class LoginService(
     private val passwordHashPort: PasswordHashPort,
     private val registerMemberUseCase: RegisterMemberUseCase,
 ) : LoginUseCase {
-
     override suspend fun loginWithEmail(command: LoginWithEmailCommand): LoginResult {
         // 회원 조회
-        val member = loadMemberPort.findByEmail(command.email)
-            ?: throw InvalidCredentialsException()
+        val member =
+            loadMemberPort.findByEmail(command.email)
+                ?: throw InvalidCredentialsException()
 
         // 비밀번호 검증
-        val passwordHash = member.passwordHash
-            ?: throw InvalidCredentialsException()
+        val passwordHash =
+            member.passwordHash
+                ?: throw InvalidCredentialsException()
 
         if (!passwordHashPort.verify(command.password, passwordHash)) {
             throw InvalidCredentialsException()
@@ -40,12 +41,13 @@ class LoginService(
         }
 
         // 세션 생성
-        val session = sessionPort.create(
-            memberId = member.id,
-            role = member.role,
-            userAgent = command.userAgent,
-            ipAddress = command.ipAddress,
-        )
+        val session =
+            sessionPort.create(
+                memberId = member.id,
+                role = member.role,
+                userAgent = command.userAgent,
+                ipAddress = command.ipAddress,
+            )
 
         return LoginResult(
             session = session,
@@ -57,25 +59,27 @@ class LoginService(
 
     override suspend fun loginWithOAuth(command: LoginWithOAuthCommand): LoginResult {
         // 회원가입 또는 로그인 처리
-        val registerResult = registerMemberUseCase.registerOrLoginWithOAuth(
-            RegisterWithOAuthCommand(
-                email = command.email,
-                nickname = command.nickname,
-                provider = command.provider,
-                providerId = command.providerId,
-                profileImageUrl = command.profileImageUrl,
+        val registerResult =
+            registerMemberUseCase.registerOrLoginWithOAuth(
+                RegisterWithOAuthCommand(
+                    email = command.email,
+                    nickname = command.nickname,
+                    provider = command.provider,
+                    providerId = command.providerId,
+                    profileImageUrl = command.profileImageUrl,
+                ),
             )
-        )
 
         val member = registerResult.member
 
         // 세션 생성
-        val session = sessionPort.create(
-            memberId = member.id,
-            role = member.role,
-            userAgent = command.userAgent,
-            ipAddress = command.ipAddress,
-        )
+        val session =
+            sessionPort.create(
+                memberId = member.id,
+                role = member.role,
+                userAgent = command.userAgent,
+                ipAddress = command.ipAddress,
+            )
 
         return LoginResult(
             session = session,

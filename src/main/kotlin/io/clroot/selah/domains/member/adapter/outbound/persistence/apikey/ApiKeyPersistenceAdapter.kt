@@ -28,7 +28,6 @@ class ApiKeyPersistenceAdapter(
     @Value($$"${selah.api-key.prefix:selah_}")
     private val apiKeyPrefix: String,
 ) : ApiKeyPort {
-
     companion object {
         private const val KEY_LENGTH = 32
         private const val PREFIX_DISPLAY_LENGTH = 8
@@ -40,43 +39,46 @@ class ApiKeyPersistenceAdapter(
         role: Member.Role,
         name: String,
         ipAddress: String?,
-    ): ApiKeyCreateResult = withContext(Dispatchers.IO) {
-        val now = LocalDateTime.now()
-        val id = ULIDSupport.generateULID()
+    ): ApiKeyCreateResult =
+        withContext(Dispatchers.IO) {
+            val now = LocalDateTime.now()
+            val id = ULIDSupport.generateULID()
 
-        // 랜덤 키 생성
-        val randomPart = generateRandomKey()
-        val rawKey = "$apiKeyPrefix$randomPart"
+            // 랜덤 키 생성
+            val randomPart = generateRandomKey()
+            val rawKey = "$apiKeyPrefix$randomPart"
 
-        // 해시 생성
-        val keyHash = hashKey(rawKey)
+            // 해시 생성
+            val keyHash = hashKey(rawKey)
 
-        // 접두사 저장 (표시용)
-        val displayPrefix = "$apiKeyPrefix${randomPart.take(PREFIX_DISPLAY_LENGTH)}"
+            // 접두사 저장 (표시용)
+            val displayPrefix = "$apiKeyPrefix${randomPart.take(PREFIX_DISPLAY_LENGTH)}"
 
-        val entity = ApiKeyEntity(
-            id = id,
-            keyHash = keyHash,
-            keyPrefix = displayPrefix,
-            memberId = memberId.value,
-            role = role,
-            name = name,
-            createdIp = ipAddress?.take(45),
-            createdAt = now,
-        )
+            val entity =
+                ApiKeyEntity(
+                    id = id,
+                    keyHash = keyHash,
+                    keyPrefix = displayPrefix,
+                    memberId = memberId.value,
+                    role = role,
+                    name = name,
+                    createdIp = ipAddress?.take(45),
+                    createdAt = now,
+                )
 
-        repository.save(entity)
+            repository.save(entity)
 
-        ApiKeyCreateResult(
-            info = entity.toApiKeyInfo(),
-            rawKey = rawKey,
-        )
-    }
+            ApiKeyCreateResult(
+                info = entity.toApiKeyInfo(),
+                rawKey = rawKey,
+            )
+        }
 
-    override suspend fun findByKey(apiKey: String): ApiKeyInfo? = withContext(Dispatchers.IO) {
-        val keyHash = hashKey(apiKey)
-        repository.findByKeyHash(keyHash)?.toApiKeyInfo()
-    }
+    override suspend fun findByKey(apiKey: String): ApiKeyInfo? =
+        withContext(Dispatchers.IO) {
+            val keyHash = hashKey(apiKey)
+            repository.findByKeyHash(keyHash)?.toApiKeyInfo()
+        }
 
     @Transactional
     override suspend fun delete(id: String) {
@@ -91,7 +93,10 @@ class ApiKeyPersistenceAdapter(
         }
 
     @Transactional
-    override suspend fun updateLastUsedAt(id: String, ipAddress: String?) {
+    override suspend fun updateLastUsedAt(
+        id: String,
+        ipAddress: String?,
+    ) {
         withContext(Dispatchers.IO) {
             val entity = repository.findByIdOrNull(id) ?: return@withContext
             entity.lastUsedAt = LocalDateTime.now()
@@ -114,15 +119,16 @@ class ApiKeyPersistenceAdapter(
      */
     private fun hashKey(key: String): String = hashSha256(key)
 
-    private fun ApiKeyEntity.toApiKeyInfo(): ApiKeyInfo = ApiKeyInfo(
-        id = id,
-        memberId = MemberId.from(memberId),
-        role = role,
-        name = name,
-        prefix = keyPrefix,
-        createdIp = createdIp,
-        lastUsedIp = lastUsedIp,
-        createdAt = createdAt,
-        lastUsedAt = lastUsedAt,
-    )
+    private fun ApiKeyEntity.toApiKeyInfo(): ApiKeyInfo =
+        ApiKeyInfo(
+            id = id,
+            memberId = MemberId.from(memberId),
+            role = role,
+            name = name,
+            prefix = keyPrefix,
+            createdIp = createdIp,
+            lastUsedIp = lastUsedIp,
+            createdAt = createdAt,
+            lastUsedAt = lastUsedAt,
+        )
 }

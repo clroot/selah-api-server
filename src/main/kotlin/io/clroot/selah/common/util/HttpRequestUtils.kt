@@ -6,7 +6,6 @@ import jakarta.servlet.http.HttpServletRequest
  * HTTP 요청 관련 유틸리티
  */
 object HttpRequestUtils {
-
     /**
      * 클라이언트 IP 주소를 추출합니다.
      *

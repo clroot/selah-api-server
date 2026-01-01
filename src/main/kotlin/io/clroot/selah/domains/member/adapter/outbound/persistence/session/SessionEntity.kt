@@ -25,44 +25,37 @@ class SessionEntity(
     @Id
     @Column(name = "token", length = 36)
     val token: String,
-
     /**
      * 회원 ID (ULID)
      */
     @Column(name = "member_id", nullable = false, length = 26)
     val memberId: String,
-
     /**
      * 회원 역할 (세션에 캐시)
      */
     @Enumerated(EnumType.STRING)
     @Column(name = "role", nullable = false, length = 20)
     val role: Member.Role,
-
     /**
      * 클라이언트 User-Agent
      */
     @Column(name = "user_agent", length = 500)
     val userAgent: String?,
-
     /**
      * 세션 생성 시 IP 주소
      */
     @Column(name = "created_ip", length = 45)
     val createdIp: String?,
-
     /**
      * 마지막 접근 IP 주소
      */
     @Column(name = "last_accessed_ip", length = 45)
     var lastAccessedIp: String?,
-
     /**
      * 세션 만료 시간
      */
     @Column(name = "expires_at", nullable = false)
     var expiresAt: LocalDateTime,
-
     /**
      * 세션 생성 시간
      */

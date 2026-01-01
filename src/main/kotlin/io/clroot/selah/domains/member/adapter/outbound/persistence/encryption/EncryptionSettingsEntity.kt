@@ -30,29 +30,21 @@ class EncryptionSettingsEntity(
     @Id
     @Column(name = "id", length = 26)
     val id: String,
-
     @Column(name = "member_id", nullable = false, unique = true, length = 26)
     val memberId: String,
-
     @Column(name = "salt", nullable = false, columnDefinition = "TEXT")
     var salt: String,
-
     @Column(name = "encrypted_dek", nullable = false, length = 512)
     var encryptedDek: String,
-
     @Column(name = "recovery_encrypted_dek", nullable = false, length = 512)
     var recoveryEncryptedDek: String,
-
     @Column(name = "recovery_key_hash", nullable = false)
     var recoveryKeyHash: String,
-
     @Version
     @Column(name = "version")
     var version: Long? = null,
-
     @Column(name = "created_at", nullable = false, updatable = false)
     val createdAt: LocalDateTime,
-
     @Column(name = "updated_at", nullable = false)
     var updatedAt: LocalDateTime,
 )

@@ -9,14 +9,12 @@ import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
-import io.kotest.matchers.shouldNotBe
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.data.domain.PageRequest
 
 @SpringBootTest
 class PrayerTopicPersistenceAdapterIntegrationTest : IntegrationTestBase() {
-
     @Autowired
     private lateinit var prayerTopicPersistenceAdapter: PrayerTopicPersistenceAdapter
 
@@ -33,10 +31,11 @@ class PrayerTopicPersistenceAdapterIntegrationTest : IntegrationTestBase() {
                 context("새 PrayerTopic을 저장할 때") {
                     it("PrayerTopic이 정상적으로 저장된다") {
                         val memberId = MemberId.new()
-                        val prayerTopic = PrayerTopic.create(
-                            memberId = memberId,
-                            title = "encrypted_title_base64",
-                        )
+                        val prayerTopic =
+                            PrayerTopic.create(
+                                memberId = memberId,
+                                title = "encrypted_title_base64",
+                            )
 
                         val savedTopic = prayerTopicPersistenceAdapter.save(prayerTopic)
 
@@ -58,10 +57,11 @@ class PrayerTopicPersistenceAdapterIntegrationTest : IntegrationTestBase() {
                 context("기존 PrayerTopic의 제목을 업데이트할 때") {
                     it("변경된 제목이 저장된다") {
                         val memberId = MemberId.new()
-                        val prayerTopic = PrayerTopic.create(
-                            memberId = memberId,
-                            title = "original_title",
-                        )
+                        val prayerTopic =
+                            PrayerTopic.create(
+                                memberId = memberId,
+                                title = "original_title",
+                            )
 
                         val savedTopic = prayerTopicPersistenceAdapter.save(prayerTopic)
 
@@ -81,10 +81,11 @@ class PrayerTopicPersistenceAdapterIntegrationTest : IntegrationTestBase() {
                 context("응답 상태로 변경할 때") {
                     it("status, answeredAt이 업데이트된다") {
                         val memberId = MemberId.new()
-                        val prayerTopic = PrayerTopic.create(
-                            memberId = memberId,
-                            title = "title",
-                        )
+                        val prayerTopic =
+                            PrayerTopic.create(
+                                memberId = memberId,
+                                title = "title",
+                            )
 
                         val savedTopic = prayerTopicPersistenceAdapter.save(prayerTopic)
 
@@ -107,10 +108,11 @@ class PrayerTopicPersistenceAdapterIntegrationTest : IntegrationTestBase() {
                 context("응답 상태로 변경하면서 소감을 추가할 때") {
                     it("status, answeredAt, reflection이 모두 저장된다") {
                         val memberId = MemberId.new()
-                        val prayerTopic = PrayerTopic.create(
-                            memberId = memberId,
-                            title = "title",
-                        )
+                        val prayerTopic =
+                            PrayerTopic.create(
+                                memberId = memberId,
+                                title = "title",
+                            )
 
                         val savedTopic = prayerTopicPersistenceAdapter.save(prayerTopic)
 
@@ -132,10 +134,11 @@ class PrayerTopicPersistenceAdapterIntegrationTest : IntegrationTestBase() {
                 context("응답 상태를 취소할 때") {
                     it("PRAYING 상태로 되돌아가고 reflection이 삭제된다") {
                         val memberId = MemberId.new()
-                        val prayerTopic = PrayerTopic.create(
-                            memberId = memberId,
-                            title = "title",
-                        )
+                        val prayerTopic =
+                            PrayerTopic.create(
+                                memberId = memberId,
+                                title = "title",
+                            )
 
                         val savedTopic = prayerTopicPersistenceAdapter.save(prayerTopic)
                         savedTopic.markAsAnswered("reflection")
@@ -161,10 +164,11 @@ class PrayerTopicPersistenceAdapterIntegrationTest : IntegrationTestBase() {
                 context("소감을 수정할 때") {
                     it("새 소감으로 업데이트된다") {
                         val memberId = MemberId.new()
-                        val prayerTopic = PrayerTopic.create(
-                            memberId = memberId,
-                            title = "title",
-                        )
+                        val prayerTopic =
+                            PrayerTopic.create(
+                                memberId = memberId,
+                                title = "title",
+                            )
 
                         val savedTopic = prayerTopicPersistenceAdapter.save(prayerTopic)
                         savedTopic.markAsAnswered("original_reflection")
@@ -188,10 +192,11 @@ class PrayerTopicPersistenceAdapterIntegrationTest : IntegrationTestBase() {
                 context("존재하는 PrayerTopic ID로 조회할 때") {
                     it("PrayerTopic을 반환한다") {
                         val memberId = MemberId.new()
-                        val prayerTopic = PrayerTopic.create(
-                            memberId = memberId,
-                            title = "title",
-                        )
+                        val prayerTopic =
+                            PrayerTopic.create(
+                                memberId = memberId,
+                                title = "title",
+                            )
                         prayerTopicPersistenceAdapter.save(prayerTopic)
 
                         val foundTopic = prayerTopicPersistenceAdapter.findById(prayerTopic.id)
@@ -217,16 +222,18 @@ class PrayerTopicPersistenceAdapterIntegrationTest : IntegrationTestBase() {
                 context("소유자로 조회할 때") {
                     it("PrayerTopic을 반환한다") {
                         val memberId = MemberId.new()
-                        val prayerTopic = PrayerTopic.create(
-                            memberId = memberId,
-                            title = "title",
-                        )
+                        val prayerTopic =
+                            PrayerTopic.create(
+                                memberId = memberId,
+                                title = "title",
+                            )
                         prayerTopicPersistenceAdapter.save(prayerTopic)
 
-                        val foundTopic = prayerTopicPersistenceAdapter.findByIdAndMemberId(
-                            prayerTopic.id,
-                            memberId,
-                        )
+                        val foundTopic =
+                            prayerTopicPersistenceAdapter.findByIdAndMemberId(
+                                prayerTopic.id,
+                                memberId,
+                            )
 
                         foundTopic.shouldNotBeNull()
                         foundTopic.id shouldBe prayerTopic.id
@@ -237,16 +244,18 @@ class PrayerTopicPersistenceAdapterIntegrationTest : IntegrationTestBase() {
                     it("null을 반환한다") {
                         val ownerId = MemberId.new()
                         val otherMemberId = MemberId.new()
-                        val prayerTopic = PrayerTopic.create(
-                            memberId = ownerId,
-                            title = "title",
-                        )
+                        val prayerTopic =
+                            PrayerTopic.create(
+                                memberId = ownerId,
+                                title = "title",
+                            )
                         prayerTopicPersistenceAdapter.save(prayerTopic)
 
-                        val foundTopic = prayerTopicPersistenceAdapter.findByIdAndMemberId(
-                            prayerTopic.id,
-                            otherMemberId,
-                        )
+                        val foundTopic =
+                            prayerTopicPersistenceAdapter.findByIdAndMemberId(
+                                prayerTopic.id,
+                                otherMemberId,
+                            )
 
                         foundTopic.shouldBeNull()
                     }
@@ -258,19 +267,21 @@ class PrayerTopicPersistenceAdapterIntegrationTest : IntegrationTestBase() {
                     it("해당 회원의 모든 기도제목을 반환한다") {
                         val memberId = MemberId.new()
                         repeat(5) {
-                            val topic = PrayerTopic.create(
-                                memberId = memberId,
-                                title = "title_$it",
-                            )
+                            val topic =
+                                PrayerTopic.create(
+                                    memberId = memberId,
+                                    title = "title_$it",
+                                )
                             prayerTopicPersistenceAdapter.save(topic)
                         }
 
                         val pageable = PageRequest.of(0, 10)
-                        val result = prayerTopicPersistenceAdapter.findAllByMemberId(
-                            memberId,
-                            status = null,
-                            pageable,
-                        )
+                        val result =
+                            prayerTopicPersistenceAdapter.findAllByMemberId(
+                                memberId,
+                                status = null,
+                                pageable,
+                            )
 
                         result.content shouldHaveSize 5
                         result.totalElements shouldBe 5
@@ -283,29 +294,32 @@ class PrayerTopicPersistenceAdapterIntegrationTest : IntegrationTestBase() {
 
                         // PRAYING 상태 3개
                         repeat(3) {
-                            val topic = PrayerTopic.create(
-                                memberId = memberId,
-                                title = "praying_$it",
-                            )
+                            val topic =
+                                PrayerTopic.create(
+                                    memberId = memberId,
+                                    title = "praying_$it",
+                                )
                             prayerTopicPersistenceAdapter.save(topic)
                         }
 
                         // ANSWERED 상태 2개
                         repeat(2) {
-                            val topic = PrayerTopic.create(
-                                memberId = memberId,
-                                title = "answered_$it",
-                            )
+                            val topic =
+                                PrayerTopic.create(
+                                    memberId = memberId,
+                                    title = "answered_$it",
+                                )
                             topic.markAsAnswered()
                             prayerTopicPersistenceAdapter.save(topic)
                         }
 
                         val pageable = PageRequest.of(0, 10)
-                        val result = prayerTopicPersistenceAdapter.findAllByMemberId(
-                            memberId,
-                            status = PrayerTopicStatus.PRAYING,
-                            pageable,
-                        )
+                        val result =
+                            prayerTopicPersistenceAdapter.findAllByMemberId(
+                                memberId,
+                                status = PrayerTopicStatus.PRAYING,
+                                pageable,
+                            )
 
                         result.content shouldHaveSize 3
                         result.content.all { it.status == PrayerTopicStatus.PRAYING } shouldBe true
@@ -318,29 +332,32 @@ class PrayerTopicPersistenceAdapterIntegrationTest : IntegrationTestBase() {
 
                         // PRAYING 상태 2개
                         repeat(2) {
-                            val topic = PrayerTopic.create(
-                                memberId = memberId,
-                                title = "praying_$it",
-                            )
+                            val topic =
+                                PrayerTopic.create(
+                                    memberId = memberId,
+                                    title = "praying_$it",
+                                )
                             prayerTopicPersistenceAdapter.save(topic)
                         }
 
                         // ANSWERED 상태 3개
                         repeat(3) {
-                            val topic = PrayerTopic.create(
-                                memberId = memberId,
-                                title = "answered_$it",
-                            )
+                            val topic =
+                                PrayerTopic.create(
+                                    memberId = memberId,
+                                    title = "answered_$it",
+                                )
                             topic.markAsAnswered()
                             prayerTopicPersistenceAdapter.save(topic)
                         }
 
                         val pageable = PageRequest.of(0, 10)
-                        val result = prayerTopicPersistenceAdapter.findAllByMemberId(
-                            memberId,
-                            status = PrayerTopicStatus.ANSWERED,
-                            pageable,
-                        )
+                        val result =
+                            prayerTopicPersistenceAdapter.findAllByMemberId(
+                                memberId,
+                                status = PrayerTopicStatus.ANSWERED,
+                                pageable,
+                            )
 
                         result.content shouldHaveSize 3
                         result.content.all { it.status == PrayerTopicStatus.ANSWERED } shouldBe true
@@ -351,19 +368,21 @@ class PrayerTopicPersistenceAdapterIntegrationTest : IntegrationTestBase() {
                     it("요청된 페이지 크기만큼 반환한다") {
                         val memberId = MemberId.new()
                         repeat(7) {
-                            val topic = PrayerTopic.create(
-                                memberId = memberId,
-                                title = "title_$it",
-                            )
+                            val topic =
+                                PrayerTopic.create(
+                                    memberId = memberId,
+                                    title = "title_$it",
+                                )
                             prayerTopicPersistenceAdapter.save(topic)
                         }
 
                         val pageable = PageRequest.of(0, 3)
-                        val result = prayerTopicPersistenceAdapter.findAllByMemberId(
-                            memberId,
-                            status = null,
-                            pageable,
-                        )
+                        val result =
+                            prayerTopicPersistenceAdapter.findAllByMemberId(
+                                memberId,
+                                status = null,
+                                pageable,
+                            )
 
                         result.content shouldHaveSize 3
                         result.totalElements shouldBe 7
@@ -394,11 +413,12 @@ class PrayerTopicPersistenceAdapterIntegrationTest : IntegrationTestBase() {
                         }
 
                         val pageable = PageRequest.of(0, 10)
-                        val result = prayerTopicPersistenceAdapter.findAllByMemberId(
-                            memberId1,
-                            status = null,
-                            pageable,
-                        )
+                        val result =
+                            prayerTopicPersistenceAdapter.findAllByMemberId(
+                                memberId1,
+                                status = null,
+                                pageable,
+                            )
 
                         result.content shouldHaveSize 3
                         result.totalElements shouldBe 3
@@ -410,11 +430,12 @@ class PrayerTopicPersistenceAdapterIntegrationTest : IntegrationTestBase() {
                         val memberId = MemberId.new()
                         val pageable = PageRequest.of(0, 10)
 
-                        val result = prayerTopicPersistenceAdapter.findAllByMemberId(
-                            memberId,
-                            status = null,
-                            pageable,
-                        )
+                        val result =
+                            prayerTopicPersistenceAdapter.findAllByMemberId(
+                                memberId,
+                                status = null,
+                                pageable,
+                            )
 
                         result.content shouldHaveSize 0
                         result.totalElements shouldBe 0
@@ -426,10 +447,11 @@ class PrayerTopicPersistenceAdapterIntegrationTest : IntegrationTestBase() {
                 context("존재하는 PrayerTopic을 삭제할 때") {
                     it("PrayerTopic이 삭제된다") {
                         val memberId = MemberId.new()
-                        val prayerTopic = PrayerTopic.create(
-                            memberId = memberId,
-                            title = "title",
-                        )
+                        val prayerTopic =
+                            PrayerTopic.create(
+                                memberId = memberId,
+                                title = "title",
+                            )
                         prayerTopicPersistenceAdapter.save(prayerTopic)
 
                         prayerTopicPersistenceAdapter.deleteById(prayerTopic.id)
@@ -442,10 +464,11 @@ class PrayerTopicPersistenceAdapterIntegrationTest : IntegrationTestBase() {
                 context("응답된 기도제목을 삭제할 때") {
                     it("관련 데이터도 함께 삭제된다") {
                         val memberId = MemberId.new()
-                        val prayerTopic = PrayerTopic.create(
-                            memberId = memberId,
-                            title = "title",
-                        )
+                        val prayerTopic =
+                            PrayerTopic.create(
+                                memberId = memberId,
+                                title = "title",
+                            )
                         prayerTopic.markAsAnswered("reflection")
                         prayerTopicPersistenceAdapter.save(prayerTopic)
 
@@ -465,10 +488,11 @@ class PrayerTopicPersistenceAdapterIntegrationTest : IntegrationTestBase() {
                 context("기도제목 생성 후 응답 체크하고 소감 수정") {
                     it("모든 변경사항이 DB에 반영된다") {
                         val memberId = MemberId.new()
-                        val prayerTopic = PrayerTopic.create(
-                            memberId = memberId,
-                            title = "initial_title",
-                        )
+                        val prayerTopic =
+                            PrayerTopic.create(
+                                memberId = memberId,
+                                title = "initial_title",
+                            )
 
                         // 저장
                         var savedTopic = prayerTopicPersistenceAdapter.save(prayerTopic)

@@ -9,5 +9,5 @@ import io.clroot.selah.domains.member.domain.Member
  * OAuth로 가입한 사용자가 비밀번호를 추가로 설정했을 때 발행됩니다.
  */
 data class PasswordSetEvent(
-    val member: Member
+    val member: Member,
 ) : BaseDomainEvent()

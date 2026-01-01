@@ -19,7 +19,10 @@ interface ChangePasswordUseCase {
      * @throws PasswordNotSetException 비밀번호가 설정되지 않은 회원인 경우
      * @throws InvalidCredentialsException 현재 비밀번호가 일치하지 않는 경우
      */
-    suspend fun changePassword(memberId: MemberId, command: ChangePasswordCommand)
+    suspend fun changePassword(
+        memberId: MemberId,
+        command: ChangePasswordCommand,
+    )
 
     /**
      * 비밀번호를 설정합니다. (OAuth로 가입한 회원이 처음 비밀번호 설정)
@@ -29,7 +32,10 @@ interface ChangePasswordUseCase {
      * @throws MemberNotFoundException 회원이 존재하지 않는 경우
      * @throws PasswordAlreadySetException 이미 비밀번호가 설정된 회원인 경우
      */
-    suspend fun setPassword(memberId: MemberId, command: SetPasswordCommand)
+    suspend fun setPassword(
+        memberId: MemberId,
+        command: SetPasswordCommand,
+    )
 }
 
 /**

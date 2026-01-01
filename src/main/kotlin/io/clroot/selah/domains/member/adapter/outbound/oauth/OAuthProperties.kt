@@ -17,8 +17,7 @@ data class OAuthProperties(
         val scope: String,
     )
 
-    fun getProviderConfig(provider: OAuthProvider): ProviderConfig {
-        return providers[provider.name.lowercase()]
+    fun getProviderConfig(provider: OAuthProvider): ProviderConfig =
+        providers[provider.name.lowercase()]
             ?: throw IllegalArgumentException("Unknown OAuth provider: ${provider.name}")
-    }
 }

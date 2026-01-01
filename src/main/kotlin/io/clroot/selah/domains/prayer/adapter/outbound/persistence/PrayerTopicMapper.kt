@@ -10,12 +10,11 @@ import org.springframework.stereotype.Component
  */
 @Component
 class PrayerTopicMapper {
-
     /**
      * Domain → Entity 변환
      */
-    fun toEntity(prayerTopic: PrayerTopic): PrayerTopicEntity {
-        return PrayerTopicEntity(
+    fun toEntity(prayerTopic: PrayerTopic): PrayerTopicEntity =
+        PrayerTopicEntity(
             id = prayerTopic.id.value,
             memberId = prayerTopic.memberId.value,
             title = prayerTopic.title,
@@ -26,13 +25,12 @@ class PrayerTopicMapper {
             createdAt = prayerTopic.createdAt,
             updatedAt = prayerTopic.updatedAt,
         )
-    }
 
     /**
      * Entity → Domain 변환
      */
-    fun toDomain(entity: PrayerTopicEntity): PrayerTopic {
-        return PrayerTopic(
+    fun toDomain(entity: PrayerTopicEntity): PrayerTopic =
+        PrayerTopic(
             id = PrayerTopicId.from(entity.id),
             memberId = MemberId.from(entity.memberId),
             title = entity.title,
@@ -43,12 +41,14 @@ class PrayerTopicMapper {
             createdAt = entity.createdAt,
             updatedAt = entity.updatedAt,
         )
-    }
 
     /**
      * 기존 Entity를 Domain 데이터로 업데이트
      */
-    fun updateEntity(entity: PrayerTopicEntity, prayerTopic: PrayerTopic) {
+    fun updateEntity(
+        entity: PrayerTopicEntity,
+        prayerTopic: PrayerTopic,
+    ) {
         entity.title = prayerTopic.title
         entity.status = prayerTopic.status
         entity.answeredAt = prayerTopic.answeredAt

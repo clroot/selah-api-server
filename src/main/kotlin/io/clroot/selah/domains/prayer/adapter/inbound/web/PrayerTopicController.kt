@@ -46,7 +46,6 @@ class PrayerTopicController(
     private val deletePrayerTopicUseCase: DeletePrayerTopicUseCase,
     private val answerPrayerTopicUseCase: AnswerPrayerTopicUseCase,
 ) {
-
     /**
      * 기도제목 생성
      */
@@ -55,12 +54,13 @@ class PrayerTopicController(
         @RequestBody request: CreatePrayerTopicRequest,
     ): ResponseEntity<ApiResponse<PrayerTopicResponse>> {
         val memberId = SecurityUtils.requireCurrentMemberId()
-        val prayerTopic = createPrayerTopicUseCase.create(
-            CreatePrayerTopicCommand(
-                memberId = memberId,
-                title = request.title,
-            ),
-        )
+        val prayerTopic =
+            createPrayerTopicUseCase.create(
+                CreatePrayerTopicCommand(
+                    memberId = memberId,
+                    title = request.title,
+                ),
+            )
         return ResponseEntity
             .status(HttpStatus.CREATED)
             .body(ApiResponse.success(prayerTopic.toResponse()))
@@ -76,11 +76,12 @@ class PrayerTopicController(
         @RequestParam(required = false) status: PrayerTopicStatus?,
     ): ResponseEntity<ApiResponse<PageResponse<PrayerTopicResponse>>> {
         val memberId = SecurityUtils.requireCurrentMemberId()
-        val result = getPrayerTopicUseCase.listByMemberId(
-            memberId = memberId,
-            status = status,
-            pageable = PageRequest.of(page, size),
-        )
+        val result =
+            getPrayerTopicUseCase.listByMemberId(
+                memberId = memberId,
+                status = status,
+                pageable = PageRequest.of(page, size),
+            )
 
         return ResponseEntity.ok(
             ApiResponse.success(
@@ -103,10 +104,11 @@ class PrayerTopicController(
         @PathVariable id: String,
     ): ResponseEntity<ApiResponse<PrayerTopicResponse>> {
         val memberId = SecurityUtils.requireCurrentMemberId()
-        val prayerTopic = getPrayerTopicUseCase.getById(
-            id = PrayerTopicId.from(id),
-            memberId = memberId,
-        )
+        val prayerTopic =
+            getPrayerTopicUseCase.getById(
+                id = PrayerTopicId.from(id),
+                memberId = memberId,
+            )
         return ResponseEntity.ok(ApiResponse.success(prayerTopic.toResponse()))
     }
 
@@ -119,13 +121,14 @@ class PrayerTopicController(
         @RequestBody request: UpdatePrayerTopicRequest,
     ): ResponseEntity<ApiResponse<PrayerTopicResponse>> {
         val memberId = SecurityUtils.requireCurrentMemberId()
-        val prayerTopic = updatePrayerTopicUseCase.updateTitle(
-            UpdatePrayerTopicTitleCommand(
-                id = PrayerTopicId.from(id),
-                memberId = memberId,
-                title = request.title,
-            ),
-        )
+        val prayerTopic =
+            updatePrayerTopicUseCase.updateTitle(
+                UpdatePrayerTopicTitleCommand(
+                    id = PrayerTopicId.from(id),
+                    memberId = memberId,
+                    title = request.title,
+                ),
+            )
         return ResponseEntity.ok(ApiResponse.success(prayerTopic.toResponse()))
     }
 
@@ -153,13 +156,14 @@ class PrayerTopicController(
         @RequestBody(required = false) request: MarkAsAnsweredRequest?,
     ): ResponseEntity<ApiResponse<PrayerTopicResponse>> {
         val memberId = SecurityUtils.requireCurrentMemberId()
-        val prayerTopic = answerPrayerTopicUseCase.markAsAnswered(
-            MarkAsAnsweredCommand(
-                id = PrayerTopicId.from(id),
-                memberId = memberId,
-                reflection = request?.reflection,
-            ),
-        )
+        val prayerTopic =
+            answerPrayerTopicUseCase.markAsAnswered(
+                MarkAsAnsweredCommand(
+                    id = PrayerTopicId.from(id),
+                    memberId = memberId,
+                    reflection = request?.reflection,
+                ),
+            )
         return ResponseEntity.ok(ApiResponse.success(prayerTopic.toResponse()))
     }
 
@@ -171,12 +175,13 @@ class PrayerTopicController(
         @PathVariable id: String,
     ): ResponseEntity<ApiResponse<PrayerTopicResponse>> {
         val memberId = SecurityUtils.requireCurrentMemberId()
-        val prayerTopic = answerPrayerTopicUseCase.cancelAnswer(
-            CancelAnswerCommand(
-                id = PrayerTopicId.from(id),
-                memberId = memberId,
-            ),
-        )
+        val prayerTopic =
+            answerPrayerTopicUseCase.cancelAnswer(
+                CancelAnswerCommand(
+                    id = PrayerTopicId.from(id),
+                    memberId = memberId,
+                ),
+            )
         return ResponseEntity.ok(ApiResponse.success(prayerTopic.toResponse()))
     }
 
@@ -189,13 +194,14 @@ class PrayerTopicController(
         @RequestBody request: UpdateReflectionRequest,
     ): ResponseEntity<ApiResponse<PrayerTopicResponse>> {
         val memberId = SecurityUtils.requireCurrentMemberId()
-        val prayerTopic = answerPrayerTopicUseCase.updateReflection(
-            UpdateReflectionCommand(
-                id = PrayerTopicId.from(id),
-                memberId = memberId,
-                reflection = request.reflection,
-            ),
-        )
+        val prayerTopic =
+            answerPrayerTopicUseCase.updateReflection(
+                UpdateReflectionCommand(
+                    id = PrayerTopicId.from(id),
+                    memberId = memberId,
+                    reflection = request.reflection,
+                ),
+            )
         return ResponseEntity.ok(ApiResponse.success(prayerTopic.toResponse()))
     }
 }

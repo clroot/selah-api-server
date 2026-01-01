@@ -28,22 +28,22 @@ class SecurityConfig(
     private val apiKeyAuthFilter: ApiKeyAuthenticationFilter,
     private val publicEndpointRegistry: PublicEndpointRegistry,
 ) {
-
     @Bean
-    fun securityFilterChain(http: HttpSecurity): SecurityFilterChain {
-        return http
+    fun securityFilterChain(http: HttpSecurity): SecurityFilterChain =
+        http
             .csrf { it.disable() } // REST API
             .cors { it.configurationSource(corsConfigurationSource()) }
             .sessionManagement {
                 // Spring Security의 세션 관리 비활성화 (직접 관리)
                 it.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-            }
-            .authorizeHttpRequests { auth ->
+            }.authorizeHttpRequests { auth ->
                 auth
                     // 공개 엔드포인트 허용
-                    .requestMatchers(publicEndpointRegistry.getPublicEndpointMatcher()).permitAll()
+                    .requestMatchers(publicEndpointRegistry.getPublicEndpointMatcher())
+                    .permitAll()
                     // 나머지는 인증 필요
-                    .anyRequest().authenticated()
+                    .anyRequest()
+                    .authenticated()
             }
             // API Key 필터가 먼저 실행 (X-API-Key 헤더 우선)
             .addFilterBefore(apiKeyAuthFilter, UsernamePasswordAuthenticationFilter::class.java)
@@ -52,21 +52,20 @@ class SecurityConfig(
             .exceptionHandling {
                 // 인증 실패 시 401 반환
                 it.authenticationEntryPoint(HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED))
-            }
-            .build()
-    }
+            }.build()
 
     @Bean
     fun corsConfigurationSource(): CorsConfigurationSource {
-        val configuration = CorsConfiguration().apply {
-            // TODO: 실제 배포 시 허용 도메인 설정
-            allowedOriginPatterns = listOf("*")
-            allowedMethods = listOf("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS")
-            allowedHeaders = listOf("*")
-            allowCredentials = true
-            exposedHeaders = listOf("Set-Cookie")
-            maxAge = 3600L
-        }
+        val configuration =
+            CorsConfiguration().apply {
+                // TODO: 실제 배포 시 허용 도메인 설정
+                allowedOriginPatterns = listOf("*")
+                allowedMethods = listOf("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS")
+                allowedHeaders = listOf("*")
+                allowCredentials = true
+                exposedHeaders = listOf("Set-Cookie")
+                maxAge = 3600L
+            }
 
         return UrlBasedCorsConfigurationSource().apply {
             registerCorsConfiguration("/**", configuration)

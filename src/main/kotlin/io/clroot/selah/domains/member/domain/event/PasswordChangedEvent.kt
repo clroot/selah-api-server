@@ -9,5 +9,5 @@ import io.clroot.selah.domains.member.domain.Member
  * 기존 비밀번호를 새 비밀번호로 변경했을 때 발행됩니다.
  */
 data class PasswordChangedEvent(
-    val member: Member
+    val member: Member,
 ) : BaseDomainEvent()

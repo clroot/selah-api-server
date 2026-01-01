@@ -19,10 +19,13 @@ import org.springframework.transaction.annotation.Transactional
 class ApiKeyService(
     private val apiKeyPort: ApiKeyPort,
     private val loadMemberPort: LoadMemberPort,
-) : ValidateApiKeyUseCase, ManageApiKeyUseCase {
-
+) : ValidateApiKeyUseCase,
+    ManageApiKeyUseCase {
     @Transactional(readOnly = true)
-    override suspend fun validate(apiKey: String, ipAddress: String?): ApiKeyInfo? {
+    override suspend fun validate(
+        apiKey: String,
+        ipAddress: String?,
+    ): ApiKeyInfo? {
         val info = apiKeyPort.findByKey(apiKey) ?: return null
 
         // 마지막 사용 시간 및 IP 업데이트
@@ -31,10 +34,15 @@ class ApiKeyService(
         return info
     }
 
-    override suspend fun createApiKey(memberId: MemberId, name: String, ipAddress: String?): ApiKeyCreateResult {
+    override suspend fun createApiKey(
+        memberId: MemberId,
+        name: String,
+        ipAddress: String?,
+    ): ApiKeyCreateResult {
         // 회원 존재 확인 및 역할 조회
-        val member = loadMemberPort.findById(memberId)
-            ?: throw MemberNotFoundException(memberId.value)
+        val member =
+            loadMemberPort.findById(memberId)
+                ?: throw MemberNotFoundException(memberId.value)
 
         return apiKeyPort.create(
             memberId = memberId,
@@ -45,11 +53,12 @@ class ApiKeyService(
     }
 
     @Transactional(readOnly = true)
-    override suspend fun listApiKeys(memberId: MemberId): List<ApiKeyInfo> {
-        return apiKeyPort.findAllByMemberId(memberId)
-    }
+    override suspend fun listApiKeys(memberId: MemberId): List<ApiKeyInfo> = apiKeyPort.findAllByMemberId(memberId)
 
-    override suspend fun deleteApiKey(memberId: MemberId, apiKeyId: String) {
+    override suspend fun deleteApiKey(
+        memberId: MemberId,
+        apiKeyId: String,
+    ) {
         // 권한 검증: API Key 소유자인지 확인
         val apiKeys = apiKeyPort.findAllByMemberId(memberId)
         val isOwner = apiKeys.any { it.id == apiKeyId }

@@ -30,23 +30,17 @@ class ServerKeyEntity(
     @Id
     @Column(name = "id", length = 26)
     val id: String,
-
     @Column(name = "member_id", nullable = false, unique = true, length = 26)
     val memberId: String,
-
     @Column(name = "encrypted_server_key", nullable = false, length = 512)
     var encryptedServerKey: String,
-
     @Column(name = "iv", nullable = false, length = 64)
     var iv: String,
-
     @Version
     @Column(name = "version")
     var version: Long? = null,
-
     @Column(name = "created_at", nullable = false, updatable = false)
     val createdAt: LocalDateTime,
-
     @Column(name = "updated_at", nullable = false)
     var updatedAt: LocalDateTime,
 )

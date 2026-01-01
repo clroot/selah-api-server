@@ -18,7 +18,6 @@ class MemberRegisteredEventListener(
     private val emailVerificationTokenPort: EmailVerificationTokenPort,
     private val sendEmailPort: SendEmailPort,
 ) {
-
     companion object {
         @JvmStatic
         private val logger = KotlinLogging.logger {}

@@ -31,7 +31,6 @@ class OAuthConnectionService(
     private val oauthUserInfoPort: OAuthUserInfoPort,
     private val eventPublisher: ApplicationEventPublisher,
 ) : ManageOAuthConnectionUseCase {
-
     companion object {
         @JvmStatic
         private val logger = KotlinLogging.logger {}
@@ -39,18 +38,21 @@ class OAuthConnectionService(
 
     @Transactional(readOnly = true)
     override suspend fun getConnections(memberId: MemberId): OAuthConnectionsInfo {
-        val member = loadMemberPort.findById(memberId)
-            ?: throw MemberNotFoundException(memberId.value)
+        val member =
+            loadMemberPort.findById(memberId)
+                ?: throw MemberNotFoundException(memberId.value)
 
-        val connections = member.oauthConnections.map { connection ->
-            OAuthConnectionInfo(
-                provider = connection.provider,
-                connectedAt = connection.connectedAt,
-            )
-        }
+        val connections =
+            member.oauthConnections.map { connection ->
+                OAuthConnectionInfo(
+                    provider = connection.provider,
+                    connectedAt = connection.connectedAt,
+                )
+            }
 
-        val availableProviders = OAuthProvider.entries
-            .filter { provider -> !member.hasProvider(provider) }
+        val availableProviders =
+            OAuthProvider.entries
+                .filter { provider -> !member.hasProvider(provider) }
 
         return OAuthConnectionsInfo(
             connections = connections,
@@ -58,9 +60,13 @@ class OAuthConnectionService(
         )
     }
 
-    override suspend fun connect(memberId: MemberId, command: ConnectOAuthCommand): OAuthConnectionInfo {
-        val member = loadMemberPort.findById(memberId)
-            ?: throw MemberNotFoundException(memberId.value)
+    override suspend fun connect(
+        memberId: MemberId,
+        command: ConnectOAuthCommand,
+    ): OAuthConnectionInfo {
+        val member =
+            loadMemberPort.findById(memberId)
+                ?: throw MemberNotFoundException(memberId.value)
 
         // 이미 연결된 Provider인지 확인
         if (member.hasProvider(command.provider)) {
@@ -97,9 +103,13 @@ class OAuthConnectionService(
         )
     }
 
-    override suspend fun disconnect(memberId: MemberId, provider: OAuthProvider) {
-        val member = loadMemberPort.findById(memberId)
-            ?: throw MemberNotFoundException(memberId.value)
+    override suspend fun disconnect(
+        memberId: MemberId,
+        provider: OAuthProvider,
+    ) {
+        val member =
+            loadMemberPort.findById(memberId)
+                ?: throw MemberNotFoundException(memberId.value)
 
         // 연결되지 않은 Provider인지 확인
         if (!member.hasProvider(provider)) {

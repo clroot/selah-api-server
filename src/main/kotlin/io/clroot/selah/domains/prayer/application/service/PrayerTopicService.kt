@@ -43,12 +43,12 @@ class PrayerTopicService(
     UpdatePrayerTopicUseCase,
     DeletePrayerTopicUseCase,
     AnswerPrayerTopicUseCase {
-
     override suspend fun create(command: CreatePrayerTopicCommand): PrayerTopic {
-        val prayerTopic = PrayerTopic.create(
-            memberId = command.memberId,
-            title = command.title,
-        )
+        val prayerTopic =
+            PrayerTopic.create(
+                memberId = command.memberId,
+                title = command.title,
+            )
 
         val saved = savePrayerTopicPort.save(prayerTopic)
         saved.publishAndClearEvents(eventPublisher)
@@ -57,9 +57,13 @@ class PrayerTopicService(
     }
 
     @Transactional(readOnly = true)
-    override suspend fun getById(id: PrayerTopicId, memberId: MemberId): PrayerTopic {
-        val prayerTopic = loadPrayerTopicPort.findById(id)
-            ?: throw PrayerTopicNotFoundException(id.value)
+    override suspend fun getById(
+        id: PrayerTopicId,
+        memberId: MemberId,
+    ): PrayerTopic {
+        val prayerTopic =
+            loadPrayerTopicPort.findById(id)
+                ?: throw PrayerTopicNotFoundException(id.value)
 
         if (prayerTopic.memberId != memberId) {
             throw PrayerTopicAccessDeniedException(id.value)
@@ -73,13 +77,12 @@ class PrayerTopicService(
         memberId: MemberId,
         status: PrayerTopicStatus?,
         pageable: Pageable,
-    ): Page<PrayerTopic> {
-        return loadPrayerTopicPort.findAllByMemberId(memberId, status, pageable)
-    }
+    ): Page<PrayerTopic> = loadPrayerTopicPort.findAllByMemberId(memberId, status, pageable)
 
     override suspend fun updateTitle(command: UpdatePrayerTopicTitleCommand): PrayerTopic {
-        val prayerTopic = loadPrayerTopicPort.findById(command.id)
-            ?: throw PrayerTopicNotFoundException(command.id.value)
+        val prayerTopic =
+            loadPrayerTopicPort.findById(command.id)
+                ?: throw PrayerTopicNotFoundException(command.id.value)
 
         if (prayerTopic.memberId != command.memberId) {
             throw PrayerTopicAccessDeniedException(command.id.value)
@@ -93,9 +96,13 @@ class PrayerTopicService(
         return saved
     }
 
-    override suspend fun delete(id: PrayerTopicId, memberId: MemberId) {
-        val prayerTopic = loadPrayerTopicPort.findById(id)
-            ?: throw PrayerTopicNotFoundException(id.value)
+    override suspend fun delete(
+        id: PrayerTopicId,
+        memberId: MemberId,
+    ) {
+        val prayerTopic =
+            loadPrayerTopicPort.findById(id)
+                ?: throw PrayerTopicNotFoundException(id.value)
 
         if (prayerTopic.memberId != memberId) {
             throw PrayerTopicAccessDeniedException(id.value)
@@ -105,8 +112,9 @@ class PrayerTopicService(
     }
 
     override suspend fun markAsAnswered(command: MarkAsAnsweredCommand): PrayerTopic {
-        val prayerTopic = loadPrayerTopicPort.findById(command.id)
-            ?: throw PrayerTopicNotFoundException(command.id.value)
+        val prayerTopic =
+            loadPrayerTopicPort.findById(command.id)
+                ?: throw PrayerTopicNotFoundException(command.id.value)
 
         if (prayerTopic.memberId != command.memberId) {
             throw PrayerTopicAccessDeniedException(command.id.value)
@@ -125,8 +133,9 @@ class PrayerTopicService(
     }
 
     override suspend fun cancelAnswer(command: CancelAnswerCommand): PrayerTopic {
-        val prayerTopic = loadPrayerTopicPort.findById(command.id)
-            ?: throw PrayerTopicNotFoundException(command.id.value)
+        val prayerTopic =
+            loadPrayerTopicPort.findById(command.id)
+                ?: throw PrayerTopicNotFoundException(command.id.value)
 
         if (prayerTopic.memberId != command.memberId) {
             throw PrayerTopicAccessDeniedException(command.id.value)
@@ -145,8 +154,9 @@ class PrayerTopicService(
     }
 
     override suspend fun updateReflection(command: UpdateReflectionCommand): PrayerTopic {
-        val prayerTopic = loadPrayerTopicPort.findById(command.id)
-            ?: throw PrayerTopicNotFoundException(command.id.value)
+        val prayerTopic =
+            loadPrayerTopicPort.findById(command.id)
+                ?: throw PrayerTopicNotFoundException(command.id.value)
 
         if (prayerTopic.memberId != command.memberId) {
             throw PrayerTopicAccessDeniedException(command.id.value)

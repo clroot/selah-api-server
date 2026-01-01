@@ -14,7 +14,6 @@ import org.springframework.transaction.annotation.Transactional
 class LogoutService(
     private val sessionPort: SessionPort,
 ) : LogoutUseCase {
-
     override suspend fun logout(sessionToken: String) {
         sessionPort.delete(sessionToken)
     }

@@ -30,7 +30,11 @@ interface OAuthCallbackUseCase {
      * @param provider OAuth Provider
      * @param code Authorization Code
      */
-    suspend fun handleLinkCallback(memberId: MemberId, provider: OAuthProvider, code: String)
+    suspend fun handleLinkCallback(
+        memberId: MemberId,
+        provider: OAuthProvider,
+        code: String,
+    )
 }
 
 /**

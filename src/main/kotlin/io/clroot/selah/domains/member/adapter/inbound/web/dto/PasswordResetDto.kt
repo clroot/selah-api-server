@@ -4,7 +4,6 @@ package io.clroot.selah.domains.member.adapter.inbound.web.dto
  * 비밀번호 재설정 관련 DTO
  */
 object PasswordResetDto {
-
     /**
      * 비밀번호 재설정 요청 (비밀번호 찾기)
      */

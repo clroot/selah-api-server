@@ -80,6 +80,8 @@ data class PasswordResetTokenInfo(
     val createdAt: LocalDateTime,
 ) {
     fun isExpired(): Boolean = LocalDateTime.now().isAfter(expiresAt)
+
     fun isUsed(): Boolean = usedAt != null
+
     fun isValid(): Boolean = !isExpired() && !isUsed()
 }

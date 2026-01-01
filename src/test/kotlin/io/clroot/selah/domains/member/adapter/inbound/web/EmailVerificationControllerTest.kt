@@ -23,92 +23,95 @@ import io.mockk.unmockkObject
 import org.springframework.http.HttpStatus
 import java.time.LocalDateTime
 
-class EmailVerificationControllerTest : DescribeSpec({
+class EmailVerificationControllerTest :
+    DescribeSpec({
 
-    val emailVerificationUseCase = mockk<EmailVerificationUseCase>()
+        val emailVerificationUseCase = mockk<EmailVerificationUseCase>()
 
-    val controller = EmailVerificationController(
-        emailVerificationUseCase = emailVerificationUseCase,
-    )
+        val controller =
+            EmailVerificationController(
+                emailVerificationUseCase = emailVerificationUseCase,
+            )
 
-    beforeTest {
-        clearAllMocks()
-        mockkObject(SecurityUtils)
-    }
+        beforeTest {
+            clearAllMocks()
+            mockkObject(SecurityUtils)
+        }
 
-    afterTest {
-        unmockkObject(SecurityUtils)
-    }
+        afterTest {
+            unmockkObject(SecurityUtils)
+        }
 
-    describe("sendVerificationEmail") {
-        val memberId = MemberId.new()
+        describe("sendVerificationEmail") {
+            val memberId = MemberId.new()
 
-        context("인증된 사용자가 요청할 때") {
-            it("인증 이메일을 발송하고 200 OK를 반환한다") {
-                every { SecurityUtils.requireCurrentMemberId() } returns memberId
-                coEvery {
-                    emailVerificationUseCase.sendVerificationEmail(
-                        SendVerificationEmailCommand(memberId)
-                    )
-                } just Runs
+            context("인증된 사용자가 요청할 때") {
+                it("인증 이메일을 발송하고 200 OK를 반환한다") {
+                    every { SecurityUtils.requireCurrentMemberId() } returns memberId
+                    coEvery {
+                        emailVerificationUseCase.sendVerificationEmail(
+                            SendVerificationEmailCommand(memberId),
+                        )
+                    } just Runs
 
-                val response = controller.sendVerificationEmail()
+                    val response = controller.sendVerificationEmail()
 
-                response.statusCode shouldBe HttpStatus.OK
-                response.body?.data shouldBe Unit
+                    response.statusCode shouldBe HttpStatus.OK
+                    response.body?.data shouldBe Unit
 
-                coVerify(exactly = 1) {
-                    emailVerificationUseCase.sendVerificationEmail(
-                        SendVerificationEmailCommand(memberId)
-                    )
+                    coVerify(exactly = 1) {
+                        emailVerificationUseCase.sendVerificationEmail(
+                            SendVerificationEmailCommand(memberId),
+                        )
+                    }
+                }
+            }
+
+            context("인증되지 않은 사용자가 요청할 때") {
+                it("IllegalStateException이 발생한다") {
+                    every { SecurityUtils.requireCurrentMemberId() } throws
+                        IllegalStateException("No authenticated member found")
+
+                    val exception =
+                        runCatching {
+                            controller.sendVerificationEmail()
+                        }.exceptionOrNull()
+
+                    exception shouldBe IllegalStateException("No authenticated member found")
                 }
             }
         }
 
-        context("인증되지 않은 사용자가 요청할 때") {
-            it("IllegalStateException이 발생한다") {
-                every { SecurityUtils.requireCurrentMemberId() } throws
-                    IllegalStateException("No authenticated member found")
+        describe("verifyEmail") {
+            val memberId = MemberId.new()
+            val email = Email("test@example.com")
+            val token = "valid-verification-token"
 
-                val exception = runCatching {
-                    controller.sendVerificationEmail()
-                }.exceptionOrNull()
+            context("유효한 토큰으로 인증 요청할 때") {
+                val verifiedMember = createVerifiedMember(id = memberId, email = email)
+                val request = EmailVerificationDto.VerifyRequest(token = token)
 
-                exception shouldBe IllegalStateException("No authenticated member found")
-            }
-        }
-    }
+                it("이메일 인증을 완료하고 회원 정보를 반환한다") {
+                    coEvery {
+                        emailVerificationUseCase.verifyEmail(VerifyEmailCommand(token))
+                    } returns verifiedMember
 
-    describe("verifyEmail") {
-        val memberId = MemberId.new()
-        val email = Email("test@example.com")
-        val token = "valid-verification-token"
+                    val response = controller.verifyEmail(request)
 
-        context("유효한 토큰으로 인증 요청할 때") {
-            val verifiedMember = createVerifiedMember(id = memberId, email = email)
-            val request = EmailVerificationDto.VerifyRequest(token = token)
+                    response.statusCode shouldBe HttpStatus.OK
+                    response.body?.data?.let { data ->
+                        data.memberId shouldBe memberId.value
+                        data.email shouldBe email.value
+                        data.emailVerified shouldBe true
+                    }
 
-            it("이메일 인증을 완료하고 회원 정보를 반환한다") {
-                coEvery {
-                    emailVerificationUseCase.verifyEmail(VerifyEmailCommand(token))
-                } returns verifiedMember
-
-                val response = controller.verifyEmail(request)
-
-                response.statusCode shouldBe HttpStatus.OK
-                response.body?.data?.let { data ->
-                    data.memberId shouldBe memberId.value
-                    data.email shouldBe email.value
-                    data.emailVerified shouldBe true
-                }
-
-                coVerify(exactly = 1) {
-                    emailVerificationUseCase.verifyEmail(VerifyEmailCommand(token))
+                    coVerify(exactly = 1) {
+                        emailVerificationUseCase.verifyEmail(VerifyEmailCommand(token))
+                    }
                 }
             }
         }
-    }
-})
+    })
 
 // region Test Fixtures
 

@@ -27,10 +27,11 @@ data class PrayerResponse(
 
 // === Extension Functions ===
 
-fun Prayer.toResponse(): PrayerResponse = PrayerResponse(
-    id = id.value,
-    prayerTopicIds = prayerTopicIds.map { it.value },
-    content = content,
-    createdAt = createdAt,
-    updatedAt = updatedAt,
-)
+fun Prayer.toResponse(): PrayerResponse =
+    PrayerResponse(
+        id = id.value,
+        prayerTopicIds = prayerTopicIds.map { it.value },
+        content = content,
+        createdAt = createdAt,
+        updatedAt = updatedAt,
+    )

@@ -7,15 +7,15 @@ import org.springframework.security.core.context.SecurityContextHolder
  * Security 관련 유틸리티
  */
 object SecurityUtils {
-
     /**
      * 현재 인증된 사용자 정보를 반환합니다.
      *
      * @return MemberPrincipal 또는 null (미인증 시)
      */
     fun getCurrentPrincipal(): MemberPrincipal? {
-        val authentication = SecurityContextHolder.getContext().authentication
-            ?: return null
+        val authentication =
+            SecurityContextHolder.getContext().authentication
+                ?: return null
 
         if (!authentication.isAuthenticated) {
             return null
@@ -39,8 +39,7 @@ object SecurityUtils {
      * @return MemberId
      * @throws IllegalStateException 미인증 시
      */
-    fun requireCurrentMemberId(): MemberId {
-        return getCurrentMemberId()
+    fun requireCurrentMemberId(): MemberId =
+        getCurrentMemberId()
             ?: throw IllegalStateException("No authenticated member found")
-    }
 }

@@ -18,7 +18,9 @@ sealed interface Password {
  * (비밀번호 정책 노출 방지)
  */
 @JvmInline
-value class RawPassword(override val value: String) : Password {
+value class RawPassword(
+    override val value: String,
+) : Password {
     init {
         require(value.isNotEmpty()) { "Password cannot be empty" }
     }
@@ -36,7 +38,9 @@ value class RawPassword(override val value: String) : Password {
  * - 특수문자 1개 이상
  */
 @JvmInline
-value class NewPassword private constructor(override val value: String) : Password {
+value class NewPassword private constructor(
+    override val value: String,
+) : Password {
     companion object {
         private val LETTER_REGEX = Regex("[a-zA-Z]")
         private val DIGIT_REGEX = Regex("[0-9]")

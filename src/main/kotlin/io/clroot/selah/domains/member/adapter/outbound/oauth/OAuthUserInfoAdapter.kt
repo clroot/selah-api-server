@@ -18,7 +18,6 @@ import org.springframework.web.client.body
  */
 @Component
 class OAuthUserInfoAdapter : OAuthUserInfoPort {
-
     companion object {
         @JvmStatic
         private val logger = KotlinLogging.logger {}
@@ -28,28 +27,34 @@ class OAuthUserInfoAdapter : OAuthUserInfoPort {
         private const val NAVER_USERINFO_URL = "https://openapi.naver.com/v1/nid/me"
     }
 
-    private val restClient = RestClient.builder()
-        .defaultHeader(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
-        .build()
+    private val restClient =
+        RestClient
+            .builder()
+            .defaultHeader(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
+            .build()
 
-    override suspend fun getUserInfo(provider: OAuthProvider, accessToken: String): OAuthUserInfo {
-        return withContext(Dispatchers.IO) {
+    override suspend fun getUserInfo(
+        provider: OAuthProvider,
+        accessToken: String,
+    ): OAuthUserInfo =
+        withContext(Dispatchers.IO) {
             when (provider) {
                 OAuthProvider.GOOGLE -> getGoogleUserInfo(accessToken)
                 OAuthProvider.KAKAO -> getKakaoUserInfo(accessToken)
                 OAuthProvider.NAVER -> getNaverUserInfo(accessToken)
             }
         }
-    }
 
     private fun getGoogleUserInfo(accessToken: String): OAuthUserInfo {
         try {
-            val response = restClient.get()
-                .uri(GOOGLE_USERINFO_URL)
-                .header(HttpHeaders.AUTHORIZATION, "Bearer $accessToken")
-                .retrieve()
-                .body<GoogleUserInfoResponse>()
-                ?: throw OAuthTokenValidationFailedException(OAuthProvider.GOOGLE.name)
+            val response =
+                restClient
+                    .get()
+                    .uri(GOOGLE_USERINFO_URL)
+                    .header(HttpHeaders.AUTHORIZATION, "Bearer $accessToken")
+                    .retrieve()
+                    .body<GoogleUserInfoResponse>()
+                    ?: throw OAuthTokenValidationFailedException(OAuthProvider.GOOGLE.name)
 
             logger.debug { "Google user info retrieved: ${response.id}" }
 
@@ -69,12 +74,14 @@ class OAuthUserInfoAdapter : OAuthUserInfoPort {
 
     private fun getKakaoUserInfo(accessToken: String): OAuthUserInfo {
         try {
-            val response = restClient.get()
-                .uri(KAKAO_USERINFO_URL)
-                .header(HttpHeaders.AUTHORIZATION, "Bearer $accessToken")
-                .retrieve()
-                .body<KakaoUserInfoResponse>()
-                ?: throw OAuthTokenValidationFailedException(OAuthProvider.KAKAO.name)
+            val response =
+                restClient
+                    .get()
+                    .uri(KAKAO_USERINFO_URL)
+                    .header(HttpHeaders.AUTHORIZATION, "Bearer $accessToken")
+                    .retrieve()
+                    .body<KakaoUserInfoResponse>()
+                    ?: throw OAuthTokenValidationFailedException(OAuthProvider.KAKAO.name)
 
             logger.debug { "Kakao user info retrieved: ${response.id}" }
 
@@ -94,15 +101,18 @@ class OAuthUserInfoAdapter : OAuthUserInfoPort {
 
     private fun getNaverUserInfo(accessToken: String): OAuthUserInfo {
         try {
-            val response = restClient.get()
-                .uri(NAVER_USERINFO_URL)
-                .header(HttpHeaders.AUTHORIZATION, "Bearer $accessToken")
-                .retrieve()
-                .body<NaverUserInfoResponse>()
-                ?: throw OAuthTokenValidationFailedException(OAuthProvider.NAVER.name)
+            val response =
+                restClient
+                    .get()
+                    .uri(NAVER_USERINFO_URL)
+                    .header(HttpHeaders.AUTHORIZATION, "Bearer $accessToken")
+                    .retrieve()
+                    .body<NaverUserInfoResponse>()
+                    ?: throw OAuthTokenValidationFailedException(OAuthProvider.NAVER.name)
 
-            val naverResponse = response.response
-                ?: throw OAuthTokenValidationFailedException(OAuthProvider.NAVER.name)
+            val naverResponse =
+                response.response
+                    ?: throw OAuthTokenValidationFailedException(OAuthProvider.NAVER.name)
 
             logger.debug { "Naver user info retrieved: ${naverResponse.id}" }
 

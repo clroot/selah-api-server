@@ -15,7 +15,6 @@ import java.time.LocalDateTime
 
 @SpringBootTest
 class SessionPersistenceAdapterIntegrationTest : IntegrationTestBase() {
-
     @Autowired
     private lateinit var sessionPersistenceAdapter: SessionPersistenceAdapter
 
@@ -42,12 +41,13 @@ class SessionPersistenceAdapterIntegrationTest : IntegrationTestBase() {
                         val userAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)"
                         val ipAddress = "192.168.1.100"
 
-                        val sessionInfo = sessionPersistenceAdapter.create(
-                            memberId = memberId,
-                            role = role,
-                            userAgent = userAgent,
-                            ipAddress = ipAddress,
-                        )
+                        val sessionInfo =
+                            sessionPersistenceAdapter.create(
+                                memberId = memberId,
+                                role = role,
+                                userAgent = userAgent,
+                                ipAddress = ipAddress,
+                            )
 
                         sessionInfo.shouldNotBeNull()
                         sessionInfo.token.shouldNotBeNull()
@@ -70,12 +70,13 @@ class SessionPersistenceAdapterIntegrationTest : IntegrationTestBase() {
                     it("null 값으로 세션이 생성된다") {
                         val memberId = MemberId.new()
 
-                        val sessionInfo = sessionPersistenceAdapter.create(
-                            memberId = memberId,
-                            role = Member.Role.USER,
-                            userAgent = null,
-                            ipAddress = null,
-                        )
+                        val sessionInfo =
+                            sessionPersistenceAdapter.create(
+                                memberId = memberId,
+                                role = Member.Role.USER,
+                                userAgent = null,
+                                ipAddress = null,
+                            )
 
                         sessionInfo.userAgent.shouldBeNull()
                         sessionInfo.createdIp.shouldBeNull()
@@ -88,12 +89,13 @@ class SessionPersistenceAdapterIntegrationTest : IntegrationTestBase() {
                         val memberId = MemberId.new()
                         val longUserAgent = "a".repeat(1000)
 
-                        val sessionInfo = sessionPersistenceAdapter.create(
-                            memberId = memberId,
-                            role = Member.Role.USER,
-                            userAgent = longUserAgent,
-                            ipAddress = null,
-                        )
+                        val sessionInfo =
+                            sessionPersistenceAdapter.create(
+                                memberId = memberId,
+                                role = Member.Role.USER,
+                                userAgent = longUserAgent,
+                                ipAddress = null,
+                            )
 
                         sessionInfo.userAgent?.length shouldBe 500
                     }
@@ -104,12 +106,13 @@ class SessionPersistenceAdapterIntegrationTest : IntegrationTestBase() {
                 context("존재하는 토큰으로 조회할 때") {
                     it("세션 정보를 반환한다") {
                         val memberId = MemberId.new()
-                        val createdSession = sessionPersistenceAdapter.create(
-                            memberId = memberId,
-                            role = Member.Role.USER,
-                            userAgent = "Test Agent",
-                            ipAddress = "10.0.0.1",
-                        )
+                        val createdSession =
+                            sessionPersistenceAdapter.create(
+                                memberId = memberId,
+                                role = Member.Role.USER,
+                                userAgent = "Test Agent",
+                                ipAddress = "10.0.0.1",
+                            )
 
                         val foundSession = sessionPersistenceAdapter.findByToken(createdSession.token)
 
@@ -132,12 +135,13 @@ class SessionPersistenceAdapterIntegrationTest : IntegrationTestBase() {
                 context("존재하는 세션을 삭제할 때") {
                     it("세션이 삭제된다") {
                         val memberId = MemberId.new()
-                        val session = sessionPersistenceAdapter.create(
-                            memberId = memberId,
-                            role = Member.Role.USER,
-                            userAgent = null,
-                            ipAddress = null,
-                        )
+                        val session =
+                            sessionPersistenceAdapter.create(
+                                memberId = memberId,
+                                role = Member.Role.USER,
+                                userAgent = null,
+                                ipAddress = null,
+                            )
 
                         sessionPersistenceAdapter.delete(session.token)
 
@@ -154,26 +158,29 @@ class SessionPersistenceAdapterIntegrationTest : IntegrationTestBase() {
                         val otherMemberId = MemberId.new()
 
                         // 동일 회원의 여러 세션 생성
-                        val session1 = sessionPersistenceAdapter.create(
-                            memberId = memberId,
-                            role = Member.Role.USER,
-                            userAgent = "Session 1",
-                            ipAddress = "1.1.1.1",
-                        )
-                        val session2 = sessionPersistenceAdapter.create(
-                            memberId = memberId,
-                            role = Member.Role.USER,
-                            userAgent = "Session 2",
-                            ipAddress = "2.2.2.2",
-                        )
+                        val session1 =
+                            sessionPersistenceAdapter.create(
+                                memberId = memberId,
+                                role = Member.Role.USER,
+                                userAgent = "Session 1",
+                                ipAddress = "1.1.1.1",
+                            )
+                        val session2 =
+                            sessionPersistenceAdapter.create(
+                                memberId = memberId,
+                                role = Member.Role.USER,
+                                userAgent = "Session 2",
+                                ipAddress = "2.2.2.2",
+                            )
 
                         // 다른 회원의 세션 생성
-                        val otherSession = sessionPersistenceAdapter.create(
-                            memberId = otherMemberId,
-                            role = Member.Role.USER,
-                            userAgent = "Other Session",
-                            ipAddress = "3.3.3.3",
-                        )
+                        val otherSession =
+                            sessionPersistenceAdapter.create(
+                                memberId = otherMemberId,
+                                role = Member.Role.USER,
+                                userAgent = "Other Session",
+                                ipAddress = "3.3.3.3",
+                            )
 
                         // 회원의 모든 세션 삭제
                         sessionPersistenceAdapter.deleteAllByMemberId(memberId)
@@ -199,16 +206,17 @@ class SessionPersistenceAdapterIntegrationTest : IntegrationTestBase() {
                         val shortExpiry = now.plusMinutes(5)
 
                         // 만료 시간이 5분인 세션을 직접 생성 (threshold 10분 이하)
-                        val shortExpirySession = SessionEntity(
-                            token = token,
-                            memberId = memberId.value,
-                            role = Member.Role.USER,
-                            userAgent = null,
-                            createdIp = "10.0.0.1",
-                            lastAccessedIp = "10.0.0.1",
-                            expiresAt = shortExpiry,
-                            createdAt = now,
-                        )
+                        val shortExpirySession =
+                            SessionEntity(
+                                token = token,
+                                memberId = memberId.value,
+                                role = Member.Role.USER,
+                                userAgent = null,
+                                createdIp = "10.0.0.1",
+                                lastAccessedIp = "10.0.0.1",
+                                expiresAt = shortExpiry,
+                                createdAt = now,
+                            )
                         transactionTemplate.execute {
                             sessionJpaRepository.saveAndFlush(shortExpirySession)
                             entityManager.clear()
@@ -218,10 +226,11 @@ class SessionPersistenceAdapterIntegrationTest : IntegrationTestBase() {
                         val beforeExtend = sessionPersistenceAdapter.findByToken(token)
                         beforeExtend.shouldNotBeNull()
                         // 만료 시간이 10분 미만인지 확인 (threshold 이하)
-                        val remainingBeforeExtend = java.time.Duration.between(
-                            LocalDateTime.now(),
-                            beforeExtend.expiresAt
-                        )
+                        val remainingBeforeExtend =
+                            java.time.Duration.between(
+                                LocalDateTime.now(),
+                                beforeExtend.expiresAt,
+                            )
                         (remainingBeforeExtend.toMinutes() < 10) shouldBe true
 
                         val newIpAddress = "10.0.0.2"
@@ -254,25 +263,27 @@ class SessionPersistenceAdapterIntegrationTest : IntegrationTestBase() {
                         val memberId = MemberId.new()
 
                         // 만료된 세션 생성 (직접 DB에 삽입)
-                        val expiredSession = SessionEntity(
-                            token = "expired-token-1",
-                            memberId = memberId.value,
-                            role = Member.Role.USER,
-                            userAgent = null,
-                            createdIp = null,
-                            lastAccessedIp = null,
-                            expiresAt = LocalDateTime.now().minusHours(1), // 1시간 전 만료
-                            createdAt = LocalDateTime.now().minusDays(1),
-                        )
+                        val expiredSession =
+                            SessionEntity(
+                                token = "expired-token-1",
+                                memberId = memberId.value,
+                                role = Member.Role.USER,
+                                userAgent = null,
+                                createdIp = null,
+                                lastAccessedIp = null,
+                                expiresAt = LocalDateTime.now().minusHours(1), // 1시간 전 만료
+                                createdAt = LocalDateTime.now().minusDays(1),
+                            )
                         sessionJpaRepository.save(expiredSession)
 
                         // 유효한 세션 생성
-                        val validSession = sessionPersistenceAdapter.create(
-                            memberId = MemberId.new(),
-                            role = Member.Role.USER,
-                            userAgent = null,
-                            ipAddress = null,
-                        )
+                        val validSession =
+                            sessionPersistenceAdapter.create(
+                                memberId = MemberId.new(),
+                                role = Member.Role.USER,
+                                userAgent = null,
+                                ipAddress = null,
+                            )
 
                         // 만료된 세션 삭제
                         val deletedCount = sessionPersistenceAdapter.deleteExpiredSessions()

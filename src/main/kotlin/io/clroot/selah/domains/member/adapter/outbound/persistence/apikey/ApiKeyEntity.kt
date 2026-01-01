@@ -25,56 +25,47 @@ class ApiKeyEntity(
     @Id
     @Column(name = "id", length = 26)
     val id: String,
-
     /**
      * API Key 해시 (원본 저장 안함)
      */
     @Column(name = "key_hash", nullable = false, unique = true)
     val keyHash: String,
-
     /**
      * API Key 접두사 (표시용, "selah_xxxxxxxx")
      */
     @Column(name = "key_prefix", nullable = false, length = 16)
     val keyPrefix: String,
-
     /**
      * 회원 ID
      */
     @Column(name = "member_id", nullable = false, length = 26)
     val memberId: String,
-
     /**
      * 회원 역할 (캐시)
      */
     @Enumerated(EnumType.STRING)
     @Column(name = "role", nullable = false, length = 20)
     val role: Member.Role,
-
     /**
      * API Key 이름 (구분용)
      */
     @Column(name = "name", nullable = false, length = 100)
     val name: String,
-
     /**
      * 생성 시 IP 주소
      */
     @Column(name = "created_ip", length = 45)
     val createdIp: String?,
-
     /**
      * 마지막 사용 IP 주소
      */
     @Column(name = "last_used_ip", length = 45)
     var lastUsedIp: String? = null,
-
     /**
      * 마지막 사용 시간
      */
     @Column(name = "last_used_at")
     var lastUsedAt: LocalDateTime? = null,
-
     /**
      * 생성 시간
      */

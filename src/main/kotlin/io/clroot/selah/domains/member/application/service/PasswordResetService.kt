@@ -29,7 +29,6 @@ class PasswordResetService(
     @Value($$"${selah.password-reset.resend-cooldown:PT1M}")
     private val resendCooldown: Duration,
 ) : PasswordResetUseCase {
-
     companion object {
         @JvmStatic
         private val logger = KotlinLogging.logger {}
@@ -65,11 +64,13 @@ class PasswordResetService(
 
     @Transactional(readOnly = true)
     override suspend fun validateResetToken(command: ValidateResetTokenCommand): ValidateResetTokenResult {
-        val tokenInfo = passwordResetTokenPort.findValidByToken(command.token)
-            ?: throw InvalidPasswordResetTokenException()
+        val tokenInfo =
+            passwordResetTokenPort.findValidByToken(command.token)
+                ?: throw InvalidPasswordResetTokenException()
 
-        val member = loadMemberPort.findById(tokenInfo.memberId)
-            ?: throw MemberNotFoundException(tokenInfo.memberId.value)
+        val member =
+            loadMemberPort.findById(tokenInfo.memberId)
+                ?: throw MemberNotFoundException(tokenInfo.memberId.value)
 
         return ValidateResetTokenResult(
             valid = true,
@@ -78,15 +79,17 @@ class PasswordResetService(
     }
 
     override suspend fun resetPassword(command: ResetPasswordCommand) {
-        val tokenInfo = passwordResetTokenPort.findValidByToken(command.token)
-            ?: throw InvalidPasswordResetTokenException()
+        val tokenInfo =
+            passwordResetTokenPort.findValidByToken(command.token)
+                ?: throw InvalidPasswordResetTokenException()
 
         // 비밀번호 정책 검증
         val newPassword = NewPassword.from(command.newPassword)
 
         // 회원 조회
-        val member = loadMemberPort.findById(tokenInfo.memberId)
-            ?: throw MemberNotFoundException(tokenInfo.memberId.value)
+        val member =
+            loadMemberPort.findById(tokenInfo.memberId)
+                ?: throw MemberNotFoundException(tokenInfo.memberId.value)
 
         val memberId = member.id
 
@@ -111,8 +114,9 @@ class PasswordResetService(
     }
 
     private suspend fun checkResendCooldown(memberId: MemberId) {
-        val latestCreatedAt = passwordResetTokenPort.findLatestCreatedAtByMemberId(memberId)
-            ?: return
+        val latestCreatedAt =
+            passwordResetTokenPort.findLatestCreatedAtByMemberId(memberId)
+                ?: return
 
         val cooldownEnd = latestCreatedAt.plus(resendCooldown)
         val now = LocalDateTime.now()

@@ -23,7 +23,6 @@ class ServerKey(
     createdAt: LocalDateTime,
     updatedAt: LocalDateTime,
 ) : AggregateRoot<ServerKeyId>(id, version, createdAt, updatedAt) {
-
     /**
      * Master Key로 암호화된 Server Key (Base64 인코딩)
      */
@@ -39,7 +38,10 @@ class ServerKey(
     /**
      * Server Key 재생성 시 암호화된 키와 IV 업데이트
      */
-    fun updateServerKey(newEncryptedServerKey: String, newIv: String) {
+    fun updateServerKey(
+        newEncryptedServerKey: String,
+        newIv: String,
+    ) {
         require(newEncryptedServerKey.isNotBlank()) { "Encrypted server key cannot be blank" }
         require(newIv.isNotBlank()) { "IV cannot be blank" }
         encryptedServerKey = newEncryptedServerKey

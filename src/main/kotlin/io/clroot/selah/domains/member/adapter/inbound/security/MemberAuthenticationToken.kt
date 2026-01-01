@@ -12,8 +12,8 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority
 class MemberAuthenticationToken(
     private val principal: MemberPrincipal,
 ) : AbstractAuthenticationToken(
-    listOf(SimpleGrantedAuthority("ROLE_${principal.role.name}")),
-) {
+        listOf(SimpleGrantedAuthority("ROLE_${principal.role.name}")),
+    ) {
     init {
         isAuthenticated = true
     }

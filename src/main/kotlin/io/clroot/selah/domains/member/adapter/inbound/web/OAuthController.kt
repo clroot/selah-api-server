@@ -29,7 +29,6 @@ class OAuthController(
     private val oAuthProperties: OAuthProperties,
     private val sessionCookieHelper: SessionCookieHelper,
 ) {
-
     companion object {
         @JvmStatic
         private val logger = KotlinLogging.logger {}
@@ -62,12 +61,13 @@ class OAuthController(
         }
 
         // Authorization URL 생성
-        val authorizationUrl = oAuthCallbackUseCase.getAuthorizationUrl(
-            GetAuthorizationUrlCommand(
-                provider = provider,
-                state = state,
+        val authorizationUrl =
+            oAuthCallbackUseCase.getAuthorizationUrl(
+                GetAuthorizationUrlCommand(
+                    provider = provider,
+                    state = state,
+                ),
             )
-        )
 
         logger.debug { "Redirecting to OAuth provider: $authorizationUrl" }
 
@@ -157,18 +157,19 @@ class OAuthController(
         state: String,
         httpRequest: HttpServletRequest,
         httpResponse: HttpServletResponse,
-    ): ResponseEntity<Void> {
-        return try {
+    ): ResponseEntity<Void> =
+        try {
             // OAuth 콜백 처리 (token 교환, 사용자 정보 조회, 로그인)
-            val result = oAuthCallbackUseCase.handleCallback(
-                OAuthCallbackCommand(
-                    provider = provider,
-                    code = code,
-                    state = state,
-                    userAgent = httpRequest.getHeader("User-Agent"),
-                    ipAddress = HttpRequestUtils.extractIpAddress(httpRequest),
+            val result =
+                oAuthCallbackUseCase.handleCallback(
+                    OAuthCallbackCommand(
+                        provider = provider,
+                        code = code,
+                        state = state,
+                        userAgent = httpRequest.getHeader("User-Agent"),
+                        ipAddress = HttpRequestUtils.extractIpAddress(httpRequest),
+                    ),
                 )
-            )
 
             // 세션 쿠키 설정
             sessionCookieHelper.addSessionCookie(httpResponse, result.session.token, result.session.expiresAt)
@@ -186,7 +187,6 @@ class OAuthController(
             logger.error(e) { "OAuth callback failed for provider: $provider" }
             redirectToFrontendWithError("oauth_failed", null)
         }
-    }
 
     private fun generateState(): String {
         val bytes = ByteArray(32)
@@ -194,7 +194,10 @@ class OAuthController(
         return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes)
     }
 
-    private fun buildFrontendCallbackUrl(isNewMember: Boolean? = null, mode: String? = null): String {
+    private fun buildFrontendCallbackUrl(
+        isNewMember: Boolean? = null,
+        mode: String? = null,
+    ): String {
         val params = mutableListOf("success=true")
         if (isNewMember != null) {
             params.add("isNewMember=$isNewMember")
@@ -205,7 +208,10 @@ class OAuthController(
         return "${oAuthProperties.frontendCallbackUrl}?${params.joinToString("&")}"
     }
 
-    private fun redirectToFrontendWithError(error: String, mode: String?): ResponseEntity<Void> {
+    private fun redirectToFrontendWithError(
+        error: String,
+        mode: String?,
+    ): ResponseEntity<Void> {
         val modeParam = if (mode != null) "&mode=$mode" else ""
         val redirectUrl = "${oAuthProperties.frontendCallbackUrl}?error=$error$modeParam"
         return ResponseEntity

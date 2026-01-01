@@ -10,23 +10,23 @@ import org.springframework.stereotype.Component
  */
 @Component
 class MemberMapper {
-
     /**
      * Domain → Entity 변환
      */
     fun toEntity(member: Member): MemberEntity {
-        val memberEntity = MemberEntity(
-            id = member.id.value,
-            email = member.email.value,
-            nickname = member.nickname,
-            profileImageUrl = member.profileImageUrl,
-            passwordHash = member.passwordHash?.value,
-            emailVerified = member.emailVerified,
-            role = member.role,
-            version = member.version,
-            createdAt = member.createdAt,
-            updatedAt = member.updatedAt,
-        )
+        val memberEntity =
+            MemberEntity(
+                id = member.id.value,
+                email = member.email.value,
+                nickname = member.nickname,
+                profileImageUrl = member.profileImageUrl,
+                passwordHash = member.passwordHash?.value,
+                emailVerified = member.emailVerified,
+                role = member.role,
+                version = member.version,
+                createdAt = member.createdAt,
+                updatedAt = member.updatedAt,
+            )
 
         // OAuthConnections 변환 및 연결
         member.oauthConnections.forEach { connection ->
@@ -39,8 +39,8 @@ class MemberMapper {
     /**
      * Entity → Domain 변환
      */
-    fun toDomain(entity: MemberEntity): Member {
-        return Member(
+    fun toDomain(entity: MemberEntity): Member =
+        Member(
             id = MemberId.from(entity.id),
             email = Email(entity.email),
             nickname = entity.nickname,
@@ -53,37 +53,37 @@ class MemberMapper {
             createdAt = entity.createdAt,
             updatedAt = entity.updatedAt,
         )
-    }
 
     /**
      * OAuthConnection Domain → Entity 변환
      */
-    fun toEntity(connection: OAuthConnection): OAuthConnectionEntity {
-        return OAuthConnectionEntity(
+    fun toEntity(connection: OAuthConnection): OAuthConnectionEntity =
+        OAuthConnectionEntity(
             id = connection.id.value,
             provider = connection.provider,
             providerId = connection.providerId,
             connectedAt = connection.connectedAt,
         )
-    }
 
     /**
      * OAuthConnection Entity → Domain 변환
      */
-    fun toDomain(entity: OAuthConnectionEntity): OAuthConnection {
-        return OAuthConnection(
+    fun toDomain(entity: OAuthConnectionEntity): OAuthConnection =
+        OAuthConnection(
             id = OAuthConnectionId.from(entity.id),
             provider = entity.provider,
             providerId = entity.providerId,
             connectedAt = entity.connectedAt,
         )
-    }
 
     /**
      * 기존 Entity를 Domain 데이터로 업데이트
      * (ID, createdAt은 변경하지 않음)
      */
-    fun updateEntity(entity: MemberEntity, member: Member) {
+    fun updateEntity(
+        entity: MemberEntity,
+        member: Member,
+    ) {
         entity.email = member.email.value
         entity.nickname = member.nickname
         entity.profileImageUrl = member.profileImageUrl

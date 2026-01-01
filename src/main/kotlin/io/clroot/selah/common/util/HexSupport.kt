@@ -6,7 +6,6 @@ import java.security.MessageDigest
  * Hex 인코딩 관련 유틸리티
  */
 object HexSupport {
-
     private val HEX_CHARS = "0123456789abcdef".toCharArray()
 
     /**

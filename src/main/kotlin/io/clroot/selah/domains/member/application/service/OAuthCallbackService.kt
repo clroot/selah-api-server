@@ -3,8 +3,8 @@ package io.clroot.selah.domains.member.application.service
 import io.clroot.selah.domains.member.application.port.inbound.ConnectOAuthCommand
 import io.clroot.selah.domains.member.application.port.inbound.GetAuthorizationUrlCommand
 import io.clroot.selah.domains.member.application.port.inbound.LoginResult
-import io.clroot.selah.domains.member.application.port.inbound.LoginWithOAuthCommand
 import io.clroot.selah.domains.member.application.port.inbound.LoginUseCase
+import io.clroot.selah.domains.member.application.port.inbound.LoginWithOAuthCommand
 import io.clroot.selah.domains.member.application.port.inbound.ManageOAuthConnectionUseCase
 import io.clroot.selah.domains.member.application.port.inbound.OAuthCallbackCommand
 import io.clroot.selah.domains.member.application.port.inbound.OAuthCallbackUseCase
@@ -26,7 +26,6 @@ class OAuthCallbackService(
     private val loginUseCase: LoginUseCase,
     private val manageOAuthConnectionUseCase: ManageOAuthConnectionUseCase,
 ) : OAuthCallbackUseCase {
-
     companion object {
         @JvmStatic
         private val logger = KotlinLogging.logger {}
@@ -46,17 +45,19 @@ class OAuthCallbackService(
 
         // 1. Authorization code를 Access Token으로 교환
         val redirectUri = oAuthTokenPort.getCallbackUri(command.provider)
-        val tokenResult = oAuthTokenPort.exchangeCodeForToken(
-            provider = command.provider,
-            code = command.code,
-            redirectUri = redirectUri,
-        )
+        val tokenResult =
+            oAuthTokenPort.exchangeCodeForToken(
+                provider = command.provider,
+                code = command.code,
+                redirectUri = redirectUri,
+            )
 
         // 2. Access Token으로 사용자 정보 조회
-        val userInfo = oAuthUserInfoPort.getUserInfo(
-            provider = command.provider,
-            accessToken = tokenResult.accessToken,
-        )
+        val userInfo =
+            oAuthUserInfoPort.getUserInfo(
+                provider = command.provider,
+                accessToken = tokenResult.accessToken,
+            )
 
         logger.debug { "OAuth user info retrieved: providerId=${userInfo.providerId}" }
 
@@ -70,28 +71,34 @@ class OAuthCallbackService(
                 profileImageUrl = userInfo.profileImageUrl,
                 userAgent = command.userAgent,
                 ipAddress = command.ipAddress,
-            )
+            ),
         )
     }
 
-    override suspend fun handleLinkCallback(memberId: MemberId, provider: OAuthProvider, code: String) {
+    override suspend fun handleLinkCallback(
+        memberId: MemberId,
+        provider: OAuthProvider,
+        code: String,
+    ) {
         logger.debug { "Processing OAuth link callback for provider: $provider, memberId: ${memberId.value}" }
 
         // 1. Authorization code를 Access Token으로 교환
         val redirectUri = oAuthTokenPort.getCallbackUri(provider)
-        val tokenResult = oAuthTokenPort.exchangeCodeForToken(
-            provider = provider,
-            code = code,
-            redirectUri = redirectUri,
-        )
+        val tokenResult =
+            oAuthTokenPort.exchangeCodeForToken(
+                provider = provider,
+                code = code,
+                redirectUri = redirectUri,
+            )
 
         // 2. 기존 계정에 OAuth 연결
         manageOAuthConnectionUseCase.connect(
             memberId = memberId,
-            command = ConnectOAuthCommand(
-                provider = provider,
-                accessToken = tokenResult.accessToken,
-            ),
+            command =
+                ConnectOAuthCommand(
+                    provider = provider,
+                    accessToken = tokenResult.accessToken,
+                ),
         )
 
         logger.info { "OAuth connection linked: memberId=${memberId.value}, provider=$provider" }

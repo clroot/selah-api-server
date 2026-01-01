@@ -11,5 +11,5 @@ import io.clroot.selah.domains.member.domain.OAuthConnection
  */
 data class OAuthConnectedEvent(
     val member: Member,
-    val connection: OAuthConnection
+    val connection: OAuthConnection,
 ) : BaseDomainEvent()

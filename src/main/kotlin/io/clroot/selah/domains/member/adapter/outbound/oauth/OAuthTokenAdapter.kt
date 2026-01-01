@@ -23,40 +23,44 @@ import org.springframework.web.util.UriComponentsBuilder
 class OAuthTokenAdapter(
     private val oAuthProperties: OAuthProperties,
 ) : OAuthTokenPort {
-
     companion object {
         @JvmStatic
         private val logger = KotlinLogging.logger {}
     }
 
-    private val restClient = RestClient.builder()
-        .defaultHeader(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
-        .build()
+    private val restClient =
+        RestClient
+            .builder()
+            .defaultHeader(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
+            .build()
 
     override suspend fun exchangeCodeForToken(
         provider: OAuthProvider,
         code: String,
         redirectUri: String,
-    ): OAuthTokenResult {
-        return withContext(Dispatchers.IO) {
+    ): OAuthTokenResult =
+        withContext(Dispatchers.IO) {
             val config = oAuthProperties.getProviderConfig(provider)
 
             try {
-                val formData = LinkedMultiValueMap<String, String>().apply {
-                    add("grant_type", "authorization_code")
-                    add("client_id", config.clientId)
-                    add("client_secret", config.clientSecret)
-                    add("redirect_uri", redirectUri)
-                    add("code", code)
-                }
+                val formData =
+                    LinkedMultiValueMap<String, String>().apply {
+                        add("grant_type", "authorization_code")
+                        add("client_id", config.clientId)
+                        add("client_secret", config.clientSecret)
+                        add("redirect_uri", redirectUri)
+                        add("code", code)
+                    }
 
-                val response = restClient.post()
-                    .uri(config.tokenUrl)
-                    .contentType(MediaType.APPLICATION_FORM_URLENCODED)
-                    .body(formData)
-                    .retrieve()
-                    .body<TokenResponse>()
-                    ?: throw OAuthTokenExchangeFailedException(provider.name)
+                val response =
+                    restClient
+                        .post()
+                        .uri(config.tokenUrl)
+                        .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                        .body(formData)
+                        .retrieve()
+                        .body<TokenResponse>()
+                        ?: throw OAuthTokenExchangeFailedException(provider.name)
 
                 logger.debug { "Token exchanged successfully for provider: $provider" }
 
@@ -73,7 +77,6 @@ class OAuthTokenAdapter(
                 throw OAuthTokenExchangeFailedException(provider.name)
             }
         }
-    }
 
     override fun buildAuthorizationUrl(
         provider: OAuthProvider,
@@ -82,11 +85,13 @@ class OAuthTokenAdapter(
     ): String {
         val config = oAuthProperties.getProviderConfig(provider)
 
-        val builder = UriComponentsBuilder.fromUriString(config.authUrl)
-            .queryParam("client_id", config.clientId)
-            .queryParam("redirect_uri", redirectUri)
-            .queryParam("response_type", "code")
-            .queryParam("state", state)
+        val builder =
+            UriComponentsBuilder
+                .fromUriString(config.authUrl)
+                .queryParam("client_id", config.clientId)
+                .queryParam("redirect_uri", redirectUri)
+                .queryParam("response_type", "code")
+                .queryParam("state", state)
 
         if (config.scope.isNotBlank()) {
             builder.queryParam("scope", config.scope)
@@ -101,9 +106,8 @@ class OAuthTokenAdapter(
         return builder.build().encode().toUriString()
     }
 
-    override fun getCallbackUri(provider: OAuthProvider): String {
-        return "${oAuthProperties.backendBaseUrl}/api/v1/auth/oauth/${provider.name.lowercase()}/callback"
-    }
+    override fun getCallbackUri(provider: OAuthProvider): String =
+        "${oAuthProperties.backendBaseUrl}/api/v1/auth/oauth/${provider.name.lowercase()}/callback"
 }
 
 /**

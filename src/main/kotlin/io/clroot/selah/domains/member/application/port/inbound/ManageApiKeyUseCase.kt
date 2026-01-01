@@ -16,7 +16,11 @@ interface ManageApiKeyUseCase {
      * @param ipAddress 생성 시 IP 주소
      * @return 생성된 API Key (원본 키 포함, 최초 1회만)
      */
-    suspend fun createApiKey(memberId: MemberId, name: String, ipAddress: String?): ApiKeyCreateResult
+    suspend fun createApiKey(
+        memberId: MemberId,
+        name: String,
+        ipAddress: String?,
+    ): ApiKeyCreateResult
 
     /**
      * 회원의 모든 API Key 목록을 조회합니다.
@@ -32,5 +36,8 @@ interface ManageApiKeyUseCase {
      * @param memberId 회원 ID (권한 검증용)
      * @param apiKeyId API Key ID
      */
-    suspend fun deleteApiKey(memberId: MemberId, apiKeyId: String)
+    suspend fun deleteApiKey(
+        memberId: MemberId,
+        apiKeyId: String,
+    )
 }

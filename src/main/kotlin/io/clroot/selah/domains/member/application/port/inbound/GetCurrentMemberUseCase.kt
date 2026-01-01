@@ -24,7 +24,10 @@ interface GetCurrentMemberUseCase {
      * @param command 업데이트 정보
      * @return 업데이트된 회원 정보
      */
-    suspend fun updateProfile(memberId: MemberId, command: UpdateProfileCommand): Member
+    suspend fun updateProfile(
+        memberId: MemberId,
+        command: UpdateProfileCommand,
+    ): Member
 }
 
 /**

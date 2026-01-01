@@ -13,7 +13,6 @@ import java.time.LocalDateTime
 
 @SpringBootTest
 class EmailVerificationTokenPersistenceAdapterIntegrationTest : IntegrationTestBase() {
-
     @Autowired
     private lateinit var adapter: EmailVerificationTokenPersistenceAdapter
 
@@ -80,13 +79,14 @@ class EmailVerificationTokenPersistenceAdapterIntegrationTest : IntegrationTestB
                         val rawToken = "test-expired-token-12345"
                         val tokenHash = hashToken(rawToken)
 
-                        val expiredEntity = EmailVerificationTokenEntity(
-                            id = "expired-token-id",
-                            tokenHash = tokenHash,
-                            memberId = memberId.value,
-                            expiresAt = now.minusHours(1), // 1시간 전에 만료됨
-                            createdAt = now.minusDays(2),
-                        )
+                        val expiredEntity =
+                            EmailVerificationTokenEntity(
+                                id = "expired-token-id",
+                                tokenHash = tokenHash,
+                                memberId = memberId.value,
+                                expiresAt = now.minusHours(1), // 1시간 전에 만료됨
+                                createdAt = now.minusDays(2),
+                            )
                         repository.save(expiredEntity)
 
                         val found = adapter.findValidByToken(rawToken)
@@ -195,13 +195,14 @@ class EmailVerificationTokenPersistenceAdapterIntegrationTest : IntegrationTestB
                         val now = LocalDateTime.now()
 
                         // 만료된 토큰 직접 생성
-                        val expiredEntity = EmailVerificationTokenEntity(
-                            id = "expired-token-1",
-                            tokenHash = "expired-hash-1",
-                            memberId = memberId.value,
-                            expiresAt = now.minusHours(1), // 1시간 전 만료
-                            createdAt = now.minusDays(2),
-                        )
+                        val expiredEntity =
+                            EmailVerificationTokenEntity(
+                                id = "expired-token-1",
+                                tokenHash = "expired-hash-1",
+                                memberId = memberId.value,
+                                expiresAt = now.minusHours(1), // 1시간 전 만료
+                                createdAt = now.minusDays(2),
+                            )
                         repository.save(expiredEntity)
 
                         // 유효한 토큰 생성

@@ -21,7 +21,6 @@ import org.springframework.web.bind.annotation.*
 class EncryptionController(
     private val manageEncryptionSettingsUseCase: ManageEncryptionSettingsUseCase,
 ) {
-
     /**
      * 암호화 설정 초기화 (회원가입 시)
      */
@@ -31,15 +30,17 @@ class EncryptionController(
     ): ResponseEntity<ApiResponse<SetupEncryptionResponse>> {
         val memberId = SecurityUtils.requireCurrentMemberId()
 
-        val result = manageEncryptionSettingsUseCase.setup(
-            memberId = memberId,
-            command = SetupEncryptionCommand(
-                salt = request.salt,
-                encryptedDEK = request.encryptedDEK,
-                recoveryEncryptedDEK = request.recoveryEncryptedDEK,
-                recoveryKeyHash = request.recoveryKeyHash,
+        val result =
+            manageEncryptionSettingsUseCase.setup(
+                memberId = memberId,
+                command =
+                    SetupEncryptionCommand(
+                        salt = request.salt,
+                        encryptedDEK = request.encryptedDEK,
+                        recoveryEncryptedDEK = request.recoveryEncryptedDEK,
+                        recoveryKeyHash = request.recoveryKeyHash,
+                    ),
             )
-        )
 
         return ResponseEntity
             .status(HttpStatus.CREATED)
@@ -77,14 +78,16 @@ class EncryptionController(
     ): ResponseEntity<ApiResponse<UpdateEncryptionResponse>> {
         val memberId = SecurityUtils.requireCurrentMemberId()
 
-        val result = manageEncryptionSettingsUseCase.updateEncryption(
-            memberId = memberId,
-            command = UpdateEncryptionCommand(
-                salt = request.salt,
-                encryptedDEK = request.encryptedDEK,
-                rotateServerKey = request.rotateServerKey,
+        val result =
+            manageEncryptionSettingsUseCase.updateEncryption(
+                memberId = memberId,
+                command =
+                    UpdateEncryptionCommand(
+                        salt = request.salt,
+                        encryptedDEK = request.encryptedDEK,
+                        rotateServerKey = request.rotateServerKey,
+                    ),
             )
-        )
 
         return ResponseEntity.ok(ApiResponse.success(result.toResponse()))
     }
@@ -98,13 +101,15 @@ class EncryptionController(
     ): ResponseEntity<ApiResponse<UpdateRecoveryKeyResponse>> {
         val memberId = SecurityUtils.requireCurrentMemberId()
 
-        val settings = manageEncryptionSettingsUseCase.updateRecoveryKey(
-            memberId = memberId,
-            command = UpdateRecoveryKeyCommand(
-                recoveryEncryptedDEK = request.recoveryEncryptedDEK,
-                recoveryKeyHash = request.recoveryKeyHash,
+        val settings =
+            manageEncryptionSettingsUseCase.updateRecoveryKey(
+                memberId = memberId,
+                command =
+                    UpdateRecoveryKeyCommand(
+                        recoveryEncryptedDEK = request.recoveryEncryptedDEK,
+                        recoveryKeyHash = request.recoveryKeyHash,
+                    ),
             )
-        )
 
         return ResponseEntity.ok(ApiResponse.success(settings.toUpdateRecoveryKeyResponse()))
     }
@@ -118,10 +123,11 @@ class EncryptionController(
     ): ResponseEntity<ApiResponse<VerifyRecoveryKeyResponse>> {
         val memberId = SecurityUtils.requireCurrentMemberId()
 
-        val isValid = manageEncryptionSettingsUseCase.verifyRecoveryKey(
-            memberId = memberId,
-            recoveryKeyHash = request.recoveryKeyHash,
-        )
+        val isValid =
+            manageEncryptionSettingsUseCase.verifyRecoveryKey(
+                memberId = memberId,
+                recoveryKeyHash = request.recoveryKeyHash,
+            )
 
         return ResponseEntity.ok(ApiResponse.success(VerifyRecoveryKeyResponse(valid = isValid)))
     }

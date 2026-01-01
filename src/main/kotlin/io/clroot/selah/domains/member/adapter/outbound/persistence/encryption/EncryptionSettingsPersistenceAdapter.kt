@@ -16,31 +16,37 @@ import org.springframework.stereotype.Component
 class EncryptionSettingsPersistenceAdapter(
     private val repository: EncryptionSettingsJpaRepository,
     private val mapper: EncryptionSettingsMapper,
-) : LoadEncryptionSettingsPort, SaveEncryptionSettingsPort, DeleteEncryptionSettingsPort {
-
-    override suspend fun findByMemberId(memberId: MemberId): EncryptionSettings? = withContext(Dispatchers.IO) {
-        repository.findByMemberId(memberId.value)?.let { mapper.toDomain(it) }
-    }
-
-    override suspend fun existsByMemberId(memberId: MemberId): Boolean = withContext(Dispatchers.IO) {
-        repository.existsByMemberId(memberId.value)
-    }
-
-    override suspend fun save(encryptionSettings: EncryptionSettings): EncryptionSettings = withContext(Dispatchers.IO) {
-        val savedEntity = if (repository.existsById(encryptionSettings.id.value)) {
-            // 기존 Entity 업데이트
-            val existingEntity = repository.findById(encryptionSettings.id.value).orElseThrow()
-            mapper.updateEntity(existingEntity, encryptionSettings)
-            repository.save(existingEntity)
-        } else {
-            // 새 Entity 생성
-            repository.save(mapper.toEntity(encryptionSettings))
+) : LoadEncryptionSettingsPort,
+    SaveEncryptionSettingsPort,
+    DeleteEncryptionSettingsPort {
+    override suspend fun findByMemberId(memberId: MemberId): EncryptionSettings? =
+        withContext(Dispatchers.IO) {
+            repository.findByMemberId(memberId.value)?.let { mapper.toDomain(it) }
         }
 
-        mapper.toDomain(savedEntity)
-    }
+    override suspend fun existsByMemberId(memberId: MemberId): Boolean =
+        withContext(Dispatchers.IO) {
+            repository.existsByMemberId(memberId.value)
+        }
 
-    override suspend fun deleteByMemberId(memberId: MemberId): Unit = withContext(Dispatchers.IO) {
-        repository.deleteByMemberId(memberId.value)
-    }
+    override suspend fun save(encryptionSettings: EncryptionSettings): EncryptionSettings =
+        withContext(Dispatchers.IO) {
+            val savedEntity =
+                if (repository.existsById(encryptionSettings.id.value)) {
+                    // 기존 Entity 업데이트
+                    val existingEntity = repository.findById(encryptionSettings.id.value).orElseThrow()
+                    mapper.updateEntity(existingEntity, encryptionSettings)
+                    repository.save(existingEntity)
+                } else {
+                    // 새 Entity 생성
+                    repository.save(mapper.toEntity(encryptionSettings))
+                }
+
+            mapper.toDomain(savedEntity)
+        }
+
+    override suspend fun deleteByMemberId(memberId: MemberId): Unit =
+        withContext(Dispatchers.IO) {
+            repository.deleteByMemberId(memberId.value)
+        }
 }

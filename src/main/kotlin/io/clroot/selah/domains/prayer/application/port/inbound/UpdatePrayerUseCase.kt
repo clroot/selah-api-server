@@ -7,6 +7,7 @@ import io.clroot.selah.domains.prayer.domain.PrayerTopicId
 
 interface UpdatePrayerUseCase {
     suspend fun updateContent(command: UpdatePrayerContentCommand): Prayer
+
     suspend fun update(command: UpdatePrayerCommand): Prayer
 }
 

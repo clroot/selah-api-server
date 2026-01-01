@@ -9,7 +9,9 @@ package io.clroot.selah.domains.member.domain
  * 보안을 위해 toString()은 "[PROTECTED]"를 반환합니다.
  */
 @JvmInline
-value class PasswordHash(val value: String) {
+value class PasswordHash(
+    val value: String,
+) {
     init {
         require(value.isNotBlank()) { "Password hash cannot be blank" }
     }

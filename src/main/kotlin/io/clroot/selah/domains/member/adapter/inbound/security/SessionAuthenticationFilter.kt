@@ -22,7 +22,6 @@ class SessionAuthenticationFilter(
     @Value($$"${selah.session.cookie-name:SELAH_SESSION}")
     private val sessionCookieName: String,
 ) : OncePerRequestFilter() {
-
     /**
      * 비동기 디스패치 시에도 필터를 적용하도록 설정
      * doFilterInternal 내에서 ASYNC_DISPATCH 시 인증 객체를 복구함
@@ -71,11 +70,12 @@ class SessionAuthenticationFilter(
         private const val AUTH_ATTRIBUTE_KEY = "io.clroot.selah.security.AUTHENTICATION"
     }
 
-    private fun extractSessionToken(request: HttpServletRequest): String? {
-        return request.cookies?.find { it.name == sessionCookieName }?.value
-    }
+    private fun extractSessionToken(request: HttpServletRequest): String? = request.cookies?.find { it.name == sessionCookieName }?.value
 
-    private fun authenticateWithSession(sessionToken: String, ipAddress: String?) {
+    private fun authenticateWithSession(
+        sessionToken: String,
+        ipAddress: String?,
+    ) {
         runBlocking {
             val sessionInfo = sessionPort.findByToken(sessionToken) ?: return@runBlocking
 
@@ -83,11 +83,12 @@ class SessionAuthenticationFilter(
                 return@runBlocking
             }
 
-            val principal = MemberPrincipal(
-                memberId = sessionInfo.memberId,
-                role = sessionInfo.role,
-                authenticationType = MemberPrincipal.AuthenticationType.SESSION,
-            )
+            val principal =
+                MemberPrincipal(
+                    memberId = sessionInfo.memberId,
+                    role = sessionInfo.role,
+                    authenticationType = MemberPrincipal.AuthenticationType.SESSION,
+                )
             val authentication = MemberAuthenticationToken(principal)
             SecurityContextHolder.getContext().authentication = authentication
 

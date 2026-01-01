@@ -27,17 +27,13 @@ class OAuthConnectionEntity(
     @Id
     @Column(name = "id", length = 26)
     val id: String,
-
     @Enumerated(EnumType.STRING)
     @Column(name = "provider", nullable = false, length = 20)
     val provider: OAuthProvider,
-
     @Column(name = "provider_id", nullable = false)
     val providerId: String,
-
     @Column(name = "connected_at", nullable = false)
     val connectedAt: LocalDateTime,
-
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "member_id", nullable = false)
     var member: MemberEntity? = null,

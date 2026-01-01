@@ -27,7 +27,6 @@ class Member(
     createdAt: LocalDateTime,
     updatedAt: LocalDateTime,
 ) : AggregateRoot<MemberId>(id, version, createdAt, updatedAt) {
-
     init {
         require(nickname.isNotBlank()) { "Nickname cannot be blank" }
         require(passwordHash != null || oauthConnections.isNotEmpty()) {
@@ -104,10 +103,11 @@ class Member(
     ) {
         require(!hasProvider(provider)) { "Provider $provider is already connected" }
 
-        val connection = OAuthConnection.create(
-            provider = provider,
-            providerId = providerId,
-        )
+        val connection =
+            OAuthConnection.create(
+                provider = provider,
+                providerId = providerId,
+            )
         _oauthConnections.add(connection)
         touch()
         registerEvent(OAuthConnectedEvent(this, connection))
@@ -118,8 +118,9 @@ class Member(
      * 비밀번호가 설정되어 있으면 마지막 OAuth도 해제할 수 있습니다.
      */
     fun disconnectOAuth(provider: OAuthProvider) {
-        val connection = _oauthConnections.find { it.provider == provider }
-            ?: throw IllegalArgumentException("Provider $provider is not connected")
+        val connection =
+            _oauthConnections.find { it.provider == provider }
+                ?: throw IllegalArgumentException("Provider $provider is not connected")
 
         // 마지막 OAuth이고 비밀번호가 없으면 해제 불가
         val isLastOAuth = _oauthConnections.size == 1
@@ -135,8 +136,7 @@ class Member(
     /**
      * 특정 Provider가 연결되어 있는지 확인합니다.
      */
-    fun hasProvider(provider: OAuthProvider): Boolean =
-        _oauthConnections.any { it.provider == provider }
+    fun hasProvider(provider: OAuthProvider): Boolean = _oauthConnections.any { it.provider == provider }
 
     /**
      * Provider ID로 OAuth 연결을 찾습니다.
@@ -144,8 +144,7 @@ class Member(
     fun findConnectionByProviderId(
         provider: OAuthProvider,
         providerId: String,
-    ): OAuthConnection? =
-        _oauthConnections.find { it.provider == provider && it.providerId == providerId }
+    ): OAuthConnection? = _oauthConnections.find { it.provider == provider && it.providerId == providerId }
     // endregion
 
     // region Profile methods
@@ -233,19 +232,20 @@ class Member(
             profileImageUrl: String? = null,
         ): Member {
             val now = LocalDateTime.now()
-            val member = Member(
-                id = MemberId.new(),
-                email = email,
-                nickname = nickname,
-                profileImageUrl = profileImageUrl,
-                passwordHash = passwordHash,
-                emailVerified = false,
-                oauthConnections = emptyList(),
-                role = Role.USER,
-                version = null,
-                createdAt = now,
-                updatedAt = now,
-            )
+            val member =
+                Member(
+                    id = MemberId.new(),
+                    email = email,
+                    nickname = nickname,
+                    profileImageUrl = profileImageUrl,
+                    passwordHash = passwordHash,
+                    emailVerified = false,
+                    oauthConnections = emptyList(),
+                    role = Role.USER,
+                    version = null,
+                    createdAt = now,
+                    updatedAt = now,
+                )
             member.registerEvent(MemberRegisteredEvent(member))
             return member
         }
@@ -263,24 +263,26 @@ class Member(
             profileImageUrl: String? = null,
         ): Member {
             val now = LocalDateTime.now()
-            val initialConnection = OAuthConnection.create(
-                provider = provider,
-                providerId = providerId,
-            )
+            val initialConnection =
+                OAuthConnection.create(
+                    provider = provider,
+                    providerId = providerId,
+                )
 
-            val member = Member(
-                id = MemberId.new(),
-                email = email,
-                nickname = nickname,
-                profileImageUrl = profileImageUrl,
-                passwordHash = null,
-                emailVerified = true,
-                oauthConnections = listOf(initialConnection),
-                role = Role.USER,
-                version = null,
-                createdAt = now,
-                updatedAt = now,
-            )
+            val member =
+                Member(
+                    id = MemberId.new(),
+                    email = email,
+                    nickname = nickname,
+                    profileImageUrl = profileImageUrl,
+                    passwordHash = null,
+                    emailVerified = true,
+                    oauthConnections = listOf(initialConnection),
+                    role = Role.USER,
+                    version = null,
+                    createdAt = now,
+                    updatedAt = now,
+                )
             member.registerEvent(MemberRegisteredEvent(member))
             return member
         }

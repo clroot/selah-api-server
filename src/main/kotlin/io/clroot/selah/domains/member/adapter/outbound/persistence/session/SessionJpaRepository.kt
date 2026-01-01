@@ -17,12 +17,16 @@ interface SessionJpaRepository : JpaRepository<SessionEntity, String> {
      */
     @Modifying
     @Query("DELETE FROM SessionEntity s WHERE s.memberId = :memberId")
-    fun deleteAllByMemberId(@Param("memberId") memberId: String): Int
+    fun deleteAllByMemberId(
+        @Param("memberId") memberId: String,
+    ): Int
 
     /**
      * 만료된 세션을 삭제합니다.
      */
     @Modifying
     @Query("DELETE FROM SessionEntity s WHERE s.expiresAt < :now")
-    fun deleteExpiredSessions(@Param("now") now: LocalDateTime): Int
+    fun deleteExpiredSessions(
+        @Param("now") now: LocalDateTime,
+    ): Int
 }

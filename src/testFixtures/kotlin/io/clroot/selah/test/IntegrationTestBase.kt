@@ -45,7 +45,7 @@ import org.springframework.transaction.annotation.Transactional
 @Transactional(propagation = Propagation.NOT_SUPPORTED)
 abstract class IntegrationTestBase : DescribeSpec() {
     init {
-        extension(DatabaseTestExtension())   // TestContainer 관리 (먼저 실행되어야 함)
-        extension(SpringExtension())          // Spring 컨텍스트 통합
+        extension(DatabaseTestExtension()) // TestContainer 관리 (먼저 실행되어야 함)
+        extension(SpringExtension()) // Spring 컨텍스트 통합
     }
 }

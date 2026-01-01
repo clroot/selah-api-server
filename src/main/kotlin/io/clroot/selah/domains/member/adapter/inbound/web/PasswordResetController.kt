@@ -25,7 +25,6 @@ import org.springframework.web.bind.annotation.RestController
 class PasswordResetController(
     private val passwordResetUseCase: PasswordResetUseCase,
 ) {
-
     /**
      * 비밀번호 재설정 요청 (비밀번호 찾기)
      * 이메일 존재 여부와 관계없이 항상 성공 응답을 반환합니다. (보안)
@@ -35,7 +34,7 @@ class PasswordResetController(
         @RequestBody request: PasswordResetDto.ForgotPasswordRequest,
     ): ResponseEntity<ApiResponse<Unit>> {
         passwordResetUseCase.requestPasswordReset(
-            RequestPasswordResetCommand(email = Email(request.email))
+            RequestPasswordResetCommand(email = Email(request.email)),
         )
 
         return ResponseEntity.ok(ApiResponse.success(Unit))
@@ -48,17 +47,18 @@ class PasswordResetController(
     suspend fun validateResetToken(
         @RequestParam token: String,
     ): ResponseEntity<ApiResponse<PasswordResetDto.ValidateTokenResponse>> {
-        val result = passwordResetUseCase.validateResetToken(
-            ValidateResetTokenCommand(token = token)
-        )
+        val result =
+            passwordResetUseCase.validateResetToken(
+                ValidateResetTokenCommand(token = token),
+            )
 
         return ResponseEntity.ok(
             ApiResponse.success(
                 PasswordResetDto.ValidateTokenResponse(
                     valid = result.valid,
                     email = result.maskedEmail,
-                )
-            )
+                ),
+            ),
         )
     }
 
@@ -73,7 +73,7 @@ class PasswordResetController(
             ResetPasswordCommand(
                 token = request.token,
                 newPassword = request.newPassword,
-            )
+            ),
         )
 
         return ResponseEntity.ok(ApiResponse.success(Unit))

@@ -26,7 +26,6 @@ class PasswordResetTokenPersistenceAdapter(
     @Value($$"${selah.password-reset.ttl:PT1H}")
     private val tokenTtl: Duration,
 ) : PasswordResetTokenPort {
-
     companion object {
         private const val TOKEN_LENGTH = 32
         private val SECURE_RANDOM = SecureRandom()
@@ -42,13 +41,14 @@ class PasswordResetTokenPersistenceAdapter(
             val rawToken = generateToken()
             val tokenHash = hashToken(rawToken)
 
-            val entity = PasswordResetTokenEntity(
-                id = id,
-                tokenHash = tokenHash,
-                memberId = memberId.value,
-                expiresAt = now.plus(tokenTtl),
-                createdAt = now,
-            )
+            val entity =
+                PasswordResetTokenEntity(
+                    id = id,
+                    tokenHash = tokenHash,
+                    memberId = memberId.value,
+                    expiresAt = now.plus(tokenTtl),
+                    createdAt = now,
+                )
 
             repository.save(entity)
 

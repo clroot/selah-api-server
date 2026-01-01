@@ -56,9 +56,10 @@ data class RegisterResponse(
 
 // === Extension Functions ===
 
-fun LoginResult.toResponse(): LoginResponse = LoginResponse(
-    memberId = memberId.value,
-    nickname = nickname,
-    isNewMember = isNewMember,
-    expiresAt = session.expiresAt,
-)
+fun LoginResult.toResponse(): LoginResponse =
+    LoginResponse(
+        memberId = memberId.value,
+        nickname = nickname,
+        isNewMember = isNewMember,
+        expiresAt = session.expiresAt,
+    )

@@ -30,30 +30,22 @@ class PrayerTopicEntity(
     @Id
     @Column(name = "id", length = 26)
     val id: String,
-
     @Column(name = "member_id", length = 26, nullable = false)
     val memberId: String,
-
     @Column(name = "title", nullable = false, columnDefinition = "TEXT")
     var title: String,
-
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20)
     var status: PrayerTopicStatus,
-
     @Column(name = "answered_at")
     var answeredAt: LocalDateTime?,
-
     @Column(name = "reflection", columnDefinition = "TEXT")
     var reflection: String?,
-
     @Version
     @Column(name = "version")
     var version: Long?,
-
     @Column(name = "created_at", nullable = false, updatable = false)
     val createdAt: LocalDateTime,
-
     @Column(name = "updated_at", nullable = false)
     var updatedAt: LocalDateTime,
 )

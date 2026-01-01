@@ -8,7 +8,12 @@ import org.springframework.data.domain.Pageable
 
 interface LoadPrayerPort {
     suspend fun findById(id: PrayerId): Prayer?
-    suspend fun findByIdAndMemberId(id: PrayerId, memberId: MemberId): Prayer?
+
+    suspend fun findByIdAndMemberId(
+        id: PrayerId,
+        memberId: MemberId,
+    ): Prayer?
+
     suspend fun findAllByMemberId(
         memberId: MemberId,
         pageable: Pageable,

@@ -1,0 +1,77 @@
+databaseChangeLog:
+  - changeSet:
+      id: 014-create-lookback-selections
+      author: clroot
+      changes:
+        - createTable:
+            tableName: lookback_selections
+            columns:
+              - column:
+                  name: id
+                  type: varchar(26)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: member_id
+                  type: varchar(26)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: prayer_topic_id
+                  type: varchar(26)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: selected_at
+                  type: date
+                  constraints:
+                    nullable: false
+              - column:
+                  name: version
+                  type: bigint
+              - column:
+                  name: created_at
+                  type: timestamp
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: timestamp
+                  constraints:
+                    nullable: false
+        - createIndex:
+            indexName: idx_lookback_selections_member_date
+            tableName: lookback_selections
+            unique: true
+            columns:
+              - column:
+                  name: member_id
+              - column:
+                  name: selected_at
+        - createIndex:
+            indexName: idx_lookback_selections_member_recent
+            tableName: lookback_selections
+            columns:
+              - column:
+                  name: member_id
+              - column:
+                  name: selected_at
+                  descending: true
+        - addForeignKeyConstraint:
+            constraintName: fk_lookback_selections_member
+            baseTableName: lookback_selections
+            baseColumnNames: member_id
+            referencedTableName: members
+            referencedColumnNames: id
+            onDelete: CASCADE
+        - addForeignKeyConstraint:
+            constraintName: fk_lookback_selections_prayer_topic
+            baseTableName: lookback_selections
+            baseColumnNames: prayer_topic_id
+            referencedTableName: prayer_topics
+            referencedColumnNames: id
+            onDelete: CASCADE
+      rollback:
+        - dropTable:
+            tableName: lookback_selections

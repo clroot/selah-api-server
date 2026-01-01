@@ -98,39 +98,44 @@ data class OAuthConnectionResponse(
 
 // === Extension Functions ===
 
-fun Member.toProfileResponse(): MemberProfileResponse = MemberProfileResponse(
-    id = id.value,
-    email = email.value,
-    nickname = nickname,
-    profileImageUrl = profileImageUrl,
-    emailVerified = emailVerified,
-    hasPassword = hasPassword,
-    connectedProviders = connectedProviders,
-    createdAt = createdAt,
-)
+fun Member.toProfileResponse(): MemberProfileResponse =
+    MemberProfileResponse(
+        id = id.value,
+        email = email.value,
+        nickname = nickname,
+        profileImageUrl = profileImageUrl,
+        emailVerified = emailVerified,
+        hasPassword = hasPassword,
+        connectedProviders = connectedProviders,
+        createdAt = createdAt,
+    )
 
-fun ApiKeyInfo.toResponse(): ApiKeyResponse = ApiKeyResponse(
-    id = id,
-    name = name,
-    prefix = prefix,
-    createdAt = createdAt,
-    lastUsedAt = lastUsedAt,
-)
+fun ApiKeyInfo.toResponse(): ApiKeyResponse =
+    ApiKeyResponse(
+        id = id,
+        name = name,
+        prefix = prefix,
+        createdAt = createdAt,
+        lastUsedAt = lastUsedAt,
+    )
 
-fun ApiKeyCreateResult.toResponse(): ApiKeyCreateResponse = ApiKeyCreateResponse(
-    id = info.id,
-    name = info.name,
-    prefix = info.prefix,
-    rawKey = rawKey,
-    createdAt = info.createdAt,
-)
+fun ApiKeyCreateResult.toResponse(): ApiKeyCreateResponse =
+    ApiKeyCreateResponse(
+        id = info.id,
+        name = info.name,
+        prefix = info.prefix,
+        rawKey = rawKey,
+        createdAt = info.createdAt,
+    )
 
-fun OAuthConnectionsInfo.toResponse(): OAuthConnectionsResponse = OAuthConnectionsResponse(
-    connections = connections.map { it.toResponse() },
-    availableProviders = availableProviders,
-)
+fun OAuthConnectionsInfo.toResponse(): OAuthConnectionsResponse =
+    OAuthConnectionsResponse(
+        connections = connections.map { it.toResponse() },
+        availableProviders = availableProviders,
+    )
 
-fun OAuthConnectionInfo.toResponse(): OAuthConnectionResponse = OAuthConnectionResponse(
-    provider = provider,
-    connectedAt = connectedAt,
-)
+fun OAuthConnectionInfo.toResponse(): OAuthConnectionResponse =
+    OAuthConnectionResponse(
+        provider = provider,
+        connectedAt = connectedAt,
+    )

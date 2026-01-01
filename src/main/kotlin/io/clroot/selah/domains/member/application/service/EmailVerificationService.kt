@@ -36,15 +36,15 @@ class EmailVerificationService(
     @Value($$"${selah.email-verification.resend-cooldown:PT5M}")
     private val resendCooldown: Duration,
 ) : EmailVerificationUseCase {
-
     companion object {
         @JvmStatic
         private val logger = KotlinLogging.logger {}
     }
 
     override suspend fun sendVerificationEmail(command: SendVerificationEmailCommand) {
-        val member = loadMemberPort.findById(command.memberId)
-            ?: throw MemberNotFoundException(command.memberId.value)
+        val member =
+            loadMemberPort.findById(command.memberId)
+                ?: throw MemberNotFoundException(command.memberId.value)
 
         // 이미 인증된 이메일인지 확인
         if (member.emailVerified) {
@@ -69,15 +69,17 @@ class EmailVerificationService(
     }
 
     override suspend fun verifyEmail(command: VerifyEmailCommand): Member {
-        val tokenInfo = emailVerificationTokenPort.findValidByToken(command.token)
-            ?: throw InvalidEmailVerificationTokenException()
+        val tokenInfo =
+            emailVerificationTokenPort.findValidByToken(command.token)
+                ?: throw InvalidEmailVerificationTokenException()
 
         // 토큰 사용 처리
         emailVerificationTokenPort.markAsUsed(tokenInfo.id)
 
         // 회원 이메일 인증 처리
-        val member = loadMemberPort.findById(tokenInfo.memberId)
-            ?: throw MemberNotFoundException(tokenInfo.memberId.value)
+        val member =
+            loadMemberPort.findById(tokenInfo.memberId)
+                ?: throw MemberNotFoundException(tokenInfo.memberId.value)
 
         member.verifyEmail()
         val savedMember = saveMemberPort.save(member)
@@ -89,8 +91,9 @@ class EmailVerificationService(
     }
 
     private suspend fun checkResendCooldown(memberId: MemberId) {
-        val latestCreatedAt = emailVerificationTokenPort.findLatestCreatedAtByMemberId(memberId)
-            ?: return
+        val latestCreatedAt =
+            emailVerificationTokenPort.findLatestCreatedAtByMemberId(memberId)
+                ?: return
 
         val cooldownEnd = latestCreatedAt.plus(resendCooldown)
         val now = LocalDateTime.now()

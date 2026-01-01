@@ -21,14 +21,17 @@ interface ServerKeyEncryptionPort {
      * @param iv Base64 인코딩된 IV
      * @return Base64 인코딩된 평문 Server Key
      */
-    fun decryptServerKey(encryptedServerKey: String, iv: String): String
+    fun decryptServerKey(
+        encryptedServerKey: String,
+        iv: String,
+    ): String
 }
 
 /**
  * 암호화된 Server Key 결과
  */
 data class EncryptedServerKeyResult(
-    val encryptedServerKey: String,  // Base64 인코딩
-    val iv: String,                  // Base64 인코딩
-    val plainServerKey: String,      // Base64 인코딩된 평문 Server Key (클라이언트에 전달용)
+    val encryptedServerKey: String, // Base64 인코딩
+    val iv: String, // Base64 인코딩
+    val plainServerKey: String, // Base64 인코딩된 평문 Server Key (클라이언트에 전달용)
 )

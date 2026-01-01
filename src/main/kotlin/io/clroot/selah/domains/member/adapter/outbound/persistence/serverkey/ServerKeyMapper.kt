@@ -10,12 +10,11 @@ import org.springframework.stereotype.Component
  */
 @Component
 class ServerKeyMapper {
-
     /**
      * Domain → Entity
      */
-    fun toEntity(domain: ServerKey): ServerKeyEntity {
-        return ServerKeyEntity(
+    fun toEntity(domain: ServerKey): ServerKeyEntity =
+        ServerKeyEntity(
             id = domain.id.value,
             memberId = domain.memberId.value,
             encryptedServerKey = domain.encryptedServerKey,
@@ -24,13 +23,12 @@ class ServerKeyMapper {
             createdAt = domain.createdAt,
             updatedAt = domain.updatedAt,
         )
-    }
 
     /**
      * Entity → Domain
      */
-    fun toDomain(entity: ServerKeyEntity): ServerKey {
-        return ServerKey(
+    fun toDomain(entity: ServerKeyEntity): ServerKey =
+        ServerKey(
             id = ServerKeyId.from(entity.id),
             memberId = MemberId.from(entity.memberId),
             encryptedServerKey = entity.encryptedServerKey,
@@ -39,12 +37,14 @@ class ServerKeyMapper {
             createdAt = entity.createdAt,
             updatedAt = entity.updatedAt,
         )
-    }
 
     /**
      * 기존 Entity 업데이트 (낙관적 락 유지)
      */
-    fun updateEntity(entity: ServerKeyEntity, domain: ServerKey) {
+    fun updateEntity(
+        entity: ServerKeyEntity,
+        domain: ServerKey,
+    ) {
         entity.encryptedServerKey = domain.encryptedServerKey
         entity.iv = domain.iv
         entity.updatedAt = domain.updatedAt

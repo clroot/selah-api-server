@@ -12,7 +12,6 @@ import org.springframework.boot.test.context.SpringBootTest
 
 @SpringBootTest
 class MemberPersistenceAdapterIntegrationTest : IntegrationTestBase() {
-
     @Autowired
     private lateinit var memberPersistenceAdapter: MemberPersistenceAdapter
 
@@ -28,11 +27,12 @@ class MemberPersistenceAdapterIntegrationTest : IntegrationTestBase() {
             describe("save") {
                 context("이메일/비밀번호로 생성된 새 Member를 저장할 때") {
                     it("Member가 정상적으로 저장된다") {
-                        val member = Member.createWithEmail(
-                            email = Email("test@example.com"),
-                            nickname = "TestUser",
-                            passwordHash = PasswordHash.from($$"$argon2id$hashedvalue"),
-                        )
+                        val member =
+                            Member.createWithEmail(
+                                email = Email("test@example.com"),
+                                nickname = "TestUser",
+                                passwordHash = PasswordHash.from($$"$argon2id$hashedvalue"),
+                            )
 
                         val savedMember = memberPersistenceAdapter.save(member)
 
@@ -53,13 +53,14 @@ class MemberPersistenceAdapterIntegrationTest : IntegrationTestBase() {
 
                 context("OAuth로 생성된 새 Member를 저장할 때") {
                     it("Member와 OAuthConnection이 함께 저장된다") {
-                        val member = Member.createWithOAuth(
-                            email = Email("oauth@example.com"),
-                            nickname = "OAuthUser",
-                            provider = OAuthProvider.GOOGLE,
-                            providerId = "google-id-123",
-                            profileImageUrl = "https://example.com/profile.jpg",
-                        )
+                        val member =
+                            Member.createWithOAuth(
+                                email = Email("oauth@example.com"),
+                                nickname = "OAuthUser",
+                                provider = OAuthProvider.GOOGLE,
+                                providerId = "google-id-123",
+                                profileImageUrl = "https://example.com/profile.jpg",
+                            )
 
                         val savedMember = memberPersistenceAdapter.save(member)
 
@@ -78,11 +79,12 @@ class MemberPersistenceAdapterIntegrationTest : IntegrationTestBase() {
 
                 context("기존 Member를 업데이트할 때") {
                     it("변경된 정보가 저장된다") {
-                        val member = Member.createWithEmail(
-                            email = Email("update@example.com"),
-                            nickname = "OriginalNickname",
-                            passwordHash = PasswordHash.from($$"$argon2id$hashedvalue"),
-                        )
+                        val member =
+                            Member.createWithEmail(
+                                email = Email("update@example.com"),
+                                nickname = "OriginalNickname",
+                                passwordHash = PasswordHash.from($$"$argon2id$hashedvalue"),
+                            )
 
                         val savedMember = memberPersistenceAdapter.save(member)
 
@@ -102,11 +104,12 @@ class MemberPersistenceAdapterIntegrationTest : IntegrationTestBase() {
 
                 context("OAuth 연결을 추가할 때") {
                     it("새 OAuth 연결이 저장된다") {
-                        val member = Member.createWithEmail(
-                            email = Email("addingoauth@example.com"),
-                            nickname = "EmailUser",
-                            passwordHash = PasswordHash.from($$"$argon2id$hashedvalue"),
-                        )
+                        val member =
+                            Member.createWithEmail(
+                                email = Email("addingoauth@example.com"),
+                                nickname = "EmailUser",
+                                passwordHash = PasswordHash.from($$"$argon2id$hashedvalue"),
+                            )
 
                         val savedMember = memberPersistenceAdapter.save(member)
                         savedMember.verifyEmail()
@@ -123,11 +126,12 @@ class MemberPersistenceAdapterIntegrationTest : IntegrationTestBase() {
             describe("findById") {
                 context("존재하는 Member ID로 조회할 때") {
                     it("Member를 반환한다") {
-                        val member = Member.createWithEmail(
-                            email = Email("findbyid@example.com"),
-                            nickname = "FindById",
-                            passwordHash = PasswordHash.from($$"$argon2id$hashedvalue"),
-                        )
+                        val member =
+                            Member.createWithEmail(
+                                email = Email("findbyid@example.com"),
+                                nickname = "FindById",
+                                passwordHash = PasswordHash.from($$"$argon2id$hashedvalue"),
+                            )
                         memberPersistenceAdapter.save(member)
 
                         val foundMember = memberPersistenceAdapter.findById(member.id)
@@ -153,11 +157,12 @@ class MemberPersistenceAdapterIntegrationTest : IntegrationTestBase() {
                 context("존재하는 이메일로 조회할 때") {
                     it("Member를 반환한다") {
                         val email = Email("findbyemail@example.com")
-                        val member = Member.createWithEmail(
-                            email = email,
-                            nickname = "FindByEmail",
-                            passwordHash = PasswordHash.from($$"$argon2id$hashedvalue"),
-                        )
+                        val member =
+                            Member.createWithEmail(
+                                email = email,
+                                nickname = "FindByEmail",
+                                passwordHash = PasswordHash.from($$"$argon2id$hashedvalue"),
+                            )
                         memberPersistenceAdapter.save(member)
 
                         val foundMember = memberPersistenceAdapter.findByEmail(email)
@@ -183,12 +188,13 @@ class MemberPersistenceAdapterIntegrationTest : IntegrationTestBase() {
                     it("Member를 반환한다") {
                         val provider = OAuthProvider.GOOGLE
                         val providerId = "google-oauth-find-123"
-                        val member = Member.createWithOAuth(
-                            email = Email("oauthfind@example.com"),
-                            nickname = "OAuthFind",
-                            provider = provider,
-                            providerId = providerId,
-                        )
+                        val member =
+                            Member.createWithOAuth(
+                                email = Email("oauthfind@example.com"),
+                                nickname = "OAuthFind",
+                                provider = provider,
+                                providerId = providerId,
+                            )
                         memberPersistenceAdapter.save(member)
 
                         val foundMember = memberPersistenceAdapter.findByOAuthConnection(provider, providerId)
@@ -201,10 +207,11 @@ class MemberPersistenceAdapterIntegrationTest : IntegrationTestBase() {
 
                 context("존재하지 않는 OAuth 연결로 조회할 때") {
                     it("null을 반환한다") {
-                        val foundMember = memberPersistenceAdapter.findByOAuthConnection(
-                            OAuthProvider.GOOGLE,
-                            "nonexistent-provider-id"
-                        )
+                        val foundMember =
+                            memberPersistenceAdapter.findByOAuthConnection(
+                                OAuthProvider.GOOGLE,
+                                "nonexistent-provider-id",
+                            )
 
                         foundMember.shouldBeNull()
                     }
@@ -215,11 +222,12 @@ class MemberPersistenceAdapterIntegrationTest : IntegrationTestBase() {
                 context("이메일이 존재할 때") {
                     it("true를 반환한다") {
                         val email = Email("exists@example.com")
-                        val member = Member.createWithEmail(
-                            email = email,
-                            nickname = "Exists",
-                            passwordHash = PasswordHash.from($$"$argon2id$hashedvalue"),
-                        )
+                        val member =
+                            Member.createWithEmail(
+                                email = email,
+                                nickname = "Exists",
+                                passwordHash = PasswordHash.from($$"$argon2id$hashedvalue"),
+                            )
                         memberPersistenceAdapter.save(member)
 
                         val exists = memberPersistenceAdapter.existsByEmail(email)
@@ -242,12 +250,13 @@ class MemberPersistenceAdapterIntegrationTest : IntegrationTestBase() {
             describe("복합 시나리오") {
                 context("여러 OAuth Provider를 가진 Member") {
                     it("모든 OAuth 연결이 저장되고 조회된다") {
-                        val member = Member.createWithOAuth(
-                            email = Email("multioauth@example.com"),
-                            nickname = "MultiOAuth",
-                            provider = OAuthProvider.GOOGLE,
-                            providerId = "google-multi-123",
-                        )
+                        val member =
+                            Member.createWithOAuth(
+                                email = Email("multioauth@example.com"),
+                                nickname = "MultiOAuth",
+                                provider = OAuthProvider.GOOGLE,
+                                providerId = "google-multi-123",
+                            )
 
                         val savedMember = memberPersistenceAdapter.save(member)
 
@@ -257,22 +266,25 @@ class MemberPersistenceAdapterIntegrationTest : IntegrationTestBase() {
                         val updatedMember = memberPersistenceAdapter.save(savedMember)
 
                         updatedMember.oauthConnections shouldHaveSize 2
-                        updatedMember.connectedProviders shouldContainExactlyInAnyOrder listOf(
-                            OAuthProvider.GOOGLE,
-                            OAuthProvider.KAKAO,
-                        )
+                        updatedMember.connectedProviders shouldContainExactlyInAnyOrder
+                            listOf(
+                                OAuthProvider.GOOGLE,
+                                OAuthProvider.KAKAO,
+                            )
 
                         // 각 Provider로 조회
-                        val byGoogle = memberPersistenceAdapter.findByOAuthConnection(
-                            OAuthProvider.GOOGLE,
-                            "google-multi-123"
-                        )
+                        val byGoogle =
+                            memberPersistenceAdapter.findByOAuthConnection(
+                                OAuthProvider.GOOGLE,
+                                "google-multi-123",
+                            )
                         byGoogle.shouldNotBeNull()
 
-                        val byKakao = memberPersistenceAdapter.findByOAuthConnection(
-                            OAuthProvider.KAKAO,
-                            "kakao-multi-456"
-                        )
+                        val byKakao =
+                            memberPersistenceAdapter.findByOAuthConnection(
+                                OAuthProvider.KAKAO,
+                                "kakao-multi-456",
+                            )
                         byKakao.shouldNotBeNull()
                         byKakao.id shouldBe byGoogle.id
                     }

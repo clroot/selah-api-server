@@ -19,7 +19,6 @@ import org.springframework.web.filter.OncePerRequestFilter
 class ApiKeyAuthenticationFilter(
     private val validateApiKeyUseCase: ValidateApiKeyUseCase,
 ) : OncePerRequestFilter() {
-
     companion object {
         private const val API_KEY_HEADER = "X-API-Key"
     }
@@ -39,15 +38,19 @@ class ApiKeyAuthenticationFilter(
         filterChain.doFilter(request, response)
     }
 
-    private fun authenticateWithApiKey(apiKey: String, ipAddress: String?) {
+    private fun authenticateWithApiKey(
+        apiKey: String,
+        ipAddress: String?,
+    ) {
         runBlocking {
             val apiKeyInfo = validateApiKeyUseCase.validate(apiKey, ipAddress) ?: return@runBlocking
 
-            val principal = MemberPrincipal(
-                memberId = apiKeyInfo.memberId,
-                role = apiKeyInfo.role,
-                authenticationType = MemberPrincipal.AuthenticationType.API_KEY,
-            )
+            val principal =
+                MemberPrincipal(
+                    memberId = apiKeyInfo.memberId,
+                    role = apiKeyInfo.role,
+                    authenticationType = MemberPrincipal.AuthenticationType.API_KEY,
+                )
             val authentication = MemberAuthenticationToken(principal)
             SecurityContextHolder.getContext().authentication = authentication
         }

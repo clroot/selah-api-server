@@ -28,59 +28,67 @@ class MemberPersistenceAdapter(
     private val entityManager: EntityManager,
     private val jpqlRenderContext: JpqlRenderContext,
     private val mapper: MemberMapper,
-) : LoadMemberPort, SaveMemberPort {
+) : LoadMemberPort,
+    SaveMemberPort {
+    override suspend fun findById(memberId: MemberId): Member? =
+        withContext(Dispatchers.IO) {
+            findMemberEntityBy { path(MemberEntity::id).eq(memberId.value) }
+                ?.let { mapper.toDomain(it) }
+        }
 
-    override suspend fun findById(memberId: MemberId): Member? = withContext(Dispatchers.IO) {
-        findMemberEntityBy { path(MemberEntity::id).eq(memberId.value) }
-            ?.let { mapper.toDomain(it) }
-    }
-
-    override suspend fun findByEmail(email: Email): Member? = withContext(Dispatchers.IO) {
-        findMemberEntityBy { path(MemberEntity::email).eq(email.value) }
-            ?.let { mapper.toDomain(it) }
-    }
+    override suspend fun findByEmail(email: Email): Member? =
+        withContext(Dispatchers.IO) {
+            findMemberEntityBy { path(MemberEntity::email).eq(email.value) }
+                ?.let { mapper.toDomain(it) }
+        }
 
     override suspend fun findByOAuthConnection(
         provider: OAuthProvider,
         providerId: String,
-    ): Member? = withContext(Dispatchers.IO) {
-        findMemberEntityBy {
-            and(
-                path(OAuthConnectionEntity::provider).eq(provider),
-                path(OAuthConnectionEntity::providerId).eq(providerId),
-            )
-        }?.let { mapper.toDomain(it) }
-    }
-
-    override suspend fun existsByEmail(email: Email): Boolean = withContext(Dispatchers.IO) {
-        repository.existsByEmail(email.value)
-    }
-
-    override suspend fun save(member: Member): Member = withContext(Dispatchers.IO) {
-        val savedEntity = if (repository.existsById(member.id.value)) {
-            val existingEntity = findMemberEntityBy { path(MemberEntity::id).eq(member.id.value) }!!
-            mapper.updateEntity(existingEntity, member)
-            repository.save(existingEntity)
-        } else {
-            repository.save(mapper.toEntity(member))
+    ): Member? =
+        withContext(Dispatchers.IO) {
+            findMemberEntityBy {
+                and(
+                    path(OAuthConnectionEntity::provider).eq(provider),
+                    path(OAuthConnectionEntity::providerId).eq(providerId),
+                )
+            }?.let { mapper.toDomain(it) }
         }
 
-        mapper.toDomain(savedEntity)
-    }
+    override suspend fun existsByEmail(email: Email): Boolean =
+        withContext(Dispatchers.IO) {
+            repository.existsByEmail(email.value)
+        }
+
+    override suspend fun save(member: Member): Member =
+        withContext(Dispatchers.IO) {
+            val savedEntity =
+                if (repository.existsById(member.id.value)) {
+                    val existingEntity = findMemberEntityBy { path(MemberEntity::id).eq(member.id.value) }!!
+                    mapper.updateEntity(existingEntity, member)
+                    repository.save(existingEntity)
+                } else {
+                    repository.save(mapper.toEntity(member))
+                }
+
+            mapper.toDomain(savedEntity)
+        }
 
     /**
      * 조건에 맞는 MemberEntity를 OAuth 연결과 함께 조회합니다.
      */
     private fun findMemberEntityBy(predicate: Jpql.() -> Predicate): MemberEntity? {
-        val query = jpql {
-            selectDistinct(entity(MemberEntity::class))
-                .from(
-                    entity(MemberEntity::class),
-                    leftFetchJoin(MemberEntity::oauthConnections),
-                ).where(predicate())
-        }
+        val query =
+            jpql {
+                selectDistinct(entity(MemberEntity::class))
+                    .from(
+                        entity(MemberEntity::class),
+                        leftFetchJoin(MemberEntity::oauthConnections),
+                    ).where(predicate())
+            }
 
-        return entityManager.createQuery(query, jpqlRenderContext)
+        return entityManager
+            .createQuery(query, jpqlRenderContext)
             .resultList
             .firstOrNull()
     }

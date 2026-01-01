@@ -15,7 +15,10 @@ interface OAuthUserInfoPort {
      * @return 사용자 정보
      * @throws OAuthTokenValidationFailedException 토큰 검증 실패 시
      */
-    suspend fun getUserInfo(provider: OAuthProvider, accessToken: String): OAuthUserInfo
+    suspend fun getUserInfo(
+        provider: OAuthProvider,
+        accessToken: String,
+    ): OAuthUserInfo
 }
 
 /**

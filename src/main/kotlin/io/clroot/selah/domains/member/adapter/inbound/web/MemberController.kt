@@ -29,7 +29,6 @@ class MemberController(
     private val manageApiKeyUseCase: ManageApiKeyUseCase,
     private val manageOAuthConnectionUseCase: ManageOAuthConnectionUseCase,
 ) {
-
     /**
      * 현재 로그인한 회원 정보 조회
      */
@@ -49,13 +48,14 @@ class MemberController(
         @RequestBody request: UpdateProfileRequest,
     ): ResponseEntity<ApiResponse<MemberProfileResponse>> {
         val memberId = SecurityUtils.requireCurrentMemberId()
-        val member = getCurrentMemberUseCase.updateProfile(
-            memberId,
-            UpdateProfileCommand(
-                nickname = request.nickname,
-                profileImageUrl = request.profileImageUrl,
+        val member =
+            getCurrentMemberUseCase.updateProfile(
+                memberId,
+                UpdateProfileCommand(
+                    nickname = request.nickname,
+                    profileImageUrl = request.profileImageUrl,
+                ),
             )
-        )
 
         return ResponseEntity.ok(ApiResponse.success(member.toProfileResponse()))
     }
@@ -88,7 +88,8 @@ class MemberController(
             SetPasswordCommand(newPassword = request.newPassword),
         )
 
-        return ResponseEntity.status(HttpStatus.CREATED)
+        return ResponseEntity
+            .status(HttpStatus.CREATED)
             .body(ApiResponse.success(Unit))
     }
 
@@ -150,15 +151,18 @@ class MemberController(
         @RequestBody request: ConnectOAuthRequest,
     ): ResponseEntity<ApiResponse<OAuthConnectionResponse>> {
         val memberId = SecurityUtils.requireCurrentMemberId()
-        val connection = manageOAuthConnectionUseCase.connect(
-            memberId = memberId,
-            command = ConnectOAuthCommand(
-                provider = request.provider,
-                accessToken = request.accessToken,
-            ),
-        )
+        val connection =
+            manageOAuthConnectionUseCase.connect(
+                memberId = memberId,
+                command =
+                    ConnectOAuthCommand(
+                        provider = request.provider,
+                        accessToken = request.accessToken,
+                    ),
+            )
 
-        return ResponseEntity.status(HttpStatus.CREATED)
+        return ResponseEntity
+            .status(HttpStatus.CREATED)
             .body(ApiResponse.success(connection.toResponse()))
     }
 

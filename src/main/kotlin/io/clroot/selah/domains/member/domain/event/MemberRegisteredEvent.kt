@@ -10,5 +10,5 @@ import io.clroot.selah.domains.member.domain.Member
  * 이메일/비밀번호 가입 또는 OAuth 가입 모두에서 발행됩니다.
  */
 data class MemberRegisteredEvent(
-    val member: Member
+    val member: Member,
 ) : BaseDomainEvent()

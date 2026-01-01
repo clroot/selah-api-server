@@ -30,10 +30,8 @@ class PrayerEntity(
     @Id
     @Column(name = "id", length = 26)
     val id: String,
-
     @Column(name = "member_id", length = 26, nullable = false)
     val memberId: String,
-
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(
         name = "prayer_prayer_topics",
@@ -45,17 +43,13 @@ class PrayerEntity(
     )
     @Column(name = "prayer_topic_id", length = 26)
     val prayerTopicIds: MutableList<String> = mutableListOf(),
-
     @Column(name = "content", nullable = false, columnDefinition = "TEXT")
     var content: String,
-
     @Version
     @Column(name = "version")
     var version: Long?,
-
     @Column(name = "created_at", nullable = false, updatable = false)
     val createdAt: LocalDateTime,
-
     @Column(name = "updated_at", nullable = false)
     var updatedAt: LocalDateTime,
 )

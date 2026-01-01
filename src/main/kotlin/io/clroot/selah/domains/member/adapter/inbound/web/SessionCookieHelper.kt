@@ -39,13 +39,14 @@ class SessionCookieHelper(
     ) {
         val maxAge = Duration.between(LocalDateTime.now(), expiresAt).seconds.toInt()
 
-        val cookie = Cookie(sessionCookieName, token).apply {
-            isHttpOnly = true
-            secure = cookieSecure
-            path = "/"
-            this.maxAge = maxAge
-            setAttribute("SameSite", cookieSameSite)
-        }
+        val cookie =
+            Cookie(sessionCookieName, token).apply {
+                isHttpOnly = true
+                secure = cookieSecure
+                path = "/"
+                this.maxAge = maxAge
+                setAttribute("SameSite", cookieSameSite)
+            }
         response.addCookie(cookie)
     }
 
@@ -53,36 +54,39 @@ class SessionCookieHelper(
      * 세션 쿠키 삭제
      */
     fun clearSessionCookie(response: HttpServletResponse) {
-        val cookie = Cookie(sessionCookieName, "").apply {
-            isHttpOnly = true
-            secure = cookieSecure
-            path = "/"
-            maxAge = 0
-            setAttribute("SameSite", cookieSameSite)
-        }
+        val cookie =
+            Cookie(sessionCookieName, "").apply {
+                isHttpOnly = true
+                secure = cookieSecure
+                path = "/"
+                maxAge = 0
+                setAttribute("SameSite", cookieSameSite)
+            }
         response.addCookie(cookie)
     }
 
     /**
      * 세션 토큰 추출
      */
-    fun extractSessionToken(request: HttpServletRequest): String? {
-        return request.cookies?.find { it.name == sessionCookieName }?.value
-    }
+    fun extractSessionToken(request: HttpServletRequest): String? = request.cookies?.find { it.name == sessionCookieName }?.value
 
     // ===== OAuth State Cookie =====
 
     /**
      * OAuth state 쿠키 추가 (CSRF 방지용)
      */
-    fun addStateCookie(response: HttpServletResponse, state: String) {
-        val cookie = Cookie(STATE_COOKIE_NAME, state).apply {
-            isHttpOnly = true
-            secure = cookieSecure
-            path = OAUTH_COOKIE_PATH
-            maxAge = OAUTH_COOKIE_MAX_AGE
-            setAttribute("SameSite", cookieSameSite)
-        }
+    fun addStateCookie(
+        response: HttpServletResponse,
+        state: String,
+    ) {
+        val cookie =
+            Cookie(STATE_COOKIE_NAME, state).apply {
+                isHttpOnly = true
+                secure = cookieSecure
+                path = OAUTH_COOKIE_PATH
+                maxAge = OAUTH_COOKIE_MAX_AGE
+                setAttribute("SameSite", cookieSameSite)
+            }
         response.addCookie(cookie)
     }
 
@@ -90,36 +94,39 @@ class SessionCookieHelper(
      * OAuth state 쿠키 삭제
      */
     fun clearStateCookie(response: HttpServletResponse) {
-        val cookie = Cookie(STATE_COOKIE_NAME, "").apply {
-            isHttpOnly = true
-            secure = cookieSecure
-            path = OAUTH_COOKIE_PATH
-            maxAge = 0
-            setAttribute("SameSite", cookieSameSite)
-        }
+        val cookie =
+            Cookie(STATE_COOKIE_NAME, "").apply {
+                isHttpOnly = true
+                secure = cookieSecure
+                path = OAUTH_COOKIE_PATH
+                maxAge = 0
+                setAttribute("SameSite", cookieSameSite)
+            }
         response.addCookie(cookie)
     }
 
     /**
      * OAuth state 추출
      */
-    fun extractState(request: HttpServletRequest): String? {
-        return request.cookies?.find { it.name == STATE_COOKIE_NAME }?.value
-    }
+    fun extractState(request: HttpServletRequest): String? = request.cookies?.find { it.name == STATE_COOKIE_NAME }?.value
 
     // ===== OAuth Mode Cookie =====
 
     /**
      * OAuth mode 쿠키 추가 (link 모드 구분용)
      */
-    fun addModeCookie(response: HttpServletResponse, mode: String) {
-        val cookie = Cookie(MODE_COOKIE_NAME, mode).apply {
-            isHttpOnly = true
-            secure = cookieSecure
-            path = OAUTH_COOKIE_PATH
-            maxAge = OAUTH_COOKIE_MAX_AGE
-            setAttribute("SameSite", cookieSameSite)
-        }
+    fun addModeCookie(
+        response: HttpServletResponse,
+        mode: String,
+    ) {
+        val cookie =
+            Cookie(MODE_COOKIE_NAME, mode).apply {
+                isHttpOnly = true
+                secure = cookieSecure
+                path = OAUTH_COOKIE_PATH
+                maxAge = OAUTH_COOKIE_MAX_AGE
+                setAttribute("SameSite", cookieSameSite)
+            }
         response.addCookie(cookie)
     }
 
@@ -127,20 +134,19 @@ class SessionCookieHelper(
      * OAuth mode 쿠키 삭제
      */
     fun clearModeCookie(response: HttpServletResponse) {
-        val cookie = Cookie(MODE_COOKIE_NAME, "").apply {
-            isHttpOnly = true
-            secure = cookieSecure
-            path = OAUTH_COOKIE_PATH
-            maxAge = 0
-            setAttribute("SameSite", cookieSameSite)
-        }
+        val cookie =
+            Cookie(MODE_COOKIE_NAME, "").apply {
+                isHttpOnly = true
+                secure = cookieSecure
+                path = OAUTH_COOKIE_PATH
+                maxAge = 0
+                setAttribute("SameSite", cookieSameSite)
+            }
         response.addCookie(cookie)
     }
 
     /**
      * OAuth mode 추출
      */
-    fun extractMode(request: HttpServletRequest): String? {
-        return request.cookies?.find { it.name == MODE_COOKIE_NAME }?.value
-    }
+    fun extractMode(request: HttpServletRequest): String? = request.cookies?.find { it.name == MODE_COOKIE_NAME }?.value
 }

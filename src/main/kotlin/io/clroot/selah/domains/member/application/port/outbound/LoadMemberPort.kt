@@ -32,7 +32,10 @@ interface LoadMemberPort {
      * @param providerId Provider에서 제공하는 사용자 ID
      * @return Member 또는 null
      */
-    suspend fun findByOAuthConnection(provider: OAuthProvider, providerId: String): Member?
+    suspend fun findByOAuthConnection(
+        provider: OAuthProvider,
+        providerId: String,
+    ): Member?
 
     /**
      * 이메일 존재 여부를 확인합니다.

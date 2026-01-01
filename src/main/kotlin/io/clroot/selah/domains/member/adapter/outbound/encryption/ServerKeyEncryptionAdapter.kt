@@ -23,15 +23,14 @@ class ServerKeyEncryptionAdapter(
     @Value($$"${selah.encryption.master-key}")
     private val masterKeyBase64: String,
 ) : ServerKeyEncryptionPort {
-
     companion object {
         @JvmStatic
         private val logger = KotlinLogging.logger {}
 
         private const val ALGORITHM = "AES/GCM/NoPadding"
-        private const val KEY_SIZE_BYTES = 32  // 256 bits
-        private const val IV_SIZE_BYTES = 12   // 96 bits (GCM 권장)
-        private const val TAG_SIZE_BITS = 128  // GCM 태그 크기
+        private const val KEY_SIZE_BYTES = 32 // 256 bits
+        private const val IV_SIZE_BYTES = 12 // 96 bits (GCM 권장)
+        private const val TAG_SIZE_BITS = 128 // GCM 태그 크기
     }
 
     private val masterKey: SecretKey by lazy {
@@ -56,17 +55,21 @@ class ServerKeyEncryptionAdapter(
         cipher.init(Cipher.ENCRYPT_MODE, masterKey, GCMParameterSpec(TAG_SIZE_BITS, iv))
         val encryptedBytes = cipher.doFinal(serverKeyBytes)
 
-        val result = EncryptedServerKeyResult(
-            encryptedServerKey = Base64.getEncoder().encodeToString(encryptedBytes),
-            iv = Base64.getEncoder().encodeToString(iv),
-            plainServerKey = Base64.getEncoder().encodeToString(serverKeyBytes),
-        )
+        val result =
+            EncryptedServerKeyResult(
+                encryptedServerKey = Base64.getEncoder().encodeToString(encryptedBytes),
+                iv = Base64.getEncoder().encodeToString(iv),
+                plainServerKey = Base64.getEncoder().encodeToString(serverKeyBytes),
+            )
 
         logger.debug { "Generated and encrypted new server key" }
         return result
     }
 
-    override fun decryptServerKey(encryptedServerKey: String, iv: String): String {
+    override fun decryptServerKey(
+        encryptedServerKey: String,
+        iv: String,
+    ): String {
         val encryptedBytes = Base64.getDecoder().decode(encryptedServerKey)
         val ivBytes = Base64.getDecoder().decode(iv)
 

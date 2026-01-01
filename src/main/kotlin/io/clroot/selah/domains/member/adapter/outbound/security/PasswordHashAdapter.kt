@@ -19,12 +19,14 @@ class PasswordHashAdapter(
     private val passwordEncoder: PasswordEncoder = Argon2PasswordEncoder.defaultsForSpringSecurity_v5_8(),
 ) : PasswordHashPort {
     override fun hash(password: Password): PasswordHash {
-        val hashedValue = passwordEncoder.encode(password.value)
-            ?: throw IllegalStateException("Password encoding failed")
+        val hashedValue =
+            passwordEncoder.encode(password.value)
+                ?: throw IllegalStateException("Password encoding failed")
         return PasswordHash.from(hashedValue)
     }
 
-    override fun verify(password: Password, hash: PasswordHash): Boolean {
-        return passwordEncoder.matches(password.value, hash.value)
-    }
+    override fun verify(
+        password: Password,
+        hash: PasswordHash,
+    ): Boolean = passwordEncoder.matches(password.value, hash.value)
 }

@@ -7,6 +7,8 @@ import org.springframework.data.jpa.repository.JpaRepository
  */
 interface EncryptionSettingsJpaRepository : JpaRepository<EncryptionSettingsEntity, String> {
     fun findByMemberId(memberId: String): EncryptionSettingsEntity?
+
     fun existsByMemberId(memberId: String): Boolean
+
     fun deleteByMemberId(memberId: String)
 }

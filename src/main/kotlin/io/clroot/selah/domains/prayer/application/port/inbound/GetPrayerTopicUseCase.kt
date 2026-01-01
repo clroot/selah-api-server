@@ -8,7 +8,11 @@ import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 
 interface GetPrayerTopicUseCase {
-    suspend fun getById(id: PrayerTopicId, memberId: MemberId): PrayerTopic
+    suspend fun getById(
+        id: PrayerTopicId,
+        memberId: MemberId,
+    ): PrayerTopic
+
     suspend fun listByMemberId(
         memberId: MemberId,
         status: PrayerTopicStatus?,

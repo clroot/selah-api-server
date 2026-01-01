@@ -16,7 +16,6 @@ import org.springframework.data.domain.PageRequest
 
 @SpringBootTest
 class PrayerPersistenceAdapterIntegrationTest : IntegrationTestBase() {
-
     @Autowired
     private lateinit var prayerPersistenceAdapter: PrayerPersistenceAdapter
 
@@ -33,11 +32,12 @@ class PrayerPersistenceAdapterIntegrationTest : IntegrationTestBase() {
                 context("새 Prayer를 저장할 때") {
                     it("Prayer가 정상적으로 저장된다") {
                         val memberId = MemberId.new()
-                        val prayer = Prayer.create(
-                            memberId = memberId,
-                            prayerTopicIds = emptyList(),
-                            content = "encrypted_content_base64",
-                        )
+                        val prayer =
+                            Prayer.create(
+                                memberId = memberId,
+                                prayerTopicIds = emptyList(),
+                                content = "encrypted_content_base64",
+                            )
 
                         val savedPrayer = prayerPersistenceAdapter.save(prayer)
 
@@ -58,11 +58,12 @@ class PrayerPersistenceAdapterIntegrationTest : IntegrationTestBase() {
                         val memberId = MemberId.new()
                         val topicId1 = PrayerTopicId.new()
                         val topicId2 = PrayerTopicId.new()
-                        val prayer = Prayer.create(
-                            memberId = memberId,
-                            prayerTopicIds = listOf(topicId1, topicId2),
-                            content = "encrypted_content",
-                        )
+                        val prayer =
+                            Prayer.create(
+                                memberId = memberId,
+                                prayerTopicIds = listOf(topicId1, topicId2),
+                                content = "encrypted_content",
+                            )
 
                         val savedPrayer = prayerPersistenceAdapter.save(prayer)
 
@@ -79,11 +80,12 @@ class PrayerPersistenceAdapterIntegrationTest : IntegrationTestBase() {
                 context("기존 Prayer를 업데이트할 때") {
                     it("변경된 정보가 저장된다") {
                         val memberId = MemberId.new()
-                        val prayer = Prayer.create(
-                            memberId = memberId,
-                            prayerTopicIds = emptyList(),
-                            content = "original_content",
-                        )
+                        val prayer =
+                            Prayer.create(
+                                memberId = memberId,
+                                prayerTopicIds = emptyList(),
+                                content = "original_content",
+                            )
 
                         val savedPrayer = prayerPersistenceAdapter.save(prayer)
 
@@ -105,11 +107,12 @@ class PrayerPersistenceAdapterIntegrationTest : IntegrationTestBase() {
                     it("새로운 prayerTopicIds로 교체된다") {
                         val memberId = MemberId.new()
                         val originalTopicId = PrayerTopicId.new()
-                        val prayer = Prayer.create(
-                            memberId = memberId,
-                            prayerTopicIds = listOf(originalTopicId),
-                            content = "content",
-                        )
+                        val prayer =
+                            Prayer.create(
+                                memberId = memberId,
+                                prayerTopicIds = listOf(originalTopicId),
+                                content = "content",
+                            )
 
                         val savedPrayer = prayerPersistenceAdapter.save(prayer)
 
@@ -134,11 +137,12 @@ class PrayerPersistenceAdapterIntegrationTest : IntegrationTestBase() {
                     it("둘 다 변경된다") {
                         val memberId = MemberId.new()
                         val originalTopicId = PrayerTopicId.new()
-                        val prayer = Prayer.create(
-                            memberId = memberId,
-                            prayerTopicIds = listOf(originalTopicId),
-                            content = "old_content",
-                        )
+                        val prayer =
+                            Prayer.create(
+                                memberId = memberId,
+                                prayerTopicIds = listOf(originalTopicId),
+                                content = "old_content",
+                            )
 
                         val savedPrayer = prayerPersistenceAdapter.save(prayer)
                         val originalUpdatedAt = savedPrayer.updatedAt
@@ -168,11 +172,12 @@ class PrayerPersistenceAdapterIntegrationTest : IntegrationTestBase() {
                     it("Prayer를 반환한다") {
                         val memberId = MemberId.new()
                         val topicId = PrayerTopicId.new()
-                        val prayer = Prayer.create(
-                            memberId = memberId,
-                            prayerTopicIds = listOf(topicId),
-                            content = "content",
-                        )
+                        val prayer =
+                            Prayer.create(
+                                memberId = memberId,
+                                prayerTopicIds = listOf(topicId),
+                                content = "content",
+                            )
                         prayerPersistenceAdapter.save(prayer)
 
                         val foundPrayer = prayerPersistenceAdapter.findById(prayer.id)
@@ -199,11 +204,12 @@ class PrayerPersistenceAdapterIntegrationTest : IntegrationTestBase() {
                 context("소유자로 조회할 때") {
                     it("Prayer를 반환한다") {
                         val memberId = MemberId.new()
-                        val prayer = Prayer.create(
-                            memberId = memberId,
-                            prayerTopicIds = emptyList(),
-                            content = "content",
-                        )
+                        val prayer =
+                            Prayer.create(
+                                memberId = memberId,
+                                prayerTopicIds = emptyList(),
+                                content = "content",
+                            )
                         prayerPersistenceAdapter.save(prayer)
 
                         val foundPrayer = prayerPersistenceAdapter.findByIdAndMemberId(prayer.id, memberId)
@@ -217,11 +223,12 @@ class PrayerPersistenceAdapterIntegrationTest : IntegrationTestBase() {
                     it("null을 반환한다") {
                         val ownerId = MemberId.new()
                         val otherMemberId = MemberId.new()
-                        val prayer = Prayer.create(
-                            memberId = ownerId,
-                            prayerTopicIds = emptyList(),
-                            content = "content",
-                        )
+                        val prayer =
+                            Prayer.create(
+                                memberId = ownerId,
+                                prayerTopicIds = emptyList(),
+                                content = "content",
+                            )
                         prayerPersistenceAdapter.save(prayer)
 
                         val foundPrayer = prayerPersistenceAdapter.findByIdAndMemberId(prayer.id, otherMemberId)
@@ -236,11 +243,12 @@ class PrayerPersistenceAdapterIntegrationTest : IntegrationTestBase() {
                     it("페이지네이션하여 반환한다") {
                         val memberId = MemberId.new()
                         repeat(5) { i ->
-                            val prayer = Prayer.create(
-                                memberId = memberId,
-                                prayerTopicIds = emptyList(),
-                                content = "content_$i",
-                            )
+                            val prayer =
+                                Prayer.create(
+                                    memberId = memberId,
+                                    prayerTopicIds = emptyList(),
+                                    content = "content_$i",
+                                )
                             prayerPersistenceAdapter.save(prayer)
                         }
 
@@ -302,11 +310,12 @@ class PrayerPersistenceAdapterIntegrationTest : IntegrationTestBase() {
                 context("존재하는 Prayer를 삭제할 때") {
                     it("Prayer가 삭제된다") {
                         val memberId = MemberId.new()
-                        val prayer = Prayer.create(
-                            memberId = memberId,
-                            prayerTopicIds = emptyList(),
-                            content = "content",
-                        )
+                        val prayer =
+                            Prayer.create(
+                                memberId = memberId,
+                                prayerTopicIds = emptyList(),
+                                content = "content",
+                            )
                         prayerPersistenceAdapter.save(prayer)
 
                         prayerPersistenceAdapter.deleteById(prayer.id)
@@ -321,11 +330,12 @@ class PrayerPersistenceAdapterIntegrationTest : IntegrationTestBase() {
                         val memberId = MemberId.new()
                         val topicId1 = PrayerTopicId.new()
                         val topicId2 = PrayerTopicId.new()
-                        val prayer = Prayer.create(
-                            memberId = memberId,
-                            prayerTopicIds = listOf(topicId1, topicId2),
-                            content = "content",
-                        )
+                        val prayer =
+                            Prayer.create(
+                                memberId = memberId,
+                                prayerTopicIds = listOf(topicId1, topicId2),
+                                content = "content",
+                            )
                         prayerPersistenceAdapter.save(prayer)
 
                         prayerPersistenceAdapter.deleteById(prayer.id)

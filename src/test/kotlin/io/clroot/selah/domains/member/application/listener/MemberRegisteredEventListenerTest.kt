@@ -20,115 +20,121 @@ import io.mockk.just
 import io.mockk.mockk
 import java.time.LocalDateTime
 
-class MemberRegisteredEventListenerTest : DescribeSpec({
+class MemberRegisteredEventListenerTest :
+    DescribeSpec({
 
-    val emailVerificationTokenPort = mockk<EmailVerificationTokenPort>()
-    val sendEmailPort = mockk<SendEmailPort>()
+        val emailVerificationTokenPort = mockk<EmailVerificationTokenPort>()
+        val sendEmailPort = mockk<SendEmailPort>()
 
-    val listener = MemberRegisteredEventListener(
-        emailVerificationTokenPort = emailVerificationTokenPort,
-        sendEmailPort = sendEmailPort,
-    )
-
-    beforeTest {
-        clearAllMocks()
-    }
-
-    describe("handle") {
-        val memberId = MemberId.new()
-        val email = Email("test@example.com")
-        val nickname = "TestUser"
-
-        context("이메일 가입 회원인 경우 (emailVerified = false)") {
-            val member = createEmailMember(
-                id = memberId,
-                email = email,
-                nickname = nickname,
-                emailVerified = false,
+        val listener =
+            MemberRegisteredEventListener(
+                emailVerificationTokenPort = emailVerificationTokenPort,
+                sendEmailPort = sendEmailPort,
             )
-            val event = MemberRegisteredEvent(member)
-            val tokenResult = createTokenResult(memberId)
 
-            it("인증 이메일을 발송한다") {
-                coEvery { emailVerificationTokenPort.create(memberId) } returns tokenResult
-                coEvery {
-                    sendEmailPort.sendVerificationEmail(email, nickname, tokenResult.rawToken)
-                } just Runs
+        beforeTest {
+            clearAllMocks()
+        }
 
-                listener.handle(event)
+        describe("handle") {
+            val memberId = MemberId.new()
+            val email = Email("test@example.com")
+            val nickname = "TestUser"
 
-                coVerify(exactly = 1) { emailVerificationTokenPort.create(memberId) }
-                coVerify(exactly = 1) {
-                    sendEmailPort.sendVerificationEmail(email, nickname, tokenResult.rawToken)
+            context("이메일 가입 회원인 경우 (emailVerified = false)") {
+                val member =
+                    createEmailMember(
+                        id = memberId,
+                        email = email,
+                        nickname = nickname,
+                        emailVerified = false,
+                    )
+                val event = MemberRegisteredEvent(member)
+                val tokenResult = createTokenResult(memberId)
+
+                it("인증 이메일을 발송한다") {
+                    coEvery { emailVerificationTokenPort.create(memberId) } returns tokenResult
+                    coEvery {
+                        sendEmailPort.sendVerificationEmail(email, nickname, tokenResult.rawToken)
+                    } just Runs
+
+                    listener.handle(event)
+
+                    coVerify(exactly = 1) { emailVerificationTokenPort.create(memberId) }
+                    coVerify(exactly = 1) {
+                        sendEmailPort.sendVerificationEmail(email, nickname, tokenResult.rawToken)
+                    }
+                }
+            }
+
+            context("OAuth 가입 회원인 경우 (emailVerified = true)") {
+                val member =
+                    createOAuthMember(
+                        id = memberId,
+                        email = email,
+                        nickname = nickname,
+                    )
+                val event = MemberRegisteredEvent(member)
+
+                it("인증 이메일을 발송하지 않는다") {
+                    listener.handle(event)
+
+                    coVerify(exactly = 0) { emailVerificationTokenPort.create(memberId) }
+                    coVerify(exactly = 0) { sendEmailPort.sendVerificationEmail(email, nickname, any()) }
+                }
+            }
+
+            context("이메일 발송이 실패하는 경우") {
+                val member =
+                    createEmailMember(
+                        id = memberId,
+                        email = email,
+                        nickname = nickname,
+                        emailVerified = false,
+                    )
+                val event = MemberRegisteredEvent(member)
+                val tokenResult = createTokenResult(memberId)
+
+                it("예외가 전파되지 않는다 (회원가입은 성공해야 함)") {
+                    coEvery { emailVerificationTokenPort.create(memberId) } returns tokenResult
+                    coEvery {
+                        sendEmailPort.sendVerificationEmail(email, nickname, tokenResult.rawToken)
+                    } throws RuntimeException("SMTP connection failed")
+
+                    // 예외가 전파되지 않아야 함
+                    listener.handle(event)
+
+                    coVerify(exactly = 1) { emailVerificationTokenPort.create(memberId) }
+                    coVerify(exactly = 1) {
+                        sendEmailPort.sendVerificationEmail(email, nickname, tokenResult.rawToken)
+                    }
+                }
+            }
+
+            context("토큰 생성이 실패하는 경우") {
+                val member =
+                    createEmailMember(
+                        id = memberId,
+                        email = email,
+                        nickname = nickname,
+                        emailVerified = false,
+                    )
+                val event = MemberRegisteredEvent(member)
+
+                it("예외가 전파되지 않는다 (회원가입은 성공해야 함)") {
+                    coEvery {
+                        emailVerificationTokenPort.create(memberId)
+                    } throws RuntimeException("Database connection failed")
+
+                    // 예외가 전파되지 않아야 함
+                    listener.handle(event)
+
+                    coVerify(exactly = 1) { emailVerificationTokenPort.create(memberId) }
+                    coVerify(exactly = 0) { sendEmailPort.sendVerificationEmail(email, nickname, any()) }
                 }
             }
         }
-
-        context("OAuth 가입 회원인 경우 (emailVerified = true)") {
-            val member = createOAuthMember(
-                id = memberId,
-                email = email,
-                nickname = nickname,
-            )
-            val event = MemberRegisteredEvent(member)
-
-            it("인증 이메일을 발송하지 않는다") {
-                listener.handle(event)
-
-                coVerify(exactly = 0) { emailVerificationTokenPort.create(memberId) }
-                coVerify(exactly = 0) { sendEmailPort.sendVerificationEmail(email, nickname, any()) }
-            }
-        }
-
-        context("이메일 발송이 실패하는 경우") {
-            val member = createEmailMember(
-                id = memberId,
-                email = email,
-                nickname = nickname,
-                emailVerified = false,
-            )
-            val event = MemberRegisteredEvent(member)
-            val tokenResult = createTokenResult(memberId)
-
-            it("예외가 전파되지 않는다 (회원가입은 성공해야 함)") {
-                coEvery { emailVerificationTokenPort.create(memberId) } returns tokenResult
-                coEvery {
-                    sendEmailPort.sendVerificationEmail(email, nickname, tokenResult.rawToken)
-                } throws RuntimeException("SMTP connection failed")
-
-                // 예외가 전파되지 않아야 함
-                listener.handle(event)
-
-                coVerify(exactly = 1) { emailVerificationTokenPort.create(memberId) }
-                coVerify(exactly = 1) {
-                    sendEmailPort.sendVerificationEmail(email, nickname, tokenResult.rawToken)
-                }
-            }
-        }
-
-        context("토큰 생성이 실패하는 경우") {
-            val member = createEmailMember(
-                id = memberId,
-                email = email,
-                nickname = nickname,
-                emailVerified = false,
-            )
-            val event = MemberRegisteredEvent(member)
-
-            it("예외가 전파되지 않는다 (회원가입은 성공해야 함)") {
-                coEvery {
-                    emailVerificationTokenPort.create(memberId)
-                } throws RuntimeException("Database connection failed")
-
-                // 예외가 전파되지 않아야 함
-                listener.handle(event)
-
-                coVerify(exactly = 1) { emailVerificationTokenPort.create(memberId) }
-                coVerify(exactly = 0) { sendEmailPort.sendVerificationEmail(email, nickname, any()) }
-            }
-        }
-    }
-})
+    })
 
 // region Test Fixtures
 
@@ -167,12 +173,13 @@ private fun createOAuthMember(
         profileImageUrl = "https://example.com/profile.jpg",
         passwordHash = null,
         emailVerified = true, // OAuth 회원은 이메일 인증됨
-        oauthConnections = listOf(
-            OAuthConnection.create(
-                provider = OAuthProvider.GOOGLE,
-                providerId = "google-id-123",
-            )
-        ),
+        oauthConnections =
+            listOf(
+                OAuthConnection.create(
+                    provider = OAuthProvider.GOOGLE,
+                    providerId = "google-id-123",
+                ),
+            ),
         role = Member.Role.USER,
         version = null,
         createdAt = now,
@@ -183,13 +190,14 @@ private fun createOAuthMember(
 private fun createTokenResult(memberId: MemberId): EmailVerificationTokenCreateResult {
     val now = LocalDateTime.now()
     return EmailVerificationTokenCreateResult(
-        info = EmailVerificationTokenInfo(
-            id = "token-id-${System.currentTimeMillis()}",
-            memberId = memberId,
-            expiresAt = now.plusDays(1),
-            usedAt = null,
-            createdAt = now,
-        ),
+        info =
+            EmailVerificationTokenInfo(
+                id = "token-id-${System.currentTimeMillis()}",
+                memberId = memberId,
+                expiresAt = now.plusDays(1),
+                usedAt = null,
+                createdAt = now,
+            ),
         rawToken = "raw-token-${System.currentTimeMillis()}",
     )
 }

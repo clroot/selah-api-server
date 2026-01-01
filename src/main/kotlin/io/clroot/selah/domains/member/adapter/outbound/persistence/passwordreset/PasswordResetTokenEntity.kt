@@ -28,31 +28,26 @@ class PasswordResetTokenEntity(
     @Id
     @Column(name = "id", length = 26)
     val id: String,
-
     /**
      * 토큰 해시 (SHA-256, 원본 저장 안함)
      */
     @Column(name = "token_hash", nullable = false, unique = true, length = 64)
     val tokenHash: String,
-
     /**
      * 회원 ID
      */
     @Column(name = "member_id", nullable = false, length = 26)
     val memberId: String,
-
     /**
      * 만료 시간
      */
     @Column(name = "expires_at", nullable = false)
     val expiresAt: LocalDateTime,
-
     /**
      * 사용 시간 (null이면 미사용)
      */
     @Column(name = "used_at")
     var usedAt: LocalDateTime? = null,
-
     /**
      * 생성 시간
      */

@@ -25,5 +25,8 @@ interface PasswordHashPort {
      * @param hash 저장된 해시
      * @return 일치 여부
      */
-    fun verify(password: Password, hash: PasswordHash): Boolean
+    fun verify(
+        password: Password,
+        hash: PasswordHash,
+    ): Boolean
 }

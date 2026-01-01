@@ -24,7 +24,6 @@ class EncryptionSettings(
     createdAt: LocalDateTime,
     updatedAt: LocalDateTime,
 ) : AggregateRoot<EncryptionSettingsId>(id, version, createdAt, updatedAt) {
-
     /**
      * KEK 파생용 Salt (Base64 인코딩)
      */
@@ -53,7 +52,10 @@ class EncryptionSettings(
      * 비밀번호 변경 시 Salt와 encryptedDEK 업데이트
      * (DEK 자체는 변경되지 않음, 새 KEK로 재암호화된 DEK)
      */
-    fun updateEncryption(newSalt: String, newEncryptedDEK: String) {
+    fun updateEncryption(
+        newSalt: String,
+        newEncryptedDEK: String,
+    ) {
         require(newSalt.isNotBlank()) { "Salt cannot be blank" }
         require(newEncryptedDEK.isNotBlank()) { "Encrypted DEK cannot be blank" }
         salt = newSalt
@@ -64,7 +66,10 @@ class EncryptionSettings(
     /**
      * 복구 키 재생성 시 recoveryEncryptedDEK, recoveryKeyHash 업데이트
      */
-    fun updateRecoveryKey(newRecoveryEncryptedDEK: String, newRecoveryKeyHash: String) {
+    fun updateRecoveryKey(
+        newRecoveryEncryptedDEK: String,
+        newRecoveryKeyHash: String,
+    ) {
         require(newRecoveryEncryptedDEK.isNotBlank()) { "Recovery encrypted DEK cannot be blank" }
         require(newRecoveryKeyHash.isNotBlank()) { "Recovery key hash cannot be blank" }
         recoveryEncryptedDEK = newRecoveryEncryptedDEK
