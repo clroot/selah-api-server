@@ -136,15 +136,22 @@ class EncryptionSettingsService(
         val existingServerKey = loadServerKeyPort.findByMemberId(memberId)
             ?: throw ServerKeyNotFoundException(memberId.value)
 
-        // 새 Server Key 생성 및 암호화
-        val serverKeyResult = serverKeyEncryptionPort.generateAndEncryptServerKey()
-
-        // 기존 Server Key 업데이트
-        existingServerKey.updateServerKey(
-            newEncryptedServerKey = serverKeyResult.encryptedServerKey,
-            newIv = serverKeyResult.iv,
-        )
-        saveServerKeyPort.save(existingServerKey)
+        val plainServerKey = if (command.rotateServerKey) {
+            // PIN 변경: 새 Server Key 생성
+            val serverKeyResult = serverKeyEncryptionPort.generateAndEncryptServerKey()
+            existingServerKey.updateServerKey(
+                newEncryptedServerKey = serverKeyResult.encryptedServerKey,
+                newIv = serverKeyResult.iv,
+            )
+            saveServerKeyPort.save(existingServerKey)
+            serverKeyResult.plainServerKey
+        } else {
+            // 초기 설정 완료 또는 Server Key 유지: 기존 Server Key 복호화
+            serverKeyEncryptionPort.decryptServerKey(
+                encryptedServerKey = existingServerKey.encryptedServerKey,
+                iv = existingServerKey.iv,
+            )
+        }
 
         // 암호화 설정 업데이트
         settings.updateEncryption(
@@ -155,7 +162,7 @@ class EncryptionSettingsService(
 
         return UpdateEncryptionResult(
             settings = savedSettings,
-            serverKey = serverKeyResult.plainServerKey,
+            serverKey = plainServerKey,
         )
     }
 

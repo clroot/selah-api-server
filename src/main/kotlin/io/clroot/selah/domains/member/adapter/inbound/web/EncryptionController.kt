@@ -82,6 +82,7 @@ class EncryptionController(
             command = UpdateEncryptionCommand(
                 salt = request.salt,
                 encryptedDEK = request.encryptedDEK,
+                rotateServerKey = request.rotateServerKey,
             )
         )
 

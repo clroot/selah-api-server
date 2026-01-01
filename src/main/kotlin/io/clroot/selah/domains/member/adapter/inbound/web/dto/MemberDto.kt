@@ -33,6 +33,15 @@ data class ConnectOAuthRequest(
     val accessToken: String,
 )
 
+data class ChangePasswordRequest(
+    val currentPassword: String,
+    val newPassword: String,
+)
+
+data class SetPasswordRequest(
+    val newPassword: String,
+)
+
 // === Response DTOs ===
 
 /**

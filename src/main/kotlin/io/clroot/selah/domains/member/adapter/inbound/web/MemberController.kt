@@ -4,10 +4,13 @@ import io.clroot.selah.common.response.ApiResponse
 import io.clroot.selah.common.util.HttpRequestUtils
 import io.clroot.selah.domains.member.adapter.inbound.security.SecurityUtils
 import io.clroot.selah.domains.member.adapter.inbound.web.dto.*
+import io.clroot.selah.domains.member.application.port.inbound.ChangePasswordCommand
+import io.clroot.selah.domains.member.application.port.inbound.ChangePasswordUseCase
 import io.clroot.selah.domains.member.application.port.inbound.ConnectOAuthCommand
 import io.clroot.selah.domains.member.application.port.inbound.GetCurrentMemberUseCase
 import io.clroot.selah.domains.member.application.port.inbound.ManageApiKeyUseCase
 import io.clroot.selah.domains.member.application.port.inbound.ManageOAuthConnectionUseCase
+import io.clroot.selah.domains.member.application.port.inbound.SetPasswordCommand
 import io.clroot.selah.domains.member.application.port.inbound.UpdateProfileCommand
 import io.clroot.selah.domains.member.domain.OAuthProvider
 import jakarta.servlet.http.HttpServletRequest
@@ -22,6 +25,7 @@ import org.springframework.web.bind.annotation.*
 @RequestMapping("/api/v1/members")
 class MemberController(
     private val getCurrentMemberUseCase: GetCurrentMemberUseCase,
+    private val changePasswordUseCase: ChangePasswordUseCase,
     private val manageApiKeyUseCase: ManageApiKeyUseCase,
     private val manageOAuthConnectionUseCase: ManageOAuthConnectionUseCase,
 ) {
@@ -56,11 +60,40 @@ class MemberController(
         return ResponseEntity.ok(ApiResponse.success(member.toProfileResponse()))
     }
 
+    // === 비밀번호 관리 ===
+
+    @PutMapping("/me/password")
+    suspend fun changePassword(
+        @RequestBody request: ChangePasswordRequest,
+    ): ResponseEntity<ApiResponse<Unit>> {
+        val memberId = SecurityUtils.requireCurrentMemberId()
+        changePasswordUseCase.changePassword(
+            memberId,
+            ChangePasswordCommand(
+                currentPassword = request.currentPassword,
+                newPassword = request.newPassword,
+            ),
+        )
+
+        return ResponseEntity.ok(ApiResponse.success(Unit))
+    }
+
+    @PostMapping("/me/password")
+    suspend fun setPassword(
+        @RequestBody request: SetPasswordRequest,
+    ): ResponseEntity<ApiResponse<Unit>> {
+        val memberId = SecurityUtils.requireCurrentMemberId()
+        changePasswordUseCase.setPassword(
+            memberId,
+            SetPasswordCommand(newPassword = request.newPassword),
+        )
+
+        return ResponseEntity.status(HttpStatus.CREATED)
+            .body(ApiResponse.success(Unit))
+    }
+
     // === API Key 관리 ===
 
-    /**
-     * API Key 목록 조회
-     */
     @GetMapping("/me/api-keys")
     suspend fun listApiKeys(): ResponseEntity<ApiResponse<List<ApiKeyResponse>>> {
         val memberId = SecurityUtils.requireCurrentMemberId()

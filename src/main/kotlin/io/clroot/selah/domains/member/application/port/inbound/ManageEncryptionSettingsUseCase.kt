@@ -98,6 +98,7 @@ data class SetupEncryptionCommand(
 data class UpdateEncryptionCommand(
     val salt: String,
     val encryptedDEK: String,
+    val rotateServerKey: Boolean,
 )
 
 /**

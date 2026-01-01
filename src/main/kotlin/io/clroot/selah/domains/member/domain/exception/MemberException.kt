@@ -196,3 +196,19 @@ class ServerKeyNotFoundException(memberId: String) : MemberException(
     code = "SERVER_KEY_NOT_FOUND",
     message = "Server key not found for member: $memberId",
 )
+
+/**
+ * 비밀번호가 설정되지 않은 경우 (OAuth 전용 계정에서 비밀번호 변경 시도)
+ */
+class PasswordNotSetException : MemberException(
+    code = "PASSWORD_NOT_SET",
+    message = "Password is not set. Use set password instead of change password.",
+)
+
+/**
+ * 비밀번호가 이미 설정된 경우 (OAuth 계정에서 비밀번호 설정 재시도)
+ */
+class PasswordAlreadySetException : MemberException(
+    code = "PASSWORD_ALREADY_SET",
+    message = "Password is already set. Use change password instead.",
+)

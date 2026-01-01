@@ -46,6 +46,10 @@ class MemberExceptionHandler {
             is InvalidPasswordResetTokenException -> HttpStatus.BAD_REQUEST to "유효하지 않은 비밀번호 재설정 토큰입니다"
             is PasswordResetResendTooSoonException -> HttpStatus.TOO_MANY_REQUESTS to "${ex.remainingSeconds}초 후에 다시 시도해주세요"
 
+            // 비밀번호 변경/설정
+            is PasswordNotSetException -> HttpStatus.BAD_REQUEST to "비밀번호가 설정되지 않았습니다. 비밀번호 설정을 먼저 진행해주세요."
+            is PasswordAlreadySetException -> HttpStatus.CONFLICT to "이미 비밀번호가 설정되어 있습니다. 비밀번호 변경을 이용해주세요."
+
             // OAuth
             is OAuthProviderAlreadyConnectedException -> HttpStatus.CONFLICT to "이미 연결된 소셜 계정입니다"
             is OAuthProviderNotConnectedException -> HttpStatus.NOT_FOUND to "연결되지 않은 소셜 계정입니다"

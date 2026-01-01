@@ -28,6 +28,7 @@ data class SetupEncryptionRequest(
 data class UpdateEncryptionRequest(
     val salt: String,
     val encryptedDEK: String,
+    val rotateServerKey: Boolean = false,
 )
 
 /**

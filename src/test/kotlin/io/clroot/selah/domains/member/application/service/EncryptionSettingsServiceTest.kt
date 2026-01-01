@@ -273,6 +273,7 @@ class EncryptionSettingsServiceTest : DescribeSpec({
         val command = UpdateEncryptionCommand(
             salt = newSalt,
             encryptedDEK = newEncryptedDEK,
+            rotateServerKey = true,
         )
         val newServerKeyResult = EncryptedServerKeyResult(
             encryptedServerKey = "new-encrypted-server-key",
