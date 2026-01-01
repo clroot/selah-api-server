@@ -6,6 +6,7 @@ import io.clroot.selah.domains.prayer.application.port.inbound.CreatePrayerComma
 import io.clroot.selah.domains.prayer.application.port.inbound.CreatePrayerUseCase
 import io.clroot.selah.domains.prayer.application.port.inbound.DeletePrayerUseCase
 import io.clroot.selah.domains.prayer.application.port.inbound.GetPrayerUseCase
+import io.clroot.selah.domains.prayer.application.port.inbound.UpdatePrayerCommand
 import io.clroot.selah.domains.prayer.application.port.inbound.UpdatePrayerContentCommand
 import io.clroot.selah.domains.prayer.application.port.inbound.UpdatePrayerUseCase
 import io.clroot.selah.domains.prayer.application.port.outbound.DeletePrayerPort
@@ -75,6 +76,22 @@ class PrayerService(
         }
 
         prayer.updateContent(command.content)
+
+        val saved = savePrayerPort.save(prayer)
+        saved.publishAndClearEvents(eventPublisher)
+
+        return saved
+    }
+
+    override suspend fun update(command: UpdatePrayerCommand): Prayer {
+        val prayer = loadPrayerPort.findById(command.id)
+            ?: throw PrayerNotFoundException(command.id.value)
+
+        if (prayer.memberId != command.memberId) {
+            throw PrayerAccessDeniedException(command.id.value)
+        }
+
+        prayer.update(command.content, command.prayerTopicIds)
 
         val saved = savePrayerPort.save(prayer)
         saved.publishAndClearEvents(eventPublisher)

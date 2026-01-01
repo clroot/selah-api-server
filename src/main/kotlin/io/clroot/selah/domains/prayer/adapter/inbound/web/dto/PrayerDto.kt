@@ -12,6 +12,7 @@ data class CreatePrayerRequest(
 
 data class UpdatePrayerRequest(
     val content: String,
+    val prayerTopicIds: List<String> = emptyList(),
 )
 
 // === Response DTOs ===

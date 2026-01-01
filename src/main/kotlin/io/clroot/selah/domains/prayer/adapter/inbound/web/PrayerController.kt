@@ -11,7 +11,7 @@ import io.clroot.selah.domains.prayer.application.port.inbound.CreatePrayerComma
 import io.clroot.selah.domains.prayer.application.port.inbound.CreatePrayerUseCase
 import io.clroot.selah.domains.prayer.application.port.inbound.DeletePrayerUseCase
 import io.clroot.selah.domains.prayer.application.port.inbound.GetPrayerUseCase
-import io.clroot.selah.domains.prayer.application.port.inbound.UpdatePrayerContentCommand
+import io.clroot.selah.domains.prayer.application.port.inbound.UpdatePrayerCommand
 import io.clroot.selah.domains.prayer.application.port.inbound.UpdatePrayerUseCase
 import io.clroot.selah.domains.prayer.domain.PrayerId
 import io.clroot.selah.domains.prayer.domain.PrayerTopicId
@@ -103,19 +103,20 @@ class PrayerController(
     }
 
     /**
-     * 기도문 수정 (content)
+     * 기도문 수정 (content, prayerTopicIds)
      */
     @PatchMapping("/{id}")
-    suspend fun updateContent(
+    suspend fun update(
         @PathVariable id: String,
         @RequestBody request: UpdatePrayerRequest,
     ): ResponseEntity<ApiResponse<PrayerResponse>> {
         val memberId = SecurityUtils.requireCurrentMemberId()
-        val prayer = updatePrayerUseCase.updateContent(
-            UpdatePrayerContentCommand(
+        val prayer = updatePrayerUseCase.update(
+            UpdatePrayerCommand(
                 id = PrayerId.from(id),
                 memberId = memberId,
                 content = request.content,
+                prayerTopicIds = request.prayerTopicIds.map { PrayerTopicId.from(it) },
             ),
         )
         return ResponseEntity.ok(ApiResponse.success(prayer.toResponse()))

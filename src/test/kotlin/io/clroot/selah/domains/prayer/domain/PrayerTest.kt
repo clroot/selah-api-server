@@ -150,6 +150,154 @@ class PrayerTest : DescribeSpec({
                 }
             }
         }
+
+        context("updatePrayerTopicIds") {
+
+            it("기도제목 ID 목록을 수정할 수 있다") {
+                val prayer = Prayer.create(
+                    memberId = MemberId.new(),
+                    prayerTopicIds = emptyList(),
+                    content = "content",
+                )
+                val originalUpdatedAt = prayer.updatedAt
+                val newTopicId1 = PrayerTopicId.new()
+                val newTopicId2 = PrayerTopicId.new()
+
+                Thread.sleep(10)
+
+                prayer.updatePrayerTopicIds(listOf(newTopicId1, newTopicId2))
+
+                prayer.prayerTopicIds shouldBe listOf(newTopicId1, newTopicId2)
+                prayer.updatedAt shouldNotBe originalUpdatedAt
+            }
+
+            it("빈 목록으로 수정할 수 있다") {
+                val topicId = PrayerTopicId.new()
+                val prayer = Prayer.create(
+                    memberId = MemberId.new(),
+                    prayerTopicIds = listOf(topicId),
+                    content = "content",
+                )
+
+                Thread.sleep(10)
+
+                prayer.updatePrayerTopicIds(emptyList())
+
+                prayer.prayerTopicIds shouldBe emptyList()
+            }
+
+            it("같은 목록으로 수정하면 updatedAt이 변경되지 않는다") {
+                val topicId = PrayerTopicId.new()
+                val prayer = Prayer.create(
+                    memberId = MemberId.new(),
+                    prayerTopicIds = listOf(topicId),
+                    content = "content",
+                )
+                val originalUpdatedAt = prayer.updatedAt
+
+                prayer.updatePrayerTopicIds(listOf(topicId))
+
+                prayer.prayerTopicIds shouldBe listOf(topicId)
+                prayer.updatedAt shouldBe originalUpdatedAt
+            }
+        }
+
+        context("update (content + prayerTopicIds)") {
+
+            it("content와 prayerTopicIds를 함께 수정할 수 있다") {
+                val prayer = Prayer.create(
+                    memberId = MemberId.new(),
+                    prayerTopicIds = emptyList(),
+                    content = "old_content",
+                )
+                val originalUpdatedAt = prayer.updatedAt
+                val newTopicId = PrayerTopicId.new()
+
+                Thread.sleep(10)
+
+                prayer.update("new_content", listOf(newTopicId))
+
+                prayer.content shouldBe "new_content"
+                prayer.prayerTopicIds shouldBe listOf(newTopicId)
+                prayer.updatedAt shouldNotBe originalUpdatedAt
+            }
+
+            it("content만 변경되면 updatedAt이 갱신된다") {
+                val topicId = PrayerTopicId.new()
+                val prayer = Prayer.create(
+                    memberId = MemberId.new(),
+                    prayerTopicIds = listOf(topicId),
+                    content = "old_content",
+                )
+                val originalUpdatedAt = prayer.updatedAt
+
+                Thread.sleep(10)
+
+                prayer.update("new_content", listOf(topicId))
+
+                prayer.content shouldBe "new_content"
+                prayer.prayerTopicIds shouldBe listOf(topicId)
+                prayer.updatedAt shouldNotBe originalUpdatedAt
+            }
+
+            it("prayerTopicIds만 변경되면 updatedAt이 갱신된다") {
+                val prayer = Prayer.create(
+                    memberId = MemberId.new(),
+                    prayerTopicIds = emptyList(),
+                    content = "content",
+                )
+                val originalUpdatedAt = prayer.updatedAt
+                val newTopicId = PrayerTopicId.new()
+
+                Thread.sleep(10)
+
+                prayer.update("content", listOf(newTopicId))
+
+                prayer.content shouldBe "content"
+                prayer.prayerTopicIds shouldBe listOf(newTopicId)
+                prayer.updatedAt shouldNotBe originalUpdatedAt
+            }
+
+            it("둘 다 변경되지 않으면 updatedAt이 그대로 유지된다") {
+                val topicId = PrayerTopicId.new()
+                val prayer = Prayer.create(
+                    memberId = MemberId.new(),
+                    prayerTopicIds = listOf(topicId),
+                    content = "content",
+                )
+                val originalUpdatedAt = prayer.updatedAt
+
+                prayer.update("content", listOf(topicId))
+
+                prayer.content shouldBe "content"
+                prayer.prayerTopicIds shouldBe listOf(topicId)
+                prayer.updatedAt shouldBe originalUpdatedAt
+            }
+
+            it("빈 content로 수정하면 실패한다") {
+                val prayer = Prayer.create(
+                    memberId = MemberId.new(),
+                    prayerTopicIds = emptyList(),
+                    content = "original_content",
+                )
+
+                shouldThrow<IllegalArgumentException> {
+                    prayer.update("", emptyList())
+                }
+            }
+
+            it("공백만 있는 content로 수정하면 실패한다") {
+                val prayer = Prayer.create(
+                    memberId = MemberId.new(),
+                    prayerTopicIds = emptyList(),
+                    content = "original_content",
+                )
+
+                shouldThrow<IllegalArgumentException> {
+                    prayer.update("   ", emptyList())
+                }
+            }
+        }
     }
 
     describe("PrayerId") {

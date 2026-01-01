@@ -45,6 +45,40 @@ class Prayer(
         }
     }
 
+    /**
+     * 연결된 기도제목 ID 목록을 수정합니다.
+     */
+    fun updatePrayerTopicIds(newPrayerTopicIds: List<PrayerTopicId>) {
+        if (_prayerTopicIds != newPrayerTopicIds) {
+            _prayerTopicIds.clear()
+            _prayerTopicIds.addAll(newPrayerTopicIds)
+            touch()
+        }
+    }
+
+    /**
+     * 기도문 내용과 연결된 기도제목을 함께 수정합니다.
+     */
+    fun update(newContent: String, newPrayerTopicIds: List<PrayerTopicId>) {
+        require(newContent.isNotBlank()) { "Content cannot be blank" }
+
+        val contentChanged = content != newContent
+        val topicsChanged = _prayerTopicIds != newPrayerTopicIds
+
+        if (contentChanged) {
+            content = newContent
+        }
+
+        if (topicsChanged) {
+            _prayerTopicIds.clear()
+            _prayerTopicIds.addAll(newPrayerTopicIds)
+        }
+
+        if (contentChanged || topicsChanged) {
+            touch()
+        }
+    }
+
     companion object {
         /**
          * 새로운 기도문을 생성합니다.

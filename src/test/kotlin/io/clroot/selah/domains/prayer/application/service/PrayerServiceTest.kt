@@ -2,6 +2,7 @@ package io.clroot.selah.domains.prayer.application.service
 
 import io.clroot.selah.domains.member.domain.MemberId
 import io.clroot.selah.domains.prayer.application.port.inbound.CreatePrayerCommand
+import io.clroot.selah.domains.prayer.application.port.inbound.UpdatePrayerCommand
 import io.clroot.selah.domains.prayer.application.port.inbound.UpdatePrayerContentCommand
 import io.clroot.selah.domains.prayer.application.port.outbound.DeletePrayerPort
 import io.clroot.selah.domains.prayer.application.port.outbound.LoadPrayerPort
@@ -202,6 +203,71 @@ class PrayerServiceTest : DescribeSpec({
 
                 shouldThrow<PrayerAccessDeniedException> {
                     service.updateContent(command)
+                }
+            }
+        }
+
+        context("update (content + prayerTopicIds)") {
+
+            it("소유자가 content와 prayerTopicIds를 함께 수정할 수 있다") {
+                val memberId = MemberId.new()
+                val originalTopicId = PrayerTopicId.new()
+                val prayer = createPrayer(
+                    memberId = memberId,
+                    prayerTopicIds = listOf(originalTopicId),
+                    content = "old_content",
+                )
+                val newTopicId1 = PrayerTopicId.new()
+                val newTopicId2 = PrayerTopicId.new()
+                val command = UpdatePrayerCommand(
+                    id = prayer.id,
+                    memberId = memberId,
+                    content = "new_content",
+                    prayerTopicIds = listOf(newTopicId1, newTopicId2),
+                )
+
+                coEvery { loadPrayerPort.findById(prayer.id) } returns prayer
+                coEvery { savePrayerPort.save(any()) } answers { firstArg() }
+
+                val result = service.update(command)
+
+                result.content shouldBe "new_content"
+                result.prayerTopicIds shouldBe listOf(newTopicId1, newTopicId2)
+                coVerify(exactly = 1) { savePrayerPort.save(any()) }
+            }
+
+            it("존재하지 않는 기도문을 수정하면 PrayerNotFoundException을 던진다") {
+                val memberId = MemberId.new()
+                val prayerId = PrayerId.new()
+                val command = UpdatePrayerCommand(
+                    id = prayerId,
+                    memberId = memberId,
+                    content = "new_content",
+                    prayerTopicIds = emptyList(),
+                )
+
+                coEvery { loadPrayerPort.findById(prayerId) } returns null
+
+                shouldThrow<PrayerNotFoundException> {
+                    service.update(command)
+                }
+            }
+
+            it("다른 사용자의 기도문을 수정하면 PrayerAccessDeniedException을 던진다") {
+                val ownerId = MemberId.new()
+                val otherMemberId = MemberId.new()
+                val prayer = createPrayer(memberId = ownerId)
+                val command = UpdatePrayerCommand(
+                    id = prayer.id,
+                    memberId = otherMemberId,
+                    content = "new_content",
+                    prayerTopicIds = emptyList(),
+                )
+
+                coEvery { loadPrayerPort.findById(prayer.id) } returns prayer
+
+                shouldThrow<PrayerAccessDeniedException> {
+                    service.update(command)
                 }
             }
         }
