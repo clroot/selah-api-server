@@ -1,6 +1,5 @@
 package io.clroot.selah.domains.member.application.service
 
-import io.clroot.selah.domains.member.adapter.outbound.oauth.OAuthProperties
 import io.clroot.selah.domains.member.application.port.inbound.GetAuthorizationUrlCommand
 import io.clroot.selah.domains.member.application.port.inbound.LoginResult
 import io.clroot.selah.domains.member.application.port.inbound.LoginWithOAuthCommand
@@ -10,7 +9,6 @@ import io.clroot.selah.domains.member.application.port.inbound.OAuthCallbackUseC
 import io.clroot.selah.domains.member.application.port.outbound.OAuthTokenPort
 import io.clroot.selah.domains.member.application.port.outbound.OAuthUserInfoPort
 import io.clroot.selah.domains.member.domain.Email
-import io.clroot.selah.domains.member.domain.OAuthProvider
 import io.github.oshai.kotlinlogging.KotlinLogging
 import org.springframework.stereotype.Service
 
@@ -22,7 +20,6 @@ class OAuthCallbackService(
     private val oAuthTokenPort: OAuthTokenPort,
     private val oAuthUserInfoPort: OAuthUserInfoPort,
     private val loginUseCase: LoginUseCase,
-    private val oAuthProperties: OAuthProperties,
 ) : OAuthCallbackUseCase {
 
     companion object {
@@ -31,7 +28,7 @@ class OAuthCallbackService(
     }
 
     override fun getAuthorizationUrl(command: GetAuthorizationUrlCommand): String {
-        val redirectUri = buildCallbackUri(command.provider)
+        val redirectUri = oAuthTokenPort.getCallbackUri(command.provider)
         return oAuthTokenPort.buildAuthorizationUrl(
             provider = command.provider,
             redirectUri = redirectUri,
@@ -43,7 +40,7 @@ class OAuthCallbackService(
         logger.debug { "Processing OAuth callback for provider: ${command.provider}" }
 
         // 1. Authorization code를 Access Token으로 교환
-        val redirectUri = buildCallbackUri(command.provider)
+        val redirectUri = oAuthTokenPort.getCallbackUri(command.provider)
         val tokenResult = oAuthTokenPort.exchangeCodeForToken(
             provider = command.provider,
             code = command.code,
@@ -72,7 +69,4 @@ class OAuthCallbackService(
         )
     }
 
-    private fun buildCallbackUri(provider: OAuthProvider): String {
-        return "${oAuthProperties.backendBaseUrl}/api/v1/auth/oauth/${provider.name.lowercase()}/callback"
-    }
 }

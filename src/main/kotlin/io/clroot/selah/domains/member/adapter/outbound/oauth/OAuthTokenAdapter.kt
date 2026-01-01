@@ -100,6 +100,10 @@ class OAuthTokenAdapter(
 
         return builder.build().encode().toUriString()
     }
+
+    override fun getCallbackUri(provider: OAuthProvider): String {
+        return "${oAuthProperties.backendBaseUrl}/api/v1/auth/oauth/${provider.name.lowercase()}/callback"
+    }
 }
 
 /**

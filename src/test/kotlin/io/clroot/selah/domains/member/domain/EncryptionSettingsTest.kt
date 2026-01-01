@@ -91,16 +91,26 @@ class EncryptionSettingsTest : DescribeSpec({
                 }
             }
 
-            it("encryptedDEK가 빈 문자열이면 실패한다") {
-                shouldThrow<IllegalArgumentException> {
-                    EncryptionSettings.create(
-                        memberId = MemberId.new(),
-                        salt = "valid-salt",
-                        encryptedDEK = "",
-                        recoveryEncryptedDEK = "valid-recovery-encrypted-dek",
-                        recoveryKeyHash = "valid-hash",
-                    )
-                }
+            it("encryptedDEK가 빈 문자열이면 placeholder가 사용된다") {
+                val settings = EncryptionSettings.create(
+                    memberId = MemberId.new(),
+                    salt = "valid-salt",
+                    encryptedDEK = "",
+                    recoveryEncryptedDEK = "valid-recovery-encrypted-dek",
+                    recoveryKeyHash = "valid-hash",
+                )
+                settings.encryptedDEK shouldBe EncryptionSettings.PLACEHOLDER_ENCRYPTED_DEK
+            }
+
+            it("encryptedDEK가 null이면 placeholder가 사용된다") {
+                val settings = EncryptionSettings.create(
+                    memberId = MemberId.new(),
+                    salt = "valid-salt",
+                    encryptedDEK = null,
+                    recoveryEncryptedDEK = "valid-recovery-encrypted-dek",
+                    recoveryKeyHash = "valid-hash",
+                )
+                settings.encryptedDEK shouldBe EncryptionSettings.PLACEHOLDER_ENCRYPTED_DEK
             }
 
             it("recoveryEncryptedDEK가 빈 문자열이면 실패한다") {

@@ -33,6 +33,14 @@ interface OAuthTokenPort {
         redirectUri: String,
         state: String,
     ): String
+
+    /**
+     * OAuth Callback URI를 반환합니다.
+     *
+     * @param provider OAuth Provider
+     * @return Callback URI
+     */
+    fun getCallbackUri(provider: OAuthProvider): String
 }
 
 /**
