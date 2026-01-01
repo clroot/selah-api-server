@@ -18,16 +18,36 @@ class PrayerTest : DescribeSpec({
 
                 val prayer = Prayer.create(
                     memberId = memberId,
+                    prayerTopicIds = emptyList(),
                     content = content,
                 )
 
                 prayer.memberId shouldBe memberId
+                prayer.prayerTopicIds shouldBe emptyList()
+                prayer.content shouldBe content
+            }
+
+            it("prayerTopicIds가 있는 기도문이 생성된다") {
+                val memberId = MemberId.new()
+                val prayerTopicId1 = PrayerTopicId.new()
+                val prayerTopicId2 = PrayerTopicId.new()
+                val content = "encrypted_content_base64"
+
+                val prayer = Prayer.create(
+                    memberId = memberId,
+                    prayerTopicIds = listOf(prayerTopicId1, prayerTopicId2),
+                    content = content,
+                )
+
+                prayer.memberId shouldBe memberId
+                prayer.prayerTopicIds shouldBe listOf(prayerTopicId1, prayerTopicId2)
                 prayer.content shouldBe content
             }
 
             it("ID가 ULID 형식으로 생성된다") {
                 val prayer = Prayer.create(
                     memberId = MemberId.new(),
+                    prayerTopicIds = emptyList(),
                     content = "encrypted_content",
                 )
 
@@ -37,6 +57,7 @@ class PrayerTest : DescribeSpec({
             it("createdAt과 updatedAt이 설정된다") {
                 val prayer = Prayer.create(
                     memberId = MemberId.new(),
+                    prayerTopicIds = emptyList(),
                     content = "encrypted_content",
                 )
 
@@ -52,6 +73,7 @@ class PrayerTest : DescribeSpec({
                 shouldThrow<IllegalArgumentException> {
                     Prayer.create(
                         memberId = MemberId.new(),
+                        prayerTopicIds = emptyList(),
                         content = "",
                     )
                 }
@@ -61,6 +83,7 @@ class PrayerTest : DescribeSpec({
                 shouldThrow<IllegalArgumentException> {
                     Prayer.create(
                         memberId = MemberId.new(),
+                        prayerTopicIds = emptyList(),
                         content = "   ",
                     )
                 }
@@ -75,6 +98,7 @@ class PrayerTest : DescribeSpec({
             it("새로운 content로 수정할 수 있다") {
                 val prayer = Prayer.create(
                     memberId = MemberId.new(),
+                    prayerTopicIds = emptyList(),
                     content = "old_content",
                 )
                 val originalUpdatedAt = prayer.updatedAt
@@ -91,6 +115,7 @@ class PrayerTest : DescribeSpec({
             it("같은 content로 수정하면 updatedAt이 변경되지 않는다") {
                 val prayer = Prayer.create(
                     memberId = MemberId.new(),
+                    prayerTopicIds = emptyList(),
                     content = "same_content",
                 )
                 val originalUpdatedAt = prayer.updatedAt
@@ -104,6 +129,7 @@ class PrayerTest : DescribeSpec({
             it("빈 content로 수정하면 실패한다") {
                 val prayer = Prayer.create(
                     memberId = MemberId.new(),
+                    prayerTopicIds = emptyList(),
                     content = "original_content",
                 )
 
@@ -115,6 +141,7 @@ class PrayerTest : DescribeSpec({
             it("공백만 있는 content로 수정하면 실패한다") {
                 val prayer = Prayer.create(
                     memberId = MemberId.new(),
+                    prayerTopicIds = emptyList(),
                     content = "original_content",
                 )
 

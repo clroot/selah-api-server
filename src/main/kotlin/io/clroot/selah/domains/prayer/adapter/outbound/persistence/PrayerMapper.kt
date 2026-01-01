@@ -3,6 +3,7 @@ package io.clroot.selah.domains.prayer.adapter.outbound.persistence
 import io.clroot.selah.domains.member.domain.MemberId
 import io.clroot.selah.domains.prayer.domain.Prayer
 import io.clroot.selah.domains.prayer.domain.PrayerId
+import io.clroot.selah.domains.prayer.domain.PrayerTopicId
 import org.springframework.stereotype.Component
 
 /**
@@ -18,6 +19,7 @@ class PrayerMapper {
         return PrayerEntity(
             id = prayer.id.value,
             memberId = prayer.memberId.value,
+            prayerTopicIds = prayer.prayerTopicIds.map { it.value }.toMutableList(),
             content = prayer.content,
             version = prayer.version,
             createdAt = prayer.createdAt,
@@ -32,6 +34,7 @@ class PrayerMapper {
         return Prayer(
             id = PrayerId.from(entity.id),
             memberId = MemberId.from(entity.memberId),
+            prayerTopicIds = entity.prayerTopicIds.map { PrayerTopicId.from(it) },
             content = entity.content,
             version = entity.version,
             createdAt = entity.createdAt,
@@ -44,6 +47,8 @@ class PrayerMapper {
      */
     fun updateEntity(entity: PrayerEntity, prayer: Prayer) {
         entity.content = prayer.content
+        entity.prayerTopicIds.clear()
+        entity.prayerTopicIds.addAll(prayer.prayerTopicIds.map { it.value })
         entity.updatedAt = prayer.updatedAt
     }
 }

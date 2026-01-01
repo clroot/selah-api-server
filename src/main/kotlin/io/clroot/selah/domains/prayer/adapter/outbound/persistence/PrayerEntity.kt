@@ -1,9 +1,13 @@
 package io.clroot.selah.domains.prayer.adapter.outbound.persistence
 
+import jakarta.persistence.CollectionTable
 import jakarta.persistence.Column
+import jakarta.persistence.ElementCollection
 import jakarta.persistence.Entity
+import jakarta.persistence.FetchType
 import jakarta.persistence.Id
 import jakarta.persistence.Index
+import jakarta.persistence.JoinColumn
 import jakarta.persistence.Table
 import jakarta.persistence.Version
 import java.time.LocalDateTime
@@ -29,6 +33,18 @@ class PrayerEntity(
 
     @Column(name = "member_id", length = 26, nullable = false)
     val memberId: String,
+
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(
+        name = "prayer_prayer_topics",
+        joinColumns = [JoinColumn(name = "prayer_id")],
+        indexes = [
+            Index(name = "idx_prayer_prayer_topics_prayer_id", columnList = "prayer_id"),
+            Index(name = "idx_prayer_prayer_topics_prayer_topic_id", columnList = "prayer_topic_id"),
+        ],
+    )
+    @Column(name = "prayer_topic_id", length = 26)
+    val prayerTopicIds: MutableList<String> = mutableListOf(),
 
     @Column(name = "content", nullable = false, columnDefinition = "TEXT")
     var content: String,

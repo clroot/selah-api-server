@@ -14,6 +14,7 @@ import io.clroot.selah.domains.prayer.application.port.inbound.GetPrayerUseCase
 import io.clroot.selah.domains.prayer.application.port.inbound.UpdatePrayerContentCommand
 import io.clroot.selah.domains.prayer.application.port.inbound.UpdatePrayerUseCase
 import io.clroot.selah.domains.prayer.domain.PrayerId
+import io.clroot.selah.domains.prayer.domain.PrayerTopicId
 import org.springframework.data.domain.PageRequest
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
@@ -50,6 +51,7 @@ class PrayerController(
         val prayer = createPrayerUseCase.create(
             CreatePrayerCommand(
                 memberId = memberId,
+                prayerTopicIds = request.prayerTopicIds.map { PrayerTopicId.from(it) },
                 content = request.content,
             ),
         )

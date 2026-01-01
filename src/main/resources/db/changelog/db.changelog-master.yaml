@@ -23,3 +23,5 @@ databaseChangeLog:
       file: db/changelog/changes/011-modify-members-profile-image-url.yaml
   - include:
       file: db/changelog/changes/012-create-server-keys.yaml
+  - include:
+      file: db/changelog/changes/013-add-prayer-topic-id-to-prayers.yaml

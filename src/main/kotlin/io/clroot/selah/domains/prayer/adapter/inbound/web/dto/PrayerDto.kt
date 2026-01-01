@@ -6,6 +6,7 @@ import java.time.LocalDateTime
 // === Request DTOs ===
 
 data class CreatePrayerRequest(
+    val prayerTopicIds: List<String> = emptyList(),
     val content: String,
 )
 
@@ -17,6 +18,7 @@ data class UpdatePrayerRequest(
 
 data class PrayerResponse(
     val id: String,
+    val prayerTopicIds: List<String>,
     val content: String,
     val createdAt: LocalDateTime,
     val updatedAt: LocalDateTime,
@@ -26,6 +28,7 @@ data class PrayerResponse(
 
 fun Prayer.toResponse(): PrayerResponse = PrayerResponse(
     id = id.value,
+    prayerTopicIds = prayerTopicIds.map { it.value },
     content = content,
     createdAt = createdAt,
     updatedAt = updatedAt,

@@ -8,6 +8,7 @@ import io.clroot.selah.domains.prayer.application.port.outbound.LoadPrayerPort
 import io.clroot.selah.domains.prayer.application.port.outbound.SavePrayerPort
 import io.clroot.selah.domains.prayer.domain.Prayer
 import io.clroot.selah.domains.prayer.domain.PrayerId
+import io.clroot.selah.domains.prayer.domain.PrayerTopicId
 import io.clroot.selah.domains.prayer.domain.exception.PrayerAccessDeniedException
 import io.clroot.selah.domains.prayer.domain.exception.PrayerNotFoundException
 import io.kotest.assertions.throwables.shouldThrow
@@ -47,7 +48,11 @@ class PrayerServiceTest : DescribeSpec({
         it("새 기도문을 생성한다") {
             val memberId = MemberId.new()
             val content = "encrypted_content"
-            val command = CreatePrayerCommand(memberId, content)
+            val command = CreatePrayerCommand(
+                memberId = memberId,
+                prayerTopicIds = emptyList(),
+                content = content,
+            )
 
             val slot = slot<Prayer>()
             coEvery { savePrayerPort.save(capture(slot)) } answers { slot.captured }
@@ -55,6 +60,30 @@ class PrayerServiceTest : DescribeSpec({
             val result = service.create(command)
 
             result.memberId shouldBe memberId
+            result.prayerTopicIds shouldBe emptyList()
+            result.content shouldBe content
+
+            coVerify(exactly = 1) { savePrayerPort.save(any()) }
+        }
+
+        it("prayerTopicIds가 있는 기도문을 생성한다") {
+            val memberId = MemberId.new()
+            val prayerTopicId1 = PrayerTopicId.new()
+            val prayerTopicId2 = PrayerTopicId.new()
+            val content = "encrypted_content"
+            val command = CreatePrayerCommand(
+                memberId = memberId,
+                prayerTopicIds = listOf(prayerTopicId1, prayerTopicId2),
+                content = content,
+            )
+
+            val slot = slot<Prayer>()
+            coEvery { savePrayerPort.save(capture(slot)) } answers { slot.captured }
+
+            val result = service.create(command)
+
+            result.memberId shouldBe memberId
+            result.prayerTopicIds shouldBe listOf(prayerTopicId1, prayerTopicId2)
             result.content shouldBe content
 
             coVerify(exactly = 1) { savePrayerPort.save(any()) }
@@ -219,12 +248,14 @@ class PrayerServiceTest : DescribeSpec({
 
 private fun createPrayer(
     memberId: MemberId = MemberId.new(),
+    prayerTopicIds: List<PrayerTopicId> = emptyList(),
     content: String = "encrypted_content",
 ): Prayer {
     val now = LocalDateTime.now()
     return Prayer(
         id = PrayerId.new(),
         memberId = memberId,
+        prayerTopicIds = prayerTopicIds,
         content = content,
         version = null,
         createdAt = now,

@@ -36,6 +36,7 @@ class PrayerService(
     override suspend fun create(command: CreatePrayerCommand): Prayer {
         val prayer = Prayer.create(
             memberId = command.memberId,
+            prayerTopicIds = command.prayerTopicIds,
             content = command.content,
         )
 

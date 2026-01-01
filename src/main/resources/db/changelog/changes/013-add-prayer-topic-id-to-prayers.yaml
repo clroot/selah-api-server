@@ -1,0 +1,48 @@
+databaseChangeLog:
+  - changeSet:
+      id: 013-create-prayer-prayer-topics-table
+      author: clroot
+      changes:
+        - createTable:
+            tableName: prayer_prayer_topics
+            columns:
+              - column:
+                  name: prayer_id
+                  type: varchar(26)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: prayer_topic_id
+                  type: varchar(26)
+                  constraints:
+                    nullable: false
+
+        - addForeignKeyConstraint:
+            constraintName: fk_prayer_prayer_topics_prayer
+            baseTableName: prayer_prayer_topics
+            baseColumnNames: prayer_id
+            referencedTableName: prayers
+            referencedColumnNames: id
+            onDelete: CASCADE
+
+        - addForeignKeyConstraint:
+            constraintName: fk_prayer_prayer_topics_prayer_topic
+            baseTableName: prayer_prayer_topics
+            baseColumnNames: prayer_topic_id
+            referencedTableName: prayer_topics
+            referencedColumnNames: id
+            onDelete: CASCADE
+
+        - createIndex:
+            indexName: idx_prayer_prayer_topics_prayer_id
+            tableName: prayer_prayer_topics
+            columns:
+              - column:
+                  name: prayer_id
+
+        - createIndex:
+            indexName: idx_prayer_prayer_topics_prayer_topic_id
+            tableName: prayer_prayer_topics
+            columns:
+              - column:
+                  name: prayer_topic_id
