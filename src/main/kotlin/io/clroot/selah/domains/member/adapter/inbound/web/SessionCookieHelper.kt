@@ -22,8 +22,9 @@ class SessionCookieHelper(
 ) {
     companion object {
         private const val STATE_COOKIE_NAME = "oauth_state"
-        private const val STATE_COOKIE_PATH = "/api/v1/auth/oauth"
-        private const val STATE_COOKIE_MAX_AGE = 600 // 10 minutes
+        private const val MODE_COOKIE_NAME = "oauth_mode"
+        private const val OAUTH_COOKIE_PATH = "/api/v1/auth/oauth"
+        private const val OAUTH_COOKIE_MAX_AGE = 600 // 10 minutes
     }
 
     // ===== Session Cookie =====
@@ -78,8 +79,8 @@ class SessionCookieHelper(
         val cookie = Cookie(STATE_COOKIE_NAME, state).apply {
             isHttpOnly = true
             secure = cookieSecure
-            path = STATE_COOKIE_PATH
-            maxAge = STATE_COOKIE_MAX_AGE
+            path = OAUTH_COOKIE_PATH
+            maxAge = OAUTH_COOKIE_MAX_AGE
             setAttribute("SameSite", cookieSameSite)
         }
         response.addCookie(cookie)
@@ -92,7 +93,7 @@ class SessionCookieHelper(
         val cookie = Cookie(STATE_COOKIE_NAME, "").apply {
             isHttpOnly = true
             secure = cookieSecure
-            path = STATE_COOKIE_PATH
+            path = OAUTH_COOKIE_PATH
             maxAge = 0
             setAttribute("SameSite", cookieSameSite)
         }
@@ -104,5 +105,42 @@ class SessionCookieHelper(
      */
     fun extractState(request: HttpServletRequest): String? {
         return request.cookies?.find { it.name == STATE_COOKIE_NAME }?.value
+    }
+
+    // ===== OAuth Mode Cookie =====
+
+    /**
+     * OAuth mode 쿠키 추가 (link 모드 구분용)
+     */
+    fun addModeCookie(response: HttpServletResponse, mode: String) {
+        val cookie = Cookie(MODE_COOKIE_NAME, mode).apply {
+            isHttpOnly = true
+            secure = cookieSecure
+            path = OAUTH_COOKIE_PATH
+            maxAge = OAUTH_COOKIE_MAX_AGE
+            setAttribute("SameSite", cookieSameSite)
+        }
+        response.addCookie(cookie)
+    }
+
+    /**
+     * OAuth mode 쿠키 삭제
+     */
+    fun clearModeCookie(response: HttpServletResponse) {
+        val cookie = Cookie(MODE_COOKIE_NAME, "").apply {
+            isHttpOnly = true
+            secure = cookieSecure
+            path = OAUTH_COOKIE_PATH
+            maxAge = 0
+            setAttribute("SameSite", cookieSameSite)
+        }
+        response.addCookie(cookie)
+    }
+
+    /**
+     * OAuth mode 추출
+     */
+    fun extractMode(request: HttpServletRequest): String? {
+        return request.cookies?.find { it.name == MODE_COOKIE_NAME }?.value
     }
 }

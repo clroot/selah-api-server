@@ -1,14 +1,18 @@
 package io.clroot.selah.domains.member.application.service
 
+import io.clroot.selah.domains.member.application.port.inbound.ConnectOAuthCommand
 import io.clroot.selah.domains.member.application.port.inbound.GetAuthorizationUrlCommand
 import io.clroot.selah.domains.member.application.port.inbound.LoginResult
 import io.clroot.selah.domains.member.application.port.inbound.LoginWithOAuthCommand
 import io.clroot.selah.domains.member.application.port.inbound.LoginUseCase
+import io.clroot.selah.domains.member.application.port.inbound.ManageOAuthConnectionUseCase
 import io.clroot.selah.domains.member.application.port.inbound.OAuthCallbackCommand
 import io.clroot.selah.domains.member.application.port.inbound.OAuthCallbackUseCase
 import io.clroot.selah.domains.member.application.port.outbound.OAuthTokenPort
 import io.clroot.selah.domains.member.application.port.outbound.OAuthUserInfoPort
 import io.clroot.selah.domains.member.domain.Email
+import io.clroot.selah.domains.member.domain.MemberId
+import io.clroot.selah.domains.member.domain.OAuthProvider
 import io.github.oshai.kotlinlogging.KotlinLogging
 import org.springframework.stereotype.Service
 
@@ -20,6 +24,7 @@ class OAuthCallbackService(
     private val oAuthTokenPort: OAuthTokenPort,
     private val oAuthUserInfoPort: OAuthUserInfoPort,
     private val loginUseCase: LoginUseCase,
+    private val manageOAuthConnectionUseCase: ManageOAuthConnectionUseCase,
 ) : OAuthCallbackUseCase {
 
     companion object {
@@ -69,4 +74,26 @@ class OAuthCallbackService(
         )
     }
 
+    override suspend fun handleLinkCallback(memberId: MemberId, provider: OAuthProvider, code: String) {
+        logger.debug { "Processing OAuth link callback for provider: $provider, memberId: ${memberId.value}" }
+
+        // 1. Authorization code를 Access Token으로 교환
+        val redirectUri = oAuthTokenPort.getCallbackUri(provider)
+        val tokenResult = oAuthTokenPort.exchangeCodeForToken(
+            provider = provider,
+            code = code,
+            redirectUri = redirectUri,
+        )
+
+        // 2. 기존 계정에 OAuth 연결
+        manageOAuthConnectionUseCase.connect(
+            memberId = memberId,
+            command = ConnectOAuthCommand(
+                provider = provider,
+                accessToken = tokenResult.accessToken,
+            ),
+        )
+
+        logger.info { "OAuth connection linked: memberId=${memberId.value}, provider=$provider" }
+    }
 }

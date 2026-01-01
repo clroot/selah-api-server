@@ -1,5 +1,6 @@
 package io.clroot.selah.domains.member.application.port.inbound
 
+import io.clroot.selah.domains.member.domain.MemberId
 import io.clroot.selah.domains.member.domain.OAuthProvider
 
 /**
@@ -21,6 +22,15 @@ interface OAuthCallbackUseCase {
      * @return 로그인 결과
      */
     suspend fun handleCallback(command: OAuthCallbackCommand): LoginResult
+
+    /**
+     * OAuth Callback을 처리하고 기존 계정에 연결합니다.
+     *
+     * @param memberId 현재 로그인한 사용자 ID
+     * @param provider OAuth Provider
+     * @param code Authorization Code
+     */
+    suspend fun handleLinkCallback(memberId: MemberId, provider: OAuthProvider, code: String)
 }
 
 /**
