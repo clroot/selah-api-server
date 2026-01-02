@@ -1,12 +1,8 @@
 # Selah API Server - Claude Code Guidelines
 
-> "멈추고, 묵상하고, 기록하다"
->
-> 기도제목과 기도문을 기록하고, 응답받은 기도를 확인하며 믿음을 성장시키는 개인용 기도노트 서비스
+> 프로젝트 개요, Tech Stack, Architecture는 [README.md](./README.md) 참조
 
-## 프로젝트 개요
-
-### 핵심 가치
+## 핵심 가치
 
 | Value | Description |
 |-------|-------------|
@@ -14,25 +10,15 @@
 | **기도 습관 형성** | 매일 기도문을 작성하며 기도 생활 유지 |
 | **믿음 성장** | 응답받은 기도를 확인하며 하나님에 대한 신뢰 강화 |
 
-### Architecture & Design
+## Tech Stack 보충
 
-- **Architecture**: Hexagonal Architecture (Ports and Adapters)
-- **Design Pattern**: Domain-Driven Design (DDD)
+> 기본 Tech Stack은 [README.md](./README.md#tech-stack) 참조. 아래는 추가 설명이 필요한 항목입니다.
 
-## Tech Stack
-
-| Category | Technology | Version/Note |
-|----------|------------|--------------|
-| Language | Kotlin | 2.x (JDK 21) |
-| Framework | Spring Boot | 4.x (Spring 6.x) |
-| Build | Gradle | Kotlin DSL |
-| Persistence | Spring Data JPA | Hibernate |
-| Query DSL | Kotlin JDSL | 타입 안전한 쿼리 |
+| Category | Technology | Note |
+|----------|------------|------|
+| Query DSL | Kotlin JDSL | 타입 안전한 쿼리 (JPQL 문자열 대체) |
 | DB Migration | Liquibase | YAML 포맷 |
-| Security | Spring Security | OAuth2 |
-| Async | Kotlin Coroutines, Virtual Threads | 비동기 처리 |
 | Logging | kotlin-logging | SLF4J 래퍼 |
-| Testing | Kotest, MockK | Spec 스타일 |
 
 ### 동시성 설정
 
@@ -430,48 +416,30 @@ class Prayer(
 
 ## 패키지 구조
 
+> 기본 패키지 구조는 [README.md](./README.md#package-structure) 참조. 아래는 이벤트 관련 구조와 common 모듈 상세입니다.
+
+### common 모듈 상세
+
 ```
-io.clroot.selah
-├── common/                     # 공통 유틸리티, 전역 예외 처리
-│   ├── domain/
-│   │   ├── AggregateRoot.kt    # Aggregate Root 추상 클래스
-│   │   ├── AggregateId.kt      # ID 인터페이스
-│   │   └── DomainEntity.kt     # Entity 추상 클래스
-│   ├── event/
-│   │   ├── DomainEvent.kt      # 도메인 이벤트
-│   │   └── IntegrationEvent.kt # 통합 이벤트
-│   ├── response/
-│   │   ├── ApiResponse.kt      # API 응답 래퍼
-│   │   ├── ErrorResponse.kt    # 에러 응답
-│   │   └── PageResponse.kt     # 페이지네이션 응답
-│   ├── application/
-│   │   └── AggregateRootExtensions.kt  # 이벤트 발행 확장 함수
-│   ├── security/
-│   │   ├── PublicEndpoint.kt           # 공개 API 어노테이션
-│   │   └── PublicEndpointRegistry.kt   # 공개 엔드포인트 레지스트리
-│   └── util/
-│       └── ULIDSupport.kt      # ULID 생성/검증 유틸리티
-│
-└── domains/
-    ├── member/                 # 회원 컨텍스트
-    │   ├── adapter/
-    │   │   ├── inbound/       # Web Controller, Event Listener
-    │   │   └── outbound/      # JPA Repository, External API
-    │   ├── application/
-    │   │   ├── port/
-    │   │   │   ├── inbound/   # UseCase Interfaces
-    │   │   │   └── outbound/  # Persistence/Network Port Interfaces
-    │   │   └── service/       # UseCase Implementations
-    │   └── domain/            # Entities, Value Objects
-    │
-    └── prayer/                 # 기도 컨텍스트
-        ├── adapter/
-        │   ├── inbound/
-        │   └── outbound/
-        ├── application/
-        │   ├── port/
-        │   └── service/
-        └── domain/
+io.clroot.selah.common/
+├── domain/
+│   ├── AggregateRoot.kt        # Aggregate Root 추상 클래스
+│   ├── AggregateId.kt          # ID 인터페이스
+│   └── DomainEntity.kt         # Entity 추상 클래스
+├── event/
+│   ├── DomainEvent.kt          # 도메인 이벤트
+│   └── IntegrationEvent.kt     # 통합 이벤트
+├── response/
+│   ├── ApiResponse.kt          # API 응답 래퍼
+│   ├── ErrorResponse.kt        # 에러 응답
+│   └── PageResponse.kt         # 페이지네이션 응답
+├── application/
+│   └── AggregateRootExtensions.kt  # 이벤트 발행 확장 함수
+├── security/
+│   ├── PublicEndpoint.kt       # 공개 API 어노테이션
+│   └── PublicEndpointRegistry.kt   # 공개 엔드포인트 레지스트리
+└── util/
+    └── ULIDSupport.kt          # ULID 생성/검증 유틸리티
 ```
 
 ## Layer별 구현 규칙
@@ -1023,20 +991,7 @@ class PrayerTopicServiceTest : BehaviorSpec({
 
 ## 빠른 참조 명령어
 
-```bash
-# 빌드
-./gradlew build
-
-# 테스트
-./gradlew test
-
-# 특정 컨텍스트 테스트
-./gradlew :domains:member:test
-./gradlew :domains:prayer:test
-
-# 애플리케이션 실행
-./gradlew bootRun
-```
+> [README.md](./README.md#build) 참조
 
 ## ⚠️ Common Pitfalls (자주 하는 실수)
 
