@@ -152,6 +152,17 @@ tasks {
                     "*.**Properties",
                 )
             }
+
+            // Persistence Adapter는 실제 DB 테스트가 필수이므로 높은 커버리지 강제
+            rule {
+                element = "CLASS"
+                includes = listOf("*.*PersistenceAdapter")
+                limit {
+                    counter = "LINE"
+                    value = "COVEREDRATIO"
+                    minimum = "0.80".toBigDecimal()
+                }
+            }
         }
     }
 
