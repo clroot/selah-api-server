@@ -249,8 +249,7 @@ docker-compose up -d
 
 ### 아키텍처 가이드 (Architectural Design Notes)
 프로젝트 개발 과정에서의 주요 기술적 도전과 이를 해결하기 위한 아키텍처 설계 결정을 기록합니다.
-- [비동기 환경에서의 보안 컨텍스트 전파](./docs/architecture/coroutine-security-context.md)
-- [Coroutines와 JPA의 안정적인 통합 가이드](./docs/architecture/coroutine-jpa-transactions.md)
+- [Kotlin Coroutines 통합 아키텍처 가이드](./docs/architecture/kotlin-coroutines-integration.md)
 
 ### 핵심 규칙
 - Domain 클래스는 외부 라이브러리에 의존하지 않음
