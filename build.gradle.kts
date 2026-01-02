@@ -11,6 +11,7 @@ plugins {
 
     id("org.jlleitschuh.gradle.ktlint") version "13.1.0"
 
+    jacoco
     `java-test-fixtures`
 }
 
@@ -99,6 +100,59 @@ dependencies {
 tasks {
     test {
         useJUnitPlatform()
+        finalizedBy(jacocoTestReport)
+    }
+
+    jacocoTestReport {
+        dependsOn(test)
+        reports {
+            xml.required.set(true)
+            html.required.set(true)
+        }
+        classDirectories.setFrom(
+            sourceSets.main.get().output.asFileTree.matching {
+                exclude(
+                    "**/entities/**",
+                    "**/*Entity*",
+                    "**/*MapperImpl*",
+                    "**/*Application*",
+                    "**/*Id*",
+                    "**/*Request*",
+                    "**/*Response*",
+                    "**/*Command*",
+                    "**/*Query*",
+                    "**/*Dto*",
+                    "**/*DTO*",
+                    "**/*Properties*",
+                )
+            }
+        )
+    }
+
+    jacocoTestCoverageVerification {
+        violationRules {
+            rule {
+                element = "CLASS"
+                limit {
+                    counter = "LINE"
+                    value = "COVEREDRATIO"
+                    minimum = "0.60".toBigDecimal()
+                }
+                excludes = listOf(
+                    "*.**Entity",
+                    "*.**MapperImpl",
+                    "*.**Application",
+                    "*.**Id",
+                    "*.**Request",
+                    "*.**Response",
+                    "*.**Command",
+                    "*.**Query",
+                    "*.**Dto",
+                    "*.**DTO",
+                    "*.**Properties",
+                )
+            }
+        }
     }
 
     compileKotlin {
