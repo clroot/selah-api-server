@@ -81,6 +81,8 @@ class NamingConventionTest :
                         .haveSimpleNameNotEndingWith("Entity")
                         .and()
                         .haveSimpleNameNotEndingWith("Mapper")
+                        .and()
+                        .haveSimpleNameNotEndingWith("Id") // JPA composite key 클래스 제외
                         .should()
                         .haveSimpleNameEndingWith("Adapter")
                         .orShould()
