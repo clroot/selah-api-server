@@ -81,17 +81,6 @@ class LookbackSelectionPersistenceAdapter(
         memberId: MemberId,
         date: LocalDate,
     ) = withContext(Dispatchers.IO) {
-        val query =
-            jpql {
-                deleteFrom(entity(LookbackSelectionEntity::class))
-                    .where(
-                        and(
-                            path(LookbackSelectionEntity::memberId).eq(memberId.value),
-                            path(LookbackSelectionEntity::selectedAt).eq(date),
-                        ),
-                    )
-            }
-        entityManager.createQuery(query, jpqlRenderContext).executeUpdate()
-        Unit
+        repository.deleteByMemberIdAndSelectedAt(memberId.value, date)
     }
 }
