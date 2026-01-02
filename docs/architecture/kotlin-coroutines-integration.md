@@ -2,6 +2,20 @@
 
 > Kotlin Coroutines을 Spring MVC, Spring Security, Spring Data JPA와 함께 사용하면서 겪은 문제들과 해결 과정을 정리한 문서입니다.
 
+---
+
+### 요약
+
+| 항목 | 내용 |
+|-----|-----|
+| **목표** | Reactive 전환 대비 + 비동기 구조 선행 학습 |
+| **문제** | Spring의 ThreadLocal 기반 설계와 Coroutines 충돌 |
+| **해결** | SecurityContext 수동 전파, Repository 단위 트랜잭션, `Dispatchers.IO` 격리 |
+| **한계** | 복합 트랜잭션 원자성 미보장 (Saga 패턴 또는 보상 트랜잭션 필요) |
+| **로드맵** | Hibernate Reactive 전환 (조건부) |
+
+---
+
 ## 왜 Coroutines인가?
 
 ### 리액티브 전환의 징검다리
