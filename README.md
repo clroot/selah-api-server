@@ -247,10 +247,10 @@ docker-compose up -d
 
 자세한 개발 가이드라인은 [CLAUDE.md](./CLAUDE.md) 참조
 
-### 트러블슈팅 및 기술적 도전
-프로젝트 개발 과정에서의 주요 기술적 문제와 해결 과정을 기록합니다.
-- [Spring Security + Kotlin Coroutines Async Dispatch 문제](./docs/troubleshooting/001-spring-security-async-dispatch.md)
-- [Spring Data JPA Delete + Kotlin Coroutines 트랜잭션 문제](./docs/troubleshooting/003-spring-data-jpa-delete-coroutines-transaction.md)
+### 아키텍처 가이드 (Architectural Design Notes)
+프로젝트 개발 과정에서의 주요 기술적 도전과 이를 해결하기 위한 아키텍처 설계 결정을 기록합니다.
+- [비동기 환경에서의 보안 컨텍스트 전파](./docs/architecture/coroutine-security-context.md)
+- [Coroutines와 JPA의 안정적인 통합 가이드](./docs/architecture/coroutine-jpa-transactions.md)
 
 ### 핵심 규칙
 - Domain 클래스는 외부 라이브러리에 의존하지 않음
