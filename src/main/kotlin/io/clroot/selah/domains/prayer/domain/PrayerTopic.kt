@@ -2,6 +2,8 @@ package io.clroot.selah.domains.prayer.domain
 
 import io.clroot.selah.common.domain.AggregateRoot
 import io.clroot.selah.domains.member.domain.MemberId
+import io.clroot.selah.domains.prayer.domain.exception.PrayerTopicAlreadyAnsweredException
+import io.clroot.selah.domains.prayer.domain.exception.PrayerTopicNotAnsweredException
 import java.time.LocalDateTime
 
 /**
@@ -58,6 +60,9 @@ class PrayerTopic(
      * @throws IllegalStateException 이미 응답된 기도제목인 경우
      */
     fun markAsAnswered(reflection: String? = null) {
+        if (status == PrayerTopicStatus.ANSWERED) {
+            throw PrayerTopicAlreadyAnsweredException(id.value)
+        }
         check(status == PrayerTopicStatus.PRAYING) {
             "이미 응답된 기도제목입니다"
         }
@@ -74,8 +79,8 @@ class PrayerTopic(
      * @throws IllegalStateException 응답 상태가 아닌 경우
      */
     fun cancelAnswer() {
-        check(status == PrayerTopicStatus.ANSWERED) {
-            "응답 상태가 아닌 기도제목입니다"
+        if (status != PrayerTopicStatus.ANSWERED) {
+            throw PrayerTopicNotAnsweredException(id.value)
         }
         this.status = PrayerTopicStatus.PRAYING
         this.answeredAt = null
@@ -91,8 +96,8 @@ class PrayerTopic(
      * @throws IllegalStateException 응답 상태가 아닌 경우
      */
     fun updateReflection(newReflection: String?) {
-        check(status == PrayerTopicStatus.ANSWERED) {
-            "응답 상태가 아닌 기도제목입니다"
+        if (status != PrayerTopicStatus.ANSWERED) {
+            throw PrayerTopicNotAnsweredException(id.value)
         }
         if (reflection != newReflection) {
             this.reflection = newReflection

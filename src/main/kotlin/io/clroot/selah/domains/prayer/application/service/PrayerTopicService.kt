@@ -19,8 +19,6 @@ import io.clroot.selah.domains.prayer.domain.PrayerTopic
 import io.clroot.selah.domains.prayer.domain.PrayerTopicId
 import io.clroot.selah.domains.prayer.domain.PrayerTopicStatus
 import io.clroot.selah.domains.prayer.domain.exception.PrayerTopicAccessDeniedException
-import io.clroot.selah.domains.prayer.domain.exception.PrayerTopicAlreadyAnsweredException
-import io.clroot.selah.domains.prayer.domain.exception.PrayerTopicNotAnsweredException
 import io.clroot.selah.domains.prayer.domain.exception.PrayerTopicNotFoundException
 import org.springframework.context.ApplicationEventPublisher
 import org.springframework.data.domain.Page
@@ -120,10 +118,6 @@ class PrayerTopicService(
             throw PrayerTopicAccessDeniedException(command.id.value)
         }
 
-        if (prayerTopic.status == PrayerTopicStatus.ANSWERED) {
-            throw PrayerTopicAlreadyAnsweredException(command.id.value)
-        }
-
         prayerTopic.markAsAnswered(command.reflection)
 
         val saved = savePrayerTopicPort.save(prayerTopic)
@@ -141,10 +135,6 @@ class PrayerTopicService(
             throw PrayerTopicAccessDeniedException(command.id.value)
         }
 
-        if (prayerTopic.status != PrayerTopicStatus.ANSWERED) {
-            throw PrayerTopicNotAnsweredException(command.id.value)
-        }
-
         prayerTopic.cancelAnswer()
 
         val saved = savePrayerTopicPort.save(prayerTopic)
@@ -160,10 +150,6 @@ class PrayerTopicService(
 
         if (prayerTopic.memberId != command.memberId) {
             throw PrayerTopicAccessDeniedException(command.id.value)
-        }
-
-        if (prayerTopic.status != PrayerTopicStatus.ANSWERED) {
-            throw PrayerTopicNotAnsweredException(command.id.value)
         }
 
         prayerTopic.updateReflection(command.reflection)

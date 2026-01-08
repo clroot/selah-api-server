@@ -51,6 +51,14 @@ JPA Entity (Adapter) ↔ Domain Model (Domain)  # 반드시 Mapper로 분리
 
 **이유**: JPA 어노테이션(`@Entity`)이 도메인 모델을 오염시키지 않도록 함
 
+### 3. 예외 처리 전략 (중요)
+
+**비즈니스 로직에는 구체적인 도메인 예외를 사용합니다.**
+
+*   `check()`, `require()` 등으로 일반적인 `IllegalStateException`, `IllegalArgumentException`을 던지는 것을 지양합니다.
+*   대신, `PasswordNotSetException`, `PrayerTopicAlreadyAnsweredException` 등 구체적인 예외 클래스를 정의하여 던집니다.
+*   이를 통해 호출자(Service, Controller)가 예외 상황을 명확히 인지하고 적절한 HTTP 상태 코드(400, 403, 409 등)로 매핑할 수 있게 합니다.
+
 ## Bounded Contexts
 
 ### 👤 1. Member Context (회원 도메인)
@@ -556,6 +564,9 @@ class PrayerTopic(
 
     // ✅ 비즈니스 메서드에서 touch() 호출로 updatedAt 갱신
     fun markAsAnswered(reflection: String? = null) {
+        if (status == PrayerStatus.ANSWERED) {
+            throw PrayerTopicAlreadyAnsweredException(id.value)
+        }
         status = PrayerStatus.ANSWERED
         answeredAt = LocalDateTime.now()
         this.reflection = reflection

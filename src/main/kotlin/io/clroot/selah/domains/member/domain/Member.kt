@@ -2,6 +2,10 @@ package io.clroot.selah.domains.member.domain
 
 import io.clroot.selah.common.domain.AggregateRoot
 import io.clroot.selah.domains.member.domain.event.*
+import io.clroot.selah.domains.member.domain.exception.CannotDisconnectLastLoginMethodException
+import io.clroot.selah.domains.member.domain.exception.OAuthProviderAlreadyConnectedException
+import io.clroot.selah.domains.member.domain.exception.OAuthProviderNotConnectedException
+import io.clroot.selah.domains.member.domain.exception.PasswordNotSetException
 import java.time.LocalDateTime
 
 /**
@@ -96,12 +100,16 @@ class Member(
 
     /**
      * 새로운 OAuth Provider를 연결합니다.
+     *
+     * @throws OAuthProviderAlreadyConnectedException 이미 연결된 Provider인 경우
      */
     fun connectOAuth(
         provider: OAuthProvider,
         providerId: String,
     ) {
-        require(!hasProvider(provider)) { "Provider $provider is already connected" }
+        if (hasProvider(provider)) {
+            throw OAuthProviderAlreadyConnectedException(provider.name)
+        }
 
         val connection =
             OAuthConnection.create(
@@ -116,16 +124,19 @@ class Member(
     /**
      * OAuth Provider 연결을 해제합니다.
      * 비밀번호가 설정되어 있으면 마지막 OAuth도 해제할 수 있습니다.
+     *
+     * @throws OAuthProviderNotConnectedException 연결되지 않은 Provider인 경우
+     * @throws CannotDisconnectLastLoginMethodException 해제 시 로그인할 수단이 없는 경우
      */
     fun disconnectOAuth(provider: OAuthProvider) {
         val connection =
             _oauthConnections.find { it.provider == provider }
-                ?: throw IllegalArgumentException("Provider $provider is not connected")
+                ?: throw OAuthProviderNotConnectedException(provider.name)
 
         // 마지막 OAuth이고 비밀번호가 없으면 해제 불가
         val isLastOAuth = _oauthConnections.size == 1
-        require(!isLastOAuth || hasPassword) {
-            "Cannot disconnect the last OAuth provider without a password"
+        if (isLastOAuth && !hasPassword) {
+            throw CannotDisconnectLastLoginMethodException()
         }
 
         _oauthConnections.remove(connection)
@@ -197,9 +208,12 @@ class Member(
      * 비밀번호를 변경합니다.
      *
      * @param newPasswordHash Application Layer에서 해시된 새 비밀번호
+     * @throws PasswordNotSetException 비밀번호가 설정되지 않은 경우
      */
     fun changePassword(newPasswordHash: PasswordHash) {
-        require(hasPassword) { "Cannot change password for member without password" }
+        if (!hasPassword) {
+            throw PasswordNotSetException()
+        }
 
         passwordHash = newPasswordHash
         touch()

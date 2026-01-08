@@ -10,11 +10,8 @@ import io.clroot.selah.domains.member.application.port.outbound.OAuthUserInfoPor
 import io.clroot.selah.domains.member.application.port.outbound.SaveMemberPort
 import io.clroot.selah.domains.member.domain.MemberId
 import io.clroot.selah.domains.member.domain.OAuthProvider
-import io.clroot.selah.domains.member.domain.exception.CannotDisconnectLastLoginMethodException
 import io.clroot.selah.domains.member.domain.exception.MemberNotFoundException
 import io.clroot.selah.domains.member.domain.exception.OAuthAlreadyLinkedToAnotherMemberException
-import io.clroot.selah.domains.member.domain.exception.OAuthProviderAlreadyConnectedException
-import io.clroot.selah.domains.member.domain.exception.OAuthProviderNotConnectedException
 import io.github.oshai.kotlinlogging.KotlinLogging
 import org.springframework.context.ApplicationEventPublisher
 import org.springframework.stereotype.Service
@@ -68,11 +65,6 @@ class OAuthConnectionService(
             loadMemberPort.findById(memberId)
                 ?: throw MemberNotFoundException(memberId.value)
 
-        // 이미 연결된 Provider인지 확인
-        if (member.hasProvider(command.provider)) {
-            throw OAuthProviderAlreadyConnectedException(command.provider.name)
-        }
-
         // OAuth Provider에서 사용자 정보 가져오기
         val oauthUserInfo = oauthUserInfoPort.getUserInfo(command.provider, command.accessToken)
 
@@ -110,17 +102,6 @@ class OAuthConnectionService(
         val member =
             loadMemberPort.findById(memberId)
                 ?: throw MemberNotFoundException(memberId.value)
-
-        // 연결되지 않은 Provider인지 확인
-        if (!member.hasProvider(provider)) {
-            throw OAuthProviderNotConnectedException(provider.name)
-        }
-
-        // 마지막 로그인 방법인지 확인
-        val isLastLoginMethod = !member.hasPassword && member.oauthConnections.size == 1
-        if (isLastLoginMethod) {
-            throw CannotDisconnectLastLoginMethodException()
-        }
 
         // OAuth 연결 해제
         member.disconnectOAuth(provider)
