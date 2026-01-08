@@ -2,6 +2,7 @@ package io.clroot.selah.domains.prayer.adapter.outbound.persistence
 
 import com.linecorp.kotlinjdsl.dsl.jpql.jpql
 import com.linecorp.kotlinjdsl.render.jpql.JpqlRenderContext
+import com.linecorp.kotlinjdsl.support.hibernate.reactive.extension.createMutationQuery
 import com.linecorp.kotlinjdsl.support.hibernate.reactive.extension.createQuery
 import io.clroot.selah.domains.member.domain.MemberId
 import io.clroot.selah.domains.prayer.application.port.outbound.DeletePrayerPort
@@ -10,7 +11,6 @@ import io.clroot.selah.domains.prayer.application.port.outbound.SavePrayerPort
 import io.clroot.selah.domains.prayer.domain.Prayer
 import io.clroot.selah.domains.prayer.domain.PrayerId
 import io.clroot.selah.domains.prayer.domain.PrayerTopicId
-import io.smallrye.mutiny.Uni
 import io.smallrye.mutiny.coroutines.awaitSuspending
 import org.hibernate.reactive.mutiny.Mutiny
 import org.springframework.data.domain.Page
@@ -103,13 +103,11 @@ class PrayerPersistenceAdapter(
     override suspend fun deleteById(id: PrayerId) {
         sessionFactory
             .withTransaction { session ->
-                session.find(PrayerEntity::class.java, id.value).chain { entity: PrayerEntity? ->
-                    if (entity != null) {
-                        session.remove(entity).chain { _ -> session.flush() }
-                    } else {
-                        Uni.createFrom().voidItem()
-                    }
+                val query = jpql {
+                    deleteFrom(entity(PrayerEntity::class))
+                        .where(path(PrayerEntity::id).eq(id.value))
                 }
+                session.createMutationQuery(query, jpqlRenderContext).executeUpdate()
             }.awaitSuspending()
     }
 

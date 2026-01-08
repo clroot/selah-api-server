@@ -2,6 +2,7 @@ package io.clroot.selah.domains.prayer.adapter.outbound.persistence
 
 import com.linecorp.kotlinjdsl.dsl.jpql.jpql
 import com.linecorp.kotlinjdsl.render.jpql.JpqlRenderContext
+import com.linecorp.kotlinjdsl.support.hibernate.reactive.extension.createMutationQuery
 import com.linecorp.kotlinjdsl.support.hibernate.reactive.extension.createQuery
 import io.clroot.selah.domains.member.domain.MemberId
 import io.clroot.selah.domains.prayer.application.port.outbound.DeleteLookbackSelectionPort
@@ -9,7 +10,6 @@ import io.clroot.selah.domains.prayer.application.port.outbound.LoadLookbackSele
 import io.clroot.selah.domains.prayer.application.port.outbound.SaveLookbackSelectionPort
 import io.clroot.selah.domains.prayer.domain.LookbackSelection
 import io.clroot.selah.domains.prayer.domain.PrayerTopicId
-import io.smallrye.mutiny.Uni
 import io.smallrye.mutiny.coroutines.awaitSuspending
 import org.hibernate.reactive.mutiny.Mutiny
 import org.springframework.stereotype.Component
@@ -27,7 +27,10 @@ class LookbackSelectionPersistenceAdapter(
         sessionFactory
             .withTransaction { session ->
                 val entity = mapper.toEntity(selection)
-                session.persist(entity).chain { _ -> session.flush() }.replaceWith(mapper.toDomain(entity))
+                session
+                    .persist(entity)
+                    .chain { _ -> session.flush() }
+                    .replaceWith(mapper.toDomain(entity))
             }.awaitSuspending()
 
     override suspend fun findByMemberIdAndDate(
@@ -38,12 +41,14 @@ class LookbackSelectionPersistenceAdapter(
             .withSession { session ->
                 val query =
                     jpql {
-                        select(entity(LookbackSelectionEntity::class)).from(entity(LookbackSelectionEntity::class)).where(
-                            and(
-                                path(LookbackSelectionEntity::memberId).eq(memberId.value),
-                                path(LookbackSelectionEntity::selectedAt).eq(date),
-                            ),
-                        )
+                        select(entity(LookbackSelectionEntity::class))
+                            .from(entity(LookbackSelectionEntity::class))
+                            .where(
+                                and(
+                                    path(LookbackSelectionEntity::memberId).eq(memberId.value),
+                                    path(LookbackSelectionEntity::selectedAt).eq(date),
+                                ),
+                            )
                     }
                 session.createQuery(query, jpqlRenderContext).singleResultOrNull
             }.awaitSuspending()
@@ -81,26 +86,12 @@ class LookbackSelectionPersistenceAdapter(
             .withTransaction { session ->
                 val query =
                     jpql {
-                        select(entity(LookbackSelectionEntity::class)).from(entity(LookbackSelectionEntity::class)).where(
-                            and(
-                                path(LookbackSelectionEntity::memberId).eq(memberId.value),
-                                path(LookbackSelectionEntity::selectedAt).eq(date),
-                            ),
-                        )
+                        deleteFrom(entity(LookbackSelectionEntity::class))
+                            .where(path(LookbackSelectionEntity::selectedAt).eq(date))
                     }
-
                 session
-                    .createQuery(
-                        query,
-                        jpqlRenderContext,
-                    ).singleResultOrNull
-                    .chain { entity: LookbackSelectionEntity? ->
-                        if (entity != null) {
-                            session.remove(entity).chain { _ -> session.flush() }
-                        } else {
-                            Uni.createFrom().voidItem()
-                        }
-                    }
+                    .createMutationQuery(query, jpqlRenderContext)
+                    .executeUpdate()
             }.awaitSuspending()
     }
 }
