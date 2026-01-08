@@ -18,6 +18,11 @@ class HibernateReactiveConfig(
     @Value($$"${spring.datasource.url}") private val jdbcUrl: String,
     @Value($$"${spring.datasource.username}") private val username: String,
     @Value($$"${spring.datasource.password}") private val password: String,
+    @Value($$"${spring.jpa.database-platform}") private val dialect: String,
+    @Value($$"${spring.jpa.hibernate.ddl-auto}") private val ddlAuto: String,
+    @Value($$"${spring.jpa.show-sql}") private val showSql: String,
+    @Value($$"${spring.jpa.properties.hibernate.format_sql}") private val formatSql: String,
+    @Value($$"${selah.reactive.connection.pool_size:10}") private val poolSize: String,
 ) {
     @Bean
     fun prayerReactiveSessionFactory(): Mutiny.SessionFactory {
@@ -32,11 +37,11 @@ class HibernateReactiveConfig(
                 .setProperty(AvailableSettings.JAKARTA_JDBC_URL, reactiveUrl)
                 .setProperty(AvailableSettings.JAKARTA_JDBC_USER, username)
                 .setProperty(AvailableSettings.JAKARTA_JDBC_PASSWORD, password)
-                .setProperty(AvailableSettings.DIALECT, "org.hibernate.dialect.PostgreSQLDialect")
-                .setProperty(AvailableSettings.HBM2DDL_AUTO, "none")
-                .setProperty(AvailableSettings.SHOW_SQL, "false")
-                .setProperty(AvailableSettings.FORMAT_SQL, "false")
-                .setProperty("hibernate.connection.pool_size", "10")
+                .setProperty(AvailableSettings.DIALECT, dialect)
+                .setProperty(AvailableSettings.HBM2DDL_AUTO, ddlAuto)
+                .setProperty(AvailableSettings.SHOW_SQL, showSql)
+                .setProperty(AvailableSettings.FORMAT_SQL, formatSql)
+                .setProperty("hibernate.connection.pool_size", poolSize)
 
         val serviceRegistry =
             ReactiveServiceRegistryBuilder()
