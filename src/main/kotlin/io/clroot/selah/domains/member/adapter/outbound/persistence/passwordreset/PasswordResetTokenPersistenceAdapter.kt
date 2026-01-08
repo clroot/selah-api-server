@@ -15,19 +15,15 @@ import io.smallrye.mutiny.coroutines.awaitSuspending
 import org.hibernate.reactive.mutiny.Mutiny
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component
-import org.springframework.transaction.annotation.Transactional
 import java.security.SecureRandom
 import java.time.Duration
 import java.time.LocalDateTime
 
-/**
- * 비밀번호 재설정 토큰 Persistence Adapter
- */
 @Component
 class PasswordResetTokenPersistenceAdapter(
     private val sessionFactory: Mutiny.SessionFactory,
     private val jpqlRenderContext: JpqlRenderContext,
-    @Value($$"${selah.password-reset.ttl:PT1H}")
+    @Value("\${selah.password-reset.ttl:PT1H}")
     private val tokenTtl: Duration,
 ) : PasswordResetTokenPort {
     companion object {
@@ -35,14 +31,11 @@ class PasswordResetTokenPersistenceAdapter(
         private val SECURE_RANDOM = SecureRandom()
     }
 
-    @Transactional
     override suspend fun create(memberId: MemberId): PasswordResetTokenCreateResult =
         sessionFactory
             .withTransaction { session ->
                 val now = LocalDateTime.now()
                 val id = ULIDSupport.generateULID()
-
-                // 랜덤 토큰 생성
                 val rawToken = generateToken()
                 val tokenHash = hashToken(rawToken)
 
@@ -67,82 +60,89 @@ class PasswordResetTokenPersistenceAdapter(
         sessionFactory
             .withSession { session ->
                 val tokenHash = hashToken(token)
-                val query =
-                    jpql {
-                        select(entity(PasswordResetTokenEntity::class))
-                            .from(entity(PasswordResetTokenEntity::class))
-                            .where(path(PasswordResetTokenEntity::tokenHash).eq(tokenHash))
-                    }
-                session.createQuery(query, jpqlRenderContext).singleResultOrNull
+                val now = LocalDateTime.now()
+                session
+                    .createQuery(
+                        jpql {
+                            select(entity(PasswordResetTokenEntity::class))
+                                .from(entity(PasswordResetTokenEntity::class))
+                                .where(
+                                    and(
+                                        path(PasswordResetTokenEntity::tokenHash).eq(tokenHash),
+                                        path(PasswordResetTokenEntity::expiresAt).gt(now),
+                                        path(PasswordResetTokenEntity::usedAt).isNull(),
+                                    ),
+                                )
+                        },
+                        jpqlRenderContext,
+                    ).singleResultOrNull
             }.awaitSuspending()
             ?.toInfo()
-            ?.let {
-                if (it.isValid()) it else null
-            }
 
-    @Transactional
     override suspend fun markAsUsed(id: String) {
         sessionFactory
             .withTransaction { session ->
-                val query =
-                    jpql {
-                        update(entity(PasswordResetTokenEntity::class))
-                            .set(path(PasswordResetTokenEntity::usedAt), LocalDateTime.now())
-                            .where(path(PasswordResetTokenEntity::id).eq(id))
-                    }
-                session.createMutationQuery(query, jpqlRenderContext).executeUpdate()
+                session
+                    .createMutationQuery(
+                        jpql {
+                            update(entity(PasswordResetTokenEntity::class))
+                                .set(path(PasswordResetTokenEntity::usedAt), LocalDateTime.now())
+                                .where(path(PasswordResetTokenEntity::id).eq(id))
+                        },
+                        jpqlRenderContext,
+                    ).executeUpdate()
             }.awaitSuspending()
     }
 
     override suspend fun invalidateAllByMemberId(memberId: MemberId) {
         sessionFactory
             .withTransaction { session ->
-                val query =
-                    jpql {
-                        deleteFrom(entity(PasswordResetTokenEntity::class))
-                            .where(path(PasswordResetTokenEntity::memberId).eq(memberId.value))
-                    }
-                session.createMutationQuery(query, jpqlRenderContext).executeUpdate()
+                session
+                    .createMutationQuery(
+                        jpql {
+                            deleteFrom(entity(PasswordResetTokenEntity::class))
+                                .where(path(PasswordResetTokenEntity::memberId).eq(memberId.value))
+                        },
+                        jpqlRenderContext,
+                    ).executeUpdate()
             }.awaitSuspending()
     }
 
     override suspend fun findLatestCreatedAtByMemberId(memberId: MemberId): LocalDateTime? =
         sessionFactory
             .withSession { session ->
-                val query =
-                    jpql {
-                        select(path(PasswordResetTokenEntity::createdAt))
-                            .from(entity(PasswordResetTokenEntity::class))
-                            .where(path(PasswordResetTokenEntity::memberId).eq(memberId.value))
-                            .orderBy(path(PasswordResetTokenEntity::createdAt).desc())
-                    }
-                session.createQuery(query, jpqlRenderContext).resultList
+                session
+                    .createQuery(
+                        jpql {
+                            select(path(PasswordResetTokenEntity::createdAt))
+                                .from(entity(PasswordResetTokenEntity::class))
+                                .where(path(PasswordResetTokenEntity::memberId).eq(memberId.value))
+                                .orderBy(path(PasswordResetTokenEntity::createdAt).desc())
+                        },
+                        jpqlRenderContext,
+                    ).setMaxResults(1)
+                    .singleResultOrNull
             }.awaitSuspending()
-            ?.firstOrNull()
 
     override suspend fun deleteExpiredTokens(): Int =
         sessionFactory
             .withTransaction { session ->
-                val query =
-                    jpql {
-                        deleteFrom(entity(PasswordResetTokenEntity::class))
-                            .where(path(PasswordResetTokenEntity::expiresAt).lt(LocalDateTime.now()))
-                    }
-                session.createMutationQuery(query, jpqlRenderContext).executeUpdate()
+                session
+                    .createMutationQuery(
+                        jpql {
+                            deleteFrom(entity(PasswordResetTokenEntity::class))
+                                .where(path(PasswordResetTokenEntity::expiresAt).lt(LocalDateTime.now()))
+                        },
+                        jpqlRenderContext,
+                    ).executeUpdate()
             }.awaitSuspending()
 
-    /**
-     * 랜덤 토큰 생성 (hex 문자열)
-     */
     private fun generateToken(): String {
         val bytes = ByteArray(TOKEN_LENGTH)
         SECURE_RANDOM.nextBytes(bytes)
         return bytes.toHexString()
     }
 
-    /**
-     * 토큰 해싱 (SHA-256)
-     */
     private fun hashToken(token: String): String = hashSha256(token)
 
     private fun PasswordResetTokenEntity.toInfo(): PasswordResetTokenInfo =

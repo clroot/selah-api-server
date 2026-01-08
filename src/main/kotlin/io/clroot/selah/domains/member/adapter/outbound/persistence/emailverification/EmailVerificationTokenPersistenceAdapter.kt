@@ -19,9 +19,6 @@ import java.security.SecureRandom
 import java.time.Duration
 import java.time.LocalDateTime
 
-/**
- * 이메일 인증 토큰 Persistence Adapter (Reactive)
- */
 @Component
 class EmailVerificationTokenPersistenceAdapter(
     private val sessionFactory: Mutiny.SessionFactory,
@@ -36,10 +33,9 @@ class EmailVerificationTokenPersistenceAdapter(
 
     override suspend fun create(memberId: MemberId): EmailVerificationTokenCreateResult =
         sessionFactory
-            .withTransaction { session, _ ->
+            .withTransaction { session ->
                 val now = LocalDateTime.now()
                 val id = ULIDSupport.generateULID()
-
                 val rawToken = generateToken()
                 val tokenHash = hashToken(rawToken)
 
@@ -85,26 +81,30 @@ class EmailVerificationTokenPersistenceAdapter(
 
     override suspend fun markAsUsed(id: String) {
         sessionFactory
-            .withTransaction { session, _ ->
-                val query =
-                    jpql {
-                        update(entity(EmailVerificationTokenEntity::class))
-                            .set(path(EmailVerificationTokenEntity::usedAt), LocalDateTime.now())
-                            .where(path(EmailVerificationTokenEntity::id).eq(id))
-                    }
-                session.createMutationQuery(query, jpqlRenderContext).executeUpdate()
+            .withTransaction { session ->
+                session
+                    .createMutationQuery(
+                        jpql {
+                            update(entity(EmailVerificationTokenEntity::class))
+                                .set(path(EmailVerificationTokenEntity::usedAt), LocalDateTime.now())
+                                .where(path(EmailVerificationTokenEntity::id).eq(id))
+                        },
+                        jpqlRenderContext,
+                    ).executeUpdate()
             }.awaitSuspending()
     }
 
     override suspend fun invalidateAllByMemberId(memberId: MemberId) {
         sessionFactory
-            .withTransaction { session, _ ->
-                val query =
-                    jpql {
-                        deleteFrom(entity(EmailVerificationTokenEntity::class))
-                            .where(path(EmailVerificationTokenEntity::memberId).eq(memberId.value))
-                    }
-                session.createMutationQuery(query, jpqlRenderContext).executeUpdate()
+            .withTransaction { session ->
+                session
+                    .createMutationQuery(
+                        jpql {
+                            deleteFrom(entity(EmailVerificationTokenEntity::class))
+                                .where(path(EmailVerificationTokenEntity::memberId).eq(memberId.value))
+                        },
+                        jpqlRenderContext,
+                    ).executeUpdate()
             }.awaitSuspending()
     }
 
@@ -126,31 +126,23 @@ class EmailVerificationTokenPersistenceAdapter(
 
     override suspend fun deleteExpiredTokens(): Int =
         sessionFactory
-            .withTransaction { session, _ ->
-                val query =
-                    jpql {
-                        deleteFrom(entity(EmailVerificationTokenEntity::class))
-                            .where(path(EmailVerificationTokenEntity::expiresAt).lt(LocalDateTime.now()))
-                    }
+            .withTransaction { session ->
                 session
                     .createMutationQuery(
-                        query,
+                        jpql {
+                            deleteFrom(entity(EmailVerificationTokenEntity::class))
+                                .where(path(EmailVerificationTokenEntity::expiresAt).lt(LocalDateTime.now()))
+                        },
                         jpqlRenderContext,
                     ).executeUpdate()
             }.awaitSuspending()
 
-    /**
-     * 랜덤 토큰 생성 (hex 문자열)
-     */
     private fun generateToken(): String {
         val bytes = ByteArray(TOKEN_LENGTH)
         SECURE_RANDOM.nextBytes(bytes)
         return bytes.toHexString()
     }
 
-    /**
-     * 토큰 해싱 (SHA-256)
-     */
     private fun hashToken(token: String): String = hashSha256(token)
 
     private fun EmailVerificationTokenEntity.toInfo(): EmailVerificationTokenInfo =

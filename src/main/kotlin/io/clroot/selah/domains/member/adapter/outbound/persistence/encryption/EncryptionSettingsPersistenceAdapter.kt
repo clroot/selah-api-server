@@ -13,9 +13,6 @@ import io.smallrye.mutiny.coroutines.awaitSuspending
 import org.hibernate.reactive.mutiny.Mutiny
 import org.springframework.stereotype.Component
 
-/**
- * EncryptionSettings Persistence Adapter
- */
 @Component
 class EncryptionSettingsPersistenceAdapter(
     private val sessionFactory: Mutiny.SessionFactory,
@@ -27,33 +24,45 @@ class EncryptionSettingsPersistenceAdapter(
     override suspend fun findByMemberId(memberId: MemberId): EncryptionSettings? =
         sessionFactory
             .withSession { session ->
-                val query =
-                    jpql {
-                        select(entity(EncryptionSettingsEntity::class))
-                            .from(entity(EncryptionSettingsEntity::class))
-                            .where(path(EncryptionSettingsEntity::memberId).eq(memberId.value))
-                    }
-                session.createQuery(query, jpqlRenderContext).singleResultOrNull
+                session
+                    .createQuery(
+                        jpql {
+                            select(entity(EncryptionSettingsEntity::class))
+                                .from(entity(EncryptionSettingsEntity::class))
+                                .where(path(EncryptionSettingsEntity::memberId).eq(memberId.value))
+                        },
+                        jpqlRenderContext,
+                    ).singleResultOrNull
             }.awaitSuspending()
             ?.let { mapper.toDomain(it) }
 
     override suspend fun existsByMemberId(memberId: MemberId): Boolean =
         sessionFactory
             .withSession { session ->
-                val query =
-                    jpql {
-                        select(entity(EncryptionSettingsEntity::class))
-                            .from(entity(EncryptionSettingsEntity::class))
-                            .where(path(EncryptionSettingsEntity::memberId).eq(memberId.value))
-                    }
-                session.createQuery(query, jpqlRenderContext).singleResultOrNull
-            }.awaitSuspending() != null
+                session
+                    .createQuery(
+                        jpql {
+                            select(count(entity(EncryptionSettingsEntity::class)))
+                                .from(entity(EncryptionSettingsEntity::class))
+                                .where(path(EncryptionSettingsEntity::memberId).eq(memberId.value))
+                        },
+                        jpqlRenderContext,
+                    ).singleResult
+                    .map { count: Long -> count > 0 }
+            }.awaitSuspending()
 
     override suspend fun save(encryptionSettings: EncryptionSettings): EncryptionSettings =
         sessionFactory
             .withTransaction { session ->
                 session
-                    .find(EncryptionSettingsEntity::class.java, encryptionSettings.id.value)
+                    .createQuery(
+                        jpql {
+                            select(entity(EncryptionSettingsEntity::class))
+                                .from(entity(EncryptionSettingsEntity::class))
+                                .where(path(EncryptionSettingsEntity::id).eq(encryptionSettings.id.value))
+                        },
+                        jpqlRenderContext,
+                    ).singleResultOrNull
                     .chain { existing: EncryptionSettingsEntity? ->
                         if (existing != null) {
                             mapper.updateEntity(existing, encryptionSettings)
@@ -69,12 +78,14 @@ class EncryptionSettingsPersistenceAdapter(
     override suspend fun deleteByMemberId(memberId: MemberId) {
         sessionFactory
             .withTransaction { session ->
-                val query =
-                    jpql {
-                        deleteFrom(entity(EncryptionSettingsEntity::class))
-                            .where(path(EncryptionSettingsEntity::memberId).eq(memberId.value))
-                    }
-                session.createMutationQuery(query, jpqlRenderContext).executeUpdate()
+                session
+                    .createMutationQuery(
+                        jpql {
+                            deleteFrom(entity(EncryptionSettingsEntity::class))
+                                .where(path(EncryptionSettingsEntity::memberId).eq(memberId.value))
+                        },
+                        jpqlRenderContext,
+                    ).executeUpdate()
             }.awaitSuspending()
     }
 }

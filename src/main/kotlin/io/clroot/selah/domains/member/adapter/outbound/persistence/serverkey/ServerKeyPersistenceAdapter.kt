@@ -24,28 +24,30 @@ class ServerKeyPersistenceAdapter(
     override suspend fun findByMemberId(memberId: MemberId): ServerKey? =
         sessionFactory
             .withSession { session ->
-                val query =
-                    jpql {
-                        select(entity(ServerKeyEntity::class))
-                            .from(entity(ServerKeyEntity::class))
-                            .where(path(ServerKeyEntity::memberId).eq(memberId.value))
-                    }
-                session.createQuery(query, jpqlRenderContext).singleResultOrNull
+                session
+                    .createQuery(
+                        jpql {
+                            select(entity(ServerKeyEntity::class))
+                                .from(entity(ServerKeyEntity::class))
+                                .where(path(ServerKeyEntity::memberId).eq(memberId.value))
+                        },
+                        jpqlRenderContext,
+                    ).singleResultOrNull
             }.awaitSuspending()
             ?.let { mapper.toDomain(it) }
 
     override suspend fun existsByMemberId(memberId: MemberId): Boolean =
         sessionFactory
             .withSession { session ->
-                val query =
-                    jpql {
-                        select(count(entity(ServerKeyEntity::class)))
-                            .from(entity(ServerKeyEntity::class))
-                            .where(path(ServerKeyEntity::memberId).eq(memberId.value))
-                    }
                 session
-                    .createQuery(query, jpqlRenderContext)
-                    .singleResult
+                    .createQuery(
+                        jpql {
+                            select(count(entity(ServerKeyEntity::class)))
+                                .from(entity(ServerKeyEntity::class))
+                                .where(path(ServerKeyEntity::memberId).eq(memberId.value))
+                        },
+                        jpqlRenderContext,
+                    ).singleResult
                     .map { count: Long -> count > 0 }
             }.awaitSuspending()
 
@@ -53,7 +55,14 @@ class ServerKeyPersistenceAdapter(
         sessionFactory
             .withTransaction { session ->
                 session
-                    .find(ServerKeyEntity::class.java, serverKey.id.value)
+                    .createQuery(
+                        jpql {
+                            select(entity(ServerKeyEntity::class))
+                                .from(entity(ServerKeyEntity::class))
+                                .where(path(ServerKeyEntity::id).eq(serverKey.id.value))
+                        },
+                        jpqlRenderContext,
+                    ).singleResultOrNull
                     .chain { existing: ServerKeyEntity? ->
                         if (existing != null) {
                             mapper.updateEntity(existing, serverKey)
@@ -69,12 +78,14 @@ class ServerKeyPersistenceAdapter(
     override suspend fun deleteByMemberId(memberId: MemberId) {
         sessionFactory
             .withTransaction { session ->
-                val query =
-                    jpql {
-                        deleteFrom(entity(ServerKeyEntity::class))
-                            .where(path(ServerKeyEntity::memberId).eq(memberId.value))
-                    }
-                session.createMutationQuery(query, jpqlRenderContext).executeUpdate()
+                session
+                    .createMutationQuery(
+                        jpql {
+                            deleteFrom(entity(ServerKeyEntity::class))
+                                .where(path(ServerKeyEntity::memberId).eq(memberId.value))
+                        },
+                        jpqlRenderContext,
+                    ).executeUpdate()
             }.awaitSuspending()
     }
 }

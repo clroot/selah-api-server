@@ -3,6 +3,7 @@ package io.clroot.selah.domains.member.adapter.outbound.persistence.session
 import com.linecorp.kotlinjdsl.dsl.jpql.jpql
 import com.linecorp.kotlinjdsl.render.jpql.JpqlRenderContext
 import com.linecorp.kotlinjdsl.support.hibernate.reactive.extension.createMutationQuery
+import com.linecorp.kotlinjdsl.support.hibernate.reactive.extension.createQuery
 import io.clroot.selah.domains.member.application.port.outbound.SessionInfo
 import io.clroot.selah.domains.member.application.port.outbound.SessionPort
 import io.clroot.selah.domains.member.domain.Member
@@ -13,7 +14,7 @@ import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component
 import java.time.Duration
 import java.time.LocalDateTime
-import java.util.*
+import java.util.UUID
 
 @Component
 class SessionPersistenceAdapter(
@@ -54,7 +55,15 @@ class SessionPersistenceAdapter(
     override suspend fun findByToken(token: String): SessionInfo? =
         sessionFactory
             .withSession { session ->
-                session.find(SessionEntity::class.java, token)
+                session
+                    .createQuery(
+                        jpql {
+                            select(entity(SessionEntity::class))
+                                .from(entity(SessionEntity::class))
+                                .where(path(SessionEntity::token).eq(token))
+                        },
+                        jpqlRenderContext,
+                    ).singleResultOrNull
             }.awaitSuspending()
             ?.toSessionInfo()
 
@@ -62,26 +71,27 @@ class SessionPersistenceAdapter(
         sessionFactory
             .withTransaction { session ->
                 session
-                    .find(SessionEntity::class.java, token)
-                    .chain { entity: SessionEntity? ->
-                        if (entity != null) {
-                            session.remove(entity)
-                        } else {
-                            Mutiny.fetch(null)
-                        }
-                    }
+                    .createMutationQuery(
+                        jpql {
+                            deleteFrom(entity(SessionEntity::class))
+                                .where(path(SessionEntity::token).eq(token))
+                        },
+                        jpqlRenderContext,
+                    ).executeUpdate()
             }.awaitSuspending()
     }
 
     override suspend fun deleteAllByMemberId(memberId: MemberId) {
         sessionFactory
             .withTransaction { session ->
-                val query =
-                    jpql {
-                        deleteFrom(entity(SessionEntity::class))
-                            .where(path(SessionEntity::memberId).eq(memberId.value))
-                    }
-                session.createMutationQuery(query, jpqlRenderContext).executeUpdate()
+                session
+                    .createMutationQuery(
+                        jpql {
+                            deleteFrom(entity(SessionEntity::class))
+                                .where(path(SessionEntity::memberId).eq(memberId.value))
+                        },
+                        jpqlRenderContext,
+                    ).executeUpdate()
             }.awaitSuspending()
     }
 
@@ -92,7 +102,14 @@ class SessionPersistenceAdapter(
         sessionFactory
             .withTransaction { session ->
                 session
-                    .find(SessionEntity::class.java, token)
+                    .createQuery(
+                        jpql {
+                            select(entity(SessionEntity::class))
+                                .from(entity(SessionEntity::class))
+                                .where(path(SessionEntity::token).eq(token))
+                        },
+                        jpqlRenderContext,
+                    ).singleResultOrNull
                     .chain { entity: SessionEntity? ->
                         if (entity == null) {
                             return@chain Mutiny.fetch(null)
@@ -113,12 +130,14 @@ class SessionPersistenceAdapter(
     override suspend fun deleteExpiredSessions(): Int =
         sessionFactory
             .withTransaction { session ->
-                val query =
-                    jpql {
-                        deleteFrom(entity(SessionEntity::class))
-                            .where(path(SessionEntity::expiresAt).lt(LocalDateTime.now()))
-                    }
-                session.createMutationQuery(query, jpqlRenderContext).executeUpdate()
+                session
+                    .createMutationQuery(
+                        jpql {
+                            deleteFrom(entity(SessionEntity::class))
+                                .where(path(SessionEntity::expiresAt).lt(LocalDateTime.now()))
+                        },
+                        jpqlRenderContext,
+                    ).executeUpdate()
             }.awaitSuspending() ?: 0
 
     private fun SessionEntity.toSessionInfo(): SessionInfo =
