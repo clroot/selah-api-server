@@ -30,17 +30,15 @@ class PrayerTopicPersistenceAdapter(
     override suspend fun save(prayerTopic: PrayerTopic): PrayerTopic =
         sessionFactory
             .withTransaction { session ->
-                session
-                    .find(PrayerTopicEntity::class.java, prayerTopic.id.value)
-                    .chain { existing: PrayerTopicEntity? ->
-                        if (existing != null) {
-                            mapper.updateEntity(existing, prayerTopic)
-                            session.merge(existing)
-                        } else {
-                            val newEntity = mapper.toEntity(prayerTopic)
-                            session.persist(newEntity).replaceWith(newEntity)
-                        }
+                session.find(PrayerTopicEntity::class.java, prayerTopic.id.value).chain { existing: PrayerTopicEntity? ->
+                    if (existing != null) {
+                        mapper.updateEntity(existing, prayerTopic)
+                        session.merge(existing)
+                    } else {
+                        val newEntity = mapper.toEntity(prayerTopic)
+                        session.persist(newEntity).replaceWith(newEntity)
                     }
+                }
             }.awaitSuspending()
             .let { mapper.toDomain(it) }
 
@@ -57,13 +55,16 @@ class PrayerTopicPersistenceAdapter(
     ): PrayerTopic? =
         sessionFactory
             .withSession { session ->
-                session
-                    .createQuery(
-                        "from PrayerTopicEntity where id = :id and memberId = :memberId",
-                        PrayerTopicEntity::class.java,
-                    ).setParameter("id", id.value)
-                    .setParameter("memberId", memberId.value)
-                    .singleResultOrNull
+                val query =
+                    jpql {
+                        select(entity(PrayerTopicEntity::class)).from(entity(PrayerTopicEntity::class)).where(
+                            and(
+                                path(PrayerTopicEntity::id).eq(id.value),
+                                path(PrayerTopicEntity::memberId).eq(memberId.value),
+                            ),
+                        )
+                    }
+                session.createQuery(query, jpqlRenderContext).singleResultOrNull
             }.awaitSuspending()
             ?.let { mapper.toDomain(it) }
 
@@ -75,40 +76,26 @@ class PrayerTopicPersistenceAdapter(
         sessionFactory
             .withSession { session ->
                 val countQuery =
-                    if (status == null) {
-                        session
-                            .createQuery(
-                                "select count(e) from PrayerTopicEntity e where e.memberId = :memberId",
-                                Long::class.java,
-                            ).setParameter("memberId", memberId.value)
-                            .singleResult
-                    } else {
-                        session
-                            .createQuery(
-                                "select count(e) from PrayerTopicEntity e where e.memberId = :memberId and e.status = :status",
-                                Long::class.java,
-                            ).setParameter("memberId", memberId.value)
-                            .setParameter("status", status)
-                            .singleResult
+                    jpql {
+                        select(count(entity(PrayerTopicEntity::class))).from(entity(PrayerTopicEntity::class)).whereAnd(
+                            path(PrayerTopicEntity::memberId).eq(memberId.value),
+                            status?.let { path(PrayerTopicEntity::status).eq(it) },
+                        )
                     }
 
-                countQuery.chain { total: Long ->
+                session.createQuery(countQuery, jpqlRenderContext).singleResult.chain { total: Long ->
                     val dataQuery =
-                        if (status == null) {
-                            session
-                                .createQuery(
-                                    "from PrayerTopicEntity where memberId = :memberId order by createdAt desc",
-                                    PrayerTopicEntity::class.java,
-                                ).setParameter("memberId", memberId.value)
-                        } else {
-                            session
-                                .createQuery(
-                                    "from PrayerTopicEntity where memberId = :memberId and status = :status order by createdAt desc",
-                                    PrayerTopicEntity::class.java,
-                                ).setParameter("memberId", memberId.value)
-                                .setParameter("status", status)
+                        jpql {
+                            select(entity(PrayerTopicEntity::class))
+                                .from(entity(PrayerTopicEntity::class))
+                                .whereAnd(
+                                    path(PrayerTopicEntity::memberId).eq(memberId.value),
+                                    status?.let { path(PrayerTopicEntity::status).eq(it) },
+                                ).orderBy(path(PrayerTopicEntity::createdAt).desc())
                         }
-                    dataQuery
+
+                    session
+                        .createQuery(dataQuery, jpqlRenderContext)
                         .setFirstResult(pageable.offset.toInt())
                         .setMaxResults(pageable.pageSize)
                         .resultList
@@ -121,15 +108,13 @@ class PrayerTopicPersistenceAdapter(
     override suspend fun deleteById(id: PrayerTopicId) {
         sessionFactory
             .withTransaction { session ->
-                session
-                    .find(PrayerTopicEntity::class.java, id.value)
-                    .chain { entity: PrayerTopicEntity? ->
-                        if (entity != null) {
-                            session.remove(entity).chain { _ -> session.flush() }
-                        } else {
-                            Uni.createFrom().voidItem()
-                        }
+                session.find(PrayerTopicEntity::class.java, id.value).chain { entity: PrayerTopicEntity? ->
+                    if (entity != null) {
+                        session.remove(entity).chain { _ -> session.flush() }
+                    } else {
+                        Uni.createFrom().voidItem()
                     }
+                }
             }.awaitSuspending()
     }
 
@@ -144,21 +129,21 @@ class PrayerTopicPersistenceAdapter(
             .withSession { session ->
                 val query =
                     jpql {
-                        select(entity(PrayerTopicEntity::class))
-                            .from(entity(PrayerTopicEntity::class))
-                            .whereAnd(
-                                path(PrayerTopicEntity::memberId).eq(memberId.value),
-                                path(PrayerTopicEntity::createdAt).lt(cutoffDate),
-                                if (excludeIdValues.isNotEmpty()) {
-                                    path(PrayerTopicEntity::id).notIn(excludeIdValues)
-                                } else {
-                                    null
-                                },
-                            )
+                        select(entity(PrayerTopicEntity::class)).from(entity(PrayerTopicEntity::class)).whereAnd(
+                            path(PrayerTopicEntity::memberId).eq(memberId.value),
+                            path(PrayerTopicEntity::createdAt).lt(cutoffDate),
+                            if (excludeIdValues.isNotEmpty()) {
+                                path(PrayerTopicEntity::id).notIn(excludeIdValues)
+                            } else {
+                                null
+                            },
+                        )
                     }
                 session
-                    .createQuery(query, jpqlRenderContext)
-                    .resultList
+                    .createQuery(
+                        query,
+                        jpqlRenderContext,
+                    ).resultList
                     .map { entities: List<PrayerTopicEntity> -> entities.map { mapper.toDomain(it) } }
             }.awaitSuspending()
     }
