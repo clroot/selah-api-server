@@ -26,11 +26,12 @@ class MemberPersistenceAdapterTest : IntegrationTestBase() {
                 context("이메일/비밀번호로 새 회원을 저장할 때") {
                     it("저장된 회원을 반환한다") {
                         // Given
-                        val member = Member.createWithEmail(
-                            email = Email("test@example.com"),
-                            nickname = "테스트",
-                            passwordHash = PasswordHash("hashed-password"),
-                        )
+                        val member =
+                            Member.createWithEmail(
+                                email = Email("test@example.com"),
+                                nickname = "테스트",
+                                passwordHash = PasswordHash("hashed-password"),
+                            )
 
                         // When
                         val saved = adapter.save(member)
@@ -48,12 +49,13 @@ class MemberPersistenceAdapterTest : IntegrationTestBase() {
                 context("OAuth로 새 회원을 저장할 때") {
                     it("OAuth 연결이 함께 저장된다") {
                         // Given
-                        val member = Member.createWithOAuth(
-                            email = Email("oauth@example.com"),
-                            nickname = "OAuth 사용자",
-                            provider = OAuthProvider.GOOGLE,
-                            providerId = "google-123",
-                        )
+                        val member =
+                            Member.createWithOAuth(
+                                email = Email("oauth@example.com"),
+                                nickname = "OAuth 사용자",
+                                provider = OAuthProvider.GOOGLE,
+                                providerId = "google-123",
+                            )
 
                         // When
                         val saved = adapter.save(member)
@@ -120,12 +122,13 @@ class MemberPersistenceAdapterTest : IntegrationTestBase() {
                 context("여러 OAuth를 연결할 때") {
                     it("모든 연결이 저장된다") {
                         // Given
-                        val member = Member.createWithOAuth(
-                            email = Email("multi@example.com"),
-                            nickname = "멀티",
-                            provider = OAuthProvider.GOOGLE,
-                            providerId = "google-multi",
-                        )
+                        val member =
+                            Member.createWithOAuth(
+                                email = Email("multi@example.com"),
+                                nickname = "멀티",
+                                provider = OAuthProvider.GOOGLE,
+                                providerId = "google-multi",
+                            )
                         adapter.save(member)
 
                         member.connectOAuth(OAuthProvider.KAKAO, "kakao-multi")
@@ -135,10 +138,11 @@ class MemberPersistenceAdapterTest : IntegrationTestBase() {
 
                         // Then
                         updated.oauthConnections.size shouldBe 2
-                        updated.connectedProviders shouldContainExactlyInAnyOrder setOf(
-                            OAuthProvider.GOOGLE,
-                            OAuthProvider.KAKAO,
-                        )
+                        updated.connectedProviders shouldContainExactlyInAnyOrder
+                            setOf(
+                                OAuthProvider.GOOGLE,
+                                OAuthProvider.KAKAO,
+                            )
                     }
                 }
             }
@@ -162,12 +166,13 @@ class MemberPersistenceAdapterTest : IntegrationTestBase() {
                 context("OAuth 연결이 있는 회원을") {
                     it("연결과 함께 조회한다") {
                         // Given
-                        val member = Member.createWithOAuth(
-                            email = Email("oauth-find@example.com"),
-                            nickname = "OAuth",
-                            provider = OAuthProvider.KAKAO,
-                            providerId = "kakao-find",
-                        )
+                        val member =
+                            Member.createWithOAuth(
+                                email = Email("oauth-find@example.com"),
+                                nickname = "OAuth",
+                                provider = OAuthProvider.KAKAO,
+                                providerId = "kakao-find",
+                            )
                         adapter.save(member)
 
                         // When
@@ -199,11 +204,12 @@ class MemberPersistenceAdapterTest : IntegrationTestBase() {
                     it("회원을 반환한다") {
                         // Given
                         val email = Email("findme@example.com")
-                        val member = Member.createWithEmail(
-                            email = email,
-                            nickname = "찾아줘",
-                            passwordHash = PasswordHash("hashed"),
-                        )
+                        val member =
+                            Member.createWithEmail(
+                                email = email,
+                                nickname = "찾아줘",
+                                passwordHash = PasswordHash("hashed"),
+                            )
                         adapter.save(member)
 
                         // When
@@ -232,19 +238,21 @@ class MemberPersistenceAdapterTest : IntegrationTestBase() {
                     it("회원을 반환한다") {
                         // Given
                         val uniqueSuffix = System.currentTimeMillis()
-                        val member = Member.createWithOAuth(
-                            email = Email("oauth-$uniqueSuffix@example.com"),
-                            nickname = "OAuth User",
-                            provider = OAuthProvider.GOOGLE,
-                            providerId = "google-find-connection-$uniqueSuffix",
-                        )
+                        val member =
+                            Member.createWithOAuth(
+                                email = Email("oauth-$uniqueSuffix@example.com"),
+                                nickname = "OAuth User",
+                                provider = OAuthProvider.GOOGLE,
+                                providerId = "google-find-connection-$uniqueSuffix",
+                            )
                         adapter.save(member)
 
                         // When
-                        val found = adapter.findByOAuthConnection(
-                            OAuthProvider.GOOGLE,
-                            "google-find-connection-$uniqueSuffix",
-                        )
+                        val found =
+                            adapter.findByOAuthConnection(
+                                OAuthProvider.GOOGLE,
+                                "google-find-connection-$uniqueSuffix",
+                            )
 
                         // Then
                         found.shouldNotBeNull()
@@ -257,26 +265,29 @@ class MemberPersistenceAdapterTest : IntegrationTestBase() {
                     it("어느 Provider로도 찾을 수 있다") {
                         // Given
                         val uniqueSuffix = System.currentTimeMillis()
-                        val member = Member.createWithOAuth(
-                            email = Email("multi-oauth-$uniqueSuffix@example.com"),
-                            nickname = "멀티 OAuth",
-                            provider = OAuthProvider.GOOGLE,
-                            providerId = "google-multi-find-$uniqueSuffix",
-                        )
+                        val member =
+                            Member.createWithOAuth(
+                                email = Email("multi-oauth-$uniqueSuffix@example.com"),
+                                nickname = "멀티 OAuth",
+                                provider = OAuthProvider.GOOGLE,
+                                providerId = "google-multi-find-$uniqueSuffix",
+                            )
                         adapter.save(member)
 
                         member.connectOAuth(OAuthProvider.KAKAO, "kakao-multi-find-$uniqueSuffix")
                         adapter.save(member)
 
                         // When
-                        val foundByGoogle = adapter.findByOAuthConnection(
-                            OAuthProvider.GOOGLE,
-                            "google-multi-find-$uniqueSuffix",
-                        )
-                        val foundByKakao = adapter.findByOAuthConnection(
-                            OAuthProvider.KAKAO,
-                            "kakao-multi-find-$uniqueSuffix",
-                        )
+                        val foundByGoogle =
+                            adapter.findByOAuthConnection(
+                                OAuthProvider.GOOGLE,
+                                "google-multi-find-$uniqueSuffix",
+                            )
+                        val foundByKakao =
+                            adapter.findByOAuthConnection(
+                                OAuthProvider.KAKAO,
+                                "kakao-multi-find-$uniqueSuffix",
+                            )
 
                         // Then
                         foundByGoogle.shouldNotBeNull()
@@ -289,10 +300,11 @@ class MemberPersistenceAdapterTest : IntegrationTestBase() {
                 context("해당 OAuth 연결이 없을 때") {
                     it("null을 반환한다") {
                         // When
-                        val found = adapter.findByOAuthConnection(
-                            OAuthProvider.NAVER,
-                            "naver-not-exist",
-                        )
+                        val found =
+                            adapter.findByOAuthConnection(
+                                OAuthProvider.NAVER,
+                                "naver-not-exist",
+                            )
 
                         // Then
                         found.shouldBeNull()
@@ -305,11 +317,12 @@ class MemberPersistenceAdapterTest : IntegrationTestBase() {
                     it("true를 반환한다") {
                         // Given
                         val email = Email("exists@example.com")
-                        val member = Member.createWithEmail(
-                            email = email,
-                            nickname = "존재",
-                            passwordHash = PasswordHash("hashed"),
-                        )
+                        val member =
+                            Member.createWithEmail(
+                                email = email,
+                                nickname = "존재",
+                                passwordHash = PasswordHash("hashed"),
+                            )
                         adapter.save(member)
 
                         // When
@@ -334,11 +347,12 @@ class MemberPersistenceAdapterTest : IntegrationTestBase() {
     }
 
     private suspend fun createAndSaveMember(): Member {
-        val member = Member.createWithEmail(
-            email = Email("test-${System.currentTimeMillis()}@example.com"),
-            nickname = "테스트 사용자",
-            passwordHash = PasswordHash("hashed-password"),
-        )
+        val member =
+            Member.createWithEmail(
+                email = Email("test-${System.currentTimeMillis()}@example.com"),
+                nickname = "테스트 사용자",
+                passwordHash = PasswordHash("hashed-password"),
+            )
         return adapter.save(member)
     }
 }

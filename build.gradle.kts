@@ -32,6 +32,9 @@ val kotestVersion = "6.0.7"
 val coroutinesVersion = "1.10.2"
 val testcontainersVersion = "1.20.4"
 val mockkVersion = "1.14.7"
+val hibernateReactiveVersion = "3.1.0.Final"
+val mutinyVersion = "2.6.0"
+val vertxVersion = "4.5.16"
 
 dependencies {
     // ===== Kotlin =====
@@ -54,10 +57,18 @@ dependencies {
     // ===== Kotlin JDSL =====
     implementation("com.linecorp.kotlin-jdsl:jpql-dsl:$kotlinJdslVersion")
     implementation("com.linecorp.kotlin-jdsl:jpql-render:$kotlinJdslVersion")
-    implementation("com.linecorp.kotlin-jdsl:spring-data-jpa-support:$kotlinJdslVersion")
+    implementation("com.linecorp.kotlin-jdsl:spring-data-jpa-support:$kotlinJdslVersion") // Member Context (JPA)
+    implementation("com.linecorp.kotlin-jdsl:hibernate-reactive-support:$kotlinJdslVersion") // Prayer Context (Reactive)
+
+    // ===== Hibernate Reactive (Prayer Context POC) =====
+    implementation("org.hibernate.reactive:hibernate-reactive-core:$hibernateReactiveVersion")
+    implementation("io.smallrye.reactive:mutiny-kotlin:$mutinyVersion") // Kotlin 확장
 
     // ===== Database =====
-    runtimeOnly("org.postgresql:postgresql")
+    runtimeOnly("org.postgresql:postgresql") // JDBC Driver (Member Context JPA + Liquibase)
+    implementation("io.vertx:vertx-core:$vertxVersion") // Vert.x Core (Reactive)
+    implementation("io.vertx:vertx-pg-client:$vertxVersion") // Reactive Driver (Prayer Context Reactive)
+    implementation("com.ongres.scram:client:2.1") // SCRAM Authentication for PostgreSQL
 
     // ===== Database Migration =====
     implementation("org.springframework.boot:spring-boot-starter-liquibase")
@@ -125,7 +136,7 @@ tasks {
                     "**/*DTO*",
                     "**/*Properties*",
                 )
-            }
+            },
         )
     }
 
@@ -138,19 +149,20 @@ tasks {
                     value = "COVEREDRATIO"
                     minimum = "0.60".toBigDecimal()
                 }
-                excludes = listOf(
-                    "*.**Entity",
-                    "*.**MapperImpl",
-                    "*.**Application",
-                    "*.**Id",
-                    "*.**Request",
-                    "*.**Response",
-                    "*.**Command",
-                    "*.**Query",
-                    "*.**Dto",
-                    "*.**DTO",
-                    "*.**Properties",
-                )
+                excludes =
+                    listOf(
+                        "*.**Entity",
+                        "*.**MapperImpl",
+                        "*.**Application",
+                        "*.**Id",
+                        "*.**Request",
+                        "*.**Response",
+                        "*.**Command",
+                        "*.**Query",
+                        "*.**Dto",
+                        "*.**DTO",
+                        "*.**Properties",
+                    )
             }
 
             // Persistence Adapter는 실제 DB 테스트가 필수이므로 높은 커버리지 강제

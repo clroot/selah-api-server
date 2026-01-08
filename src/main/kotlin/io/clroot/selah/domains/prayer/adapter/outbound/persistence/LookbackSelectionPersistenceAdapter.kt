@@ -1,86 +1,89 @@
 package io.clroot.selah.domains.prayer.adapter.outbound.persistence
 
-import com.linecorp.kotlinjdsl.dsl.jpql.jpql
-import com.linecorp.kotlinjdsl.render.jpql.JpqlRenderContext
-import com.linecorp.kotlinjdsl.support.spring.data.jpa.extension.createQuery
 import io.clroot.selah.domains.member.domain.MemberId
 import io.clroot.selah.domains.prayer.application.port.outbound.DeleteLookbackSelectionPort
 import io.clroot.selah.domains.prayer.application.port.outbound.LoadLookbackSelectionPort
 import io.clroot.selah.domains.prayer.application.port.outbound.SaveLookbackSelectionPort
 import io.clroot.selah.domains.prayer.domain.LookbackSelection
 import io.clroot.selah.domains.prayer.domain.PrayerTopicId
-import jakarta.persistence.EntityManager
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
+import io.smallrye.mutiny.Uni
+import io.smallrye.mutiny.coroutines.awaitSuspending
+import org.hibernate.reactive.mutiny.Mutiny
 import org.springframework.stereotype.Component
 import java.time.LocalDate
 
 @Component
 class LookbackSelectionPersistenceAdapter(
-    private val repository: LookbackSelectionJpaRepository,
-    private val entityManager: EntityManager,
-    private val jpqlRenderContext: JpqlRenderContext,
+    private val sessionFactory: Mutiny.SessionFactory,
     private val mapper: LookbackSelectionMapper,
 ) : SaveLookbackSelectionPort,
     LoadLookbackSelectionPort,
     DeleteLookbackSelectionPort {
     override suspend fun save(selection: LookbackSelection): LookbackSelection =
-        withContext(Dispatchers.IO) {
-            val entity = mapper.toEntity(selection)
-            val saved = repository.save(entity)
-            mapper.toDomain(saved)
-        }
+        sessionFactory
+            .withTransaction { session ->
+                val entity = mapper.toEntity(selection)
+                session
+                    .persist(entity)
+                    .chain { _ -> session.flush() }
+                    .replaceWith(mapper.toDomain(entity))
+            }.awaitSuspending()
 
     override suspend fun findByMemberIdAndDate(
         memberId: MemberId,
         date: LocalDate,
     ): LookbackSelection? =
-        withContext(Dispatchers.IO) {
-            val query =
-                jpql {
-                    select(entity(LookbackSelectionEntity::class))
-                        .from(entity(LookbackSelectionEntity::class))
-                        .where(
-                            and(
-                                path(LookbackSelectionEntity::memberId).eq(memberId.value),
-                                path(LookbackSelectionEntity::selectedAt).eq(date),
-                            ),
-                        )
-                }
-            entityManager
-                .createQuery(query, jpqlRenderContext)
-                .resultList
-                .firstOrNull()
-                ?.let { mapper.toDomain(it) }
-        }
+        sessionFactory
+            .withSession { session ->
+                session
+                    .createQuery(
+                        "from LookbackSelectionEntity where memberId = :memberId and selectedAt = :date",
+                        LookbackSelectionEntity::class.java,
+                    ).setParameter("memberId", memberId.value)
+                    .setParameter("date", date)
+                    .singleResultOrNull
+            }.awaitSuspending()
+            ?.let { mapper.toDomain(it) }
 
     override suspend fun findRecentPrayerTopicIds(
         memberId: MemberId,
         days: Int,
-    ): List<PrayerTopicId> =
-        withContext(Dispatchers.IO) {
-            val cutoffDate = LocalDate.now().minusDays(days.toLong())
-            val query =
-                jpql {
-                    select(path(LookbackSelectionEntity::prayerTopicId))
-                        .from(entity(LookbackSelectionEntity::class))
-                        .where(
-                            and(
-                                path(LookbackSelectionEntity::memberId).eq(memberId.value),
-                                path(LookbackSelectionEntity::selectedAt).ge(cutoffDate),
-                            ),
-                        )
-                }
-            entityManager
-                .createQuery(query, jpqlRenderContext)
-                .resultList
-                .map { PrayerTopicId.from(it) }
-        }
+    ): List<PrayerTopicId> {
+        val cutoffDate = LocalDate.now().minusDays(days.toLong())
+
+        return sessionFactory
+            .withSession { session ->
+                session
+                    .createQuery(
+                        "select e.prayerTopicId from LookbackSelectionEntity e where e.memberId = :memberId and e.selectedAt >= :cutoffDate",
+                        String::class.java,
+                    ).setParameter("memberId", memberId.value)
+                    .setParameter("cutoffDate", cutoffDate)
+                    .resultList
+            }.awaitSuspending()
+            .map { PrayerTopicId.from(it) }
+    }
 
     override suspend fun deleteByMemberIdAndDate(
         memberId: MemberId,
         date: LocalDate,
-    ) = withContext(Dispatchers.IO) {
-        repository.deleteByMemberIdAndSelectedAt(memberId.value, date)
+    ) {
+        sessionFactory
+            .withTransaction { session ->
+                session
+                    .createQuery(
+                        "from LookbackSelectionEntity where memberId = :memberId and selectedAt = :date",
+                        LookbackSelectionEntity::class.java,
+                    ).setParameter("memberId", memberId.value)
+                    .setParameter("date", date)
+                    .singleResultOrNull
+                    .chain { entity: LookbackSelectionEntity? ->
+                        if (entity != null) {
+                            session.remove(entity).chain { _ -> session.flush() }
+                        } else {
+                            Uni.createFrom().voidItem()
+                        }
+                    }
+            }.awaitSuspending()
     }
 }

@@ -39,10 +39,11 @@ class PrayerTopicPersistenceAdapterTest : IntegrationTestBase() {
                 context("새 기도제목을 저장할 때") {
                     it("저장된 기도제목을 반환한다") {
                         // Given
-                        val prayerTopic = PrayerTopic.create(
-                            memberId = testMember.id,
-                            title = "암호화된 기도제목",
-                        )
+                        val prayerTopic =
+                            PrayerTopic.create(
+                                memberId = testMember.id,
+                                title = "암호화된 기도제목",
+                            )
 
                         // When
                         val saved = adapter.save(prayerTopic)
@@ -108,7 +109,9 @@ class PrayerTopicPersistenceAdapterTest : IntegrationTestBase() {
                 context("기도제목이 존재하지 않을 때") {
                     it("null을 반환한다") {
                         // Given
-                        val nonExistentId = io.clroot.selah.domains.prayer.domain.PrayerTopicId.new()
+                        val nonExistentId =
+                            io.clroot.selah.domains.prayer.domain.PrayerTopicId
+                                .new()
 
                         // When
                         val found = adapter.findById(nonExistentId)
@@ -152,7 +155,9 @@ class PrayerTopicPersistenceAdapterTest : IntegrationTestBase() {
                 context("기도제목이 존재하지 않을 때") {
                     it("null을 반환한다") {
                         // Given
-                        val nonExistentId = io.clroot.selah.domains.prayer.domain.PrayerTopicId.new()
+                        val nonExistentId =
+                            io.clroot.selah.domains.prayer.domain.PrayerTopicId
+                                .new()
 
                         // When
                         val found = adapter.findByIdAndMemberId(nonExistentId, testMember.id)
@@ -194,16 +199,18 @@ class PrayerTopicPersistenceAdapterTest : IntegrationTestBase() {
                         val pageable = PageRequest.of(0, 10)
 
                         // When
-                        val prayingPage = adapter.findAllByMemberId(
-                            testMember.id,
-                            PrayerTopicStatus.PRAYING,
-                            pageable,
-                        )
-                        val answeredPage = adapter.findAllByMemberId(
-                            testMember.id,
-                            PrayerTopicStatus.ANSWERED,
-                            pageable,
-                        )
+                        val prayingPage =
+                            adapter.findAllByMemberId(
+                                testMember.id,
+                                PrayerTopicStatus.PRAYING,
+                                pageable,
+                            )
+                        val answeredPage =
+                            adapter.findAllByMemberId(
+                                testMember.id,
+                                PrayerTopicStatus.ANSWERED,
+                                pageable,
+                            )
 
                         // Then
                         prayingPage.content shouldHaveSize 2
@@ -265,7 +272,9 @@ class PrayerTopicPersistenceAdapterTest : IntegrationTestBase() {
                 context("기도제목이 존재하지 않을 때") {
                     it("에러 없이 정상 처리된다") {
                         // Given
-                        val nonExistentId = io.clroot.selah.domains.prayer.domain.PrayerTopicId.new()
+                        val nonExistentId =
+                            io.clroot.selah.domains.prayer.domain.PrayerTopicId
+                                .new()
 
                         // When & Then - 에러 없이 실행
                         adapter.deleteById(nonExistentId)
@@ -285,11 +294,12 @@ class PrayerTopicPersistenceAdapterTest : IntegrationTestBase() {
                         val cutoffDate = recent.createdAt
 
                         // When
-                        val candidates = adapter.findCandidatesForLookback(
-                            testMember.id,
-                            cutoffDate,
-                            emptyList(),
-                        )
+                        val candidates =
+                            adapter.findCandidatesForLookback(
+                                testMember.id,
+                                cutoffDate,
+                                emptyList(),
+                            )
 
                         // Then
                         candidates shouldHaveSize 2
@@ -307,11 +317,12 @@ class PrayerTopicPersistenceAdapterTest : IntegrationTestBase() {
                         val cutoffDate = LocalDateTime.now().plusDays(1)
 
                         // When
-                        val candidates = adapter.findCandidatesForLookback(
-                            testMember.id,
-                            cutoffDate,
-                            listOf(topic2.id),
-                        )
+                        val candidates =
+                            adapter.findCandidatesForLookback(
+                                testMember.id,
+                                cutoffDate,
+                                listOf(topic2.id),
+                            )
 
                         // Then
                         candidates shouldHaveSize 2
@@ -326,11 +337,12 @@ class PrayerTopicPersistenceAdapterTest : IntegrationTestBase() {
                         val cutoffDate = LocalDateTime.now().minusDays(1)
 
                         // When
-                        val candidates = adapter.findCandidatesForLookback(
-                            testMember.id,
-                            cutoffDate,
-                            emptyList(),
-                        )
+                        val candidates =
+                            adapter.findCandidatesForLookback(
+                                testMember.id,
+                                cutoffDate,
+                                emptyList(),
+                            )
 
                         // Then
                         candidates.shouldBeEmpty()
@@ -347,11 +359,12 @@ class PrayerTopicPersistenceAdapterTest : IntegrationTestBase() {
                         val cutoffDate = LocalDateTime.now().plusDays(1)
 
                         // When
-                        val candidates = adapter.findCandidatesForLookback(
-                            testMember.id,
-                            cutoffDate,
-                            emptyList(),
-                        )
+                        val candidates =
+                            adapter.findCandidatesForLookback(
+                                testMember.id,
+                                cutoffDate,
+                                emptyList(),
+                            )
 
                         // Then
                         candidates shouldHaveSize 1
@@ -363,11 +376,12 @@ class PrayerTopicPersistenceAdapterTest : IntegrationTestBase() {
     }
 
     private suspend fun createAndSaveMember(): Member {
-        val member = Member.createWithEmail(
-            email = Email("test-${System.currentTimeMillis()}@example.com"),
-            nickname = "테스트 사용자",
-            passwordHash = PasswordHash("hashed-password"),
-        )
+        val member =
+            Member.createWithEmail(
+                email = Email("test-${System.currentTimeMillis()}@example.com"),
+                nickname = "테스트 사용자",
+                passwordHash = PasswordHash("hashed-password"),
+            )
         return memberAdapter.save(member)
     }
 
@@ -375,10 +389,11 @@ class PrayerTopicPersistenceAdapterTest : IntegrationTestBase() {
         memberId: MemberId,
         title: String = "암호화된 기도제목-${System.currentTimeMillis()}",
     ): PrayerTopic {
-        val topic = PrayerTopic.create(
-            memberId = memberId,
-            title = title,
-        )
+        val topic =
+            PrayerTopic.create(
+                memberId = memberId,
+                title = title,
+            )
         return adapter.save(topic)
     }
 }
