@@ -1,6 +1,14 @@
 package io.clroot.selah.config
 
 import com.linecorp.kotlinjdsl.render.jpql.JpqlRenderContext
+import io.clroot.selah.domains.member.adapter.outbound.persistence.apikey.ApiKeyEntity
+import io.clroot.selah.domains.member.adapter.outbound.persistence.emailverification.EmailVerificationTokenEntity
+import io.clroot.selah.domains.member.adapter.outbound.persistence.encryption.EncryptionSettingsEntity
+import io.clroot.selah.domains.member.adapter.outbound.persistence.member.MemberEntity
+import io.clroot.selah.domains.member.adapter.outbound.persistence.member.OAuthConnectionEntity
+import io.clroot.selah.domains.member.adapter.outbound.persistence.passwordreset.PasswordResetTokenEntity
+import io.clroot.selah.domains.member.adapter.outbound.persistence.serverkey.ServerKeyEntity
+import io.clroot.selah.domains.member.adapter.outbound.persistence.session.SessionEntity
 import io.clroot.selah.domains.prayer.adapter.outbound.persistence.LookbackSelectionEntity
 import io.clroot.selah.domains.prayer.adapter.outbound.persistence.PrayerEntity
 import io.clroot.selah.domains.prayer.adapter.outbound.persistence.PrayerPrayerTopicEntity
@@ -34,6 +42,14 @@ class HibernateReactiveConfig(
                 .addAnnotatedClass(PrayerEntity::class.java)
                 .addAnnotatedClass(PrayerPrayerTopicEntity::class.java)
                 .addAnnotatedClass(LookbackSelectionEntity::class.java)
+                .addAnnotatedClass(SessionEntity::class.java)
+                .addAnnotatedClass(MemberEntity::class.java)
+                .addAnnotatedClass(ApiKeyEntity::class.java)
+                .addAnnotatedClass(OAuthConnectionEntity::class.java)
+                .addAnnotatedClass(PasswordResetTokenEntity::class.java)
+                .addAnnotatedClass(EmailVerificationTokenEntity::class.java)
+                .addAnnotatedClass(ServerKeyEntity::class.java)
+                .addAnnotatedClass(EncryptionSettingsEntity::class.java)
                 .setProperty(AvailableSettings.JAKARTA_JDBC_URL, reactiveUrl)
                 .setProperty(AvailableSettings.JAKARTA_JDBC_USER, username)
                 .setProperty(AvailableSettings.JAKARTA_JDBC_PASSWORD, password)

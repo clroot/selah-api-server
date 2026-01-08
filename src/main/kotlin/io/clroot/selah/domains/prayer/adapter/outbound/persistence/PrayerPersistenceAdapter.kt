@@ -103,10 +103,11 @@ class PrayerPersistenceAdapter(
     override suspend fun deleteById(id: PrayerId) {
         sessionFactory
             .withTransaction { session ->
-                val query = jpql {
-                    deleteFrom(entity(PrayerEntity::class))
-                        .where(path(PrayerEntity::id).eq(id.value))
-                }
+                val query =
+                    jpql {
+                        deleteFrom(entity(PrayerEntity::class))
+                            .where(path(PrayerEntity::id).eq(id.value))
+                    }
                 session.createMutationQuery(query, jpqlRenderContext).executeUpdate()
             }.awaitSuspending()
     }

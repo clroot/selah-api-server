@@ -48,8 +48,8 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-actuator")
     implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("org.springframework.boot:spring-boot-starter-security")
-    implementation("org.springframework.boot:spring-boot-starter-data-jpa")
-    developmentOnly("org.springframework.boot:spring-boot-devtools")
+    implementation("org.springframework.data:spring-data-commons") // Page, Pageable
+    // developmentOnly("org.springframework.boot:spring-boot-devtools")
 
     // ===== Spring AOP =====
     implementation("org.springframework:spring-aspects")
@@ -57,15 +57,14 @@ dependencies {
     // ===== Kotlin JDSL =====
     implementation("com.linecorp.kotlin-jdsl:jpql-dsl:$kotlinJdslVersion")
     implementation("com.linecorp.kotlin-jdsl:jpql-render:$kotlinJdslVersion")
-    implementation("com.linecorp.kotlin-jdsl:spring-data-jpa-support:$kotlinJdslVersion") // Member Context (JPA)
-    implementation("com.linecorp.kotlin-jdsl:hibernate-reactive-support:$kotlinJdslVersion") // Prayer Context (Reactive)
+    implementation("com.linecorp.kotlin-jdsl:hibernate-reactive-support:$kotlinJdslVersion") // Member + Prayer Context (Reactive)
 
     // ===== Hibernate Reactive (Prayer Context POC) =====
     implementation("org.hibernate.reactive:hibernate-reactive-core:$hibernateReactiveVersion")
     implementation("io.smallrye.reactive:mutiny-kotlin:$mutinyVersion") // Kotlin 확장
 
     // ===== Database =====
-    runtimeOnly("org.postgresql:postgresql") // JDBC Driver (Member Context JPA + Liquibase)
+    runtimeOnly("org.postgresql:postgresql") // JDBC Driver (Liquibase + Test)
     implementation("io.vertx:vertx-core:$vertxVersion") // Vert.x Core (Reactive)
     implementation("io.vertx:vertx-pg-client:$vertxVersion") // Reactive Driver (Prayer Context Reactive)
     implementation("com.ongres.scram:client:2.1") // SCRAM Authentication for PostgreSQL
