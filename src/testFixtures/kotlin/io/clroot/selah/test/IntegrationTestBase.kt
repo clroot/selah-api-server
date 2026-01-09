@@ -1,6 +1,6 @@
 package io.clroot.selah.test
 
-import io.clroot.selah.config.HibernateReactiveConfig
+import io.clroot.selah.common.reactive.HibernateReactiveConfig
 import io.clroot.selah.test.container.DatabaseTestExtension
 import io.kotest.core.spec.style.DescribeSpec
 import io.kotest.extensions.spring.SpringExtension

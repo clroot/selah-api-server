@@ -1,4 +1,4 @@
-package io.clroot.selah.config
+package io.clroot.selah.common.reactive
 
 import com.linecorp.kotlinjdsl.render.jpql.JpqlRenderContext
 import jakarta.persistence.Entity
@@ -23,8 +23,8 @@ class HibernateReactiveConfig(
     @Value($$"${spring.jpa.database-platform}") private val dialect: String,
     @Value($$"${spring.jpa.hibernate.ddl-auto}") private val ddlAuto: String,
     @Value($$"${spring.jpa.show-sql}") private val showSql: String,
-    @Value($$"${spring.jpa.properties.hibernate.format_sql}") private val formatSql: String,
-    @Value($$"${selah.reactive.connection.pool_size:10}") private val poolSize: String,
+    @Value("\${spring.jpa.properties.hibernate.format_sql}") private val formatSql: String,
+    @Value($$"${hibernate.reactive.connection.pool_size:10}") private val poolSize: String,
 ) {
     @Bean
     fun prayerReactiveSessionFactory(): Mutiny.SessionFactory {
