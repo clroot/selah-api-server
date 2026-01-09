@@ -31,6 +31,7 @@ val kotlinJdslVersion = "3.6.1"
 val kotestVersion = "6.0.7"
 val coroutinesVersion = "1.10.2"
 val testcontainersVersion = "1.20.4"
+val testcontainersCoreVersion = "2.0.2"
 val mockkVersion = "1.14.7"
 val hibernateReactiveVersion = "3.1.0.Final"
 val mutinyVersion = "2.6.0"
@@ -102,7 +103,7 @@ dependencies {
     testFixturesApi("io.kotest:kotest-runner-junit5:$kotestVersion")
     testFixturesApi("io.kotest:kotest-assertions-core:$kotestVersion")
     testFixturesApi("io.kotest:kotest-extensions-spring:$kotestVersion")
-    testFixturesApi("org.testcontainers:testcontainers:$testcontainersVersion")
+    testFixturesApi("org.testcontainers:testcontainers:$testcontainersCoreVersion")
     testFixturesApi("org.testcontainers:postgresql:$testcontainersVersion")
     testFixturesApi("org.testcontainers:junit-jupiter:$testcontainersVersion")
     testFixturesApi("org.postgresql:postgresql")
