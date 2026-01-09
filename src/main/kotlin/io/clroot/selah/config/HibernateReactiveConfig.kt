@@ -1,28 +1,22 @@
 package io.clroot.selah.config
 
 import com.linecorp.kotlinjdsl.render.jpql.JpqlRenderContext
-import io.clroot.selah.domains.member.adapter.outbound.persistence.apikey.ApiKeyEntity
-import io.clroot.selah.domains.member.adapter.outbound.persistence.emailverification.EmailVerificationTokenEntity
-import io.clroot.selah.domains.member.adapter.outbound.persistence.encryption.EncryptionSettingsEntity
-import io.clroot.selah.domains.member.adapter.outbound.persistence.member.MemberEntity
-import io.clroot.selah.domains.member.adapter.outbound.persistence.member.OAuthConnectionEntity
-import io.clroot.selah.domains.member.adapter.outbound.persistence.passwordreset.PasswordResetTokenEntity
-import io.clroot.selah.domains.member.adapter.outbound.persistence.serverkey.ServerKeyEntity
-import io.clroot.selah.domains.member.adapter.outbound.persistence.session.SessionEntity
-import io.clroot.selah.domains.prayer.adapter.outbound.persistence.LookbackSelectionEntity
-import io.clroot.selah.domains.prayer.adapter.outbound.persistence.PrayerEntity
-import io.clroot.selah.domains.prayer.adapter.outbound.persistence.PrayerPrayerTopicEntity
-import io.clroot.selah.domains.prayer.adapter.outbound.persistence.PrayerTopicEntity
+import jakarta.persistence.Entity
 import org.hibernate.cfg.AvailableSettings
 import org.hibernate.cfg.Configuration
 import org.hibernate.reactive.mutiny.Mutiny
 import org.hibernate.reactive.provider.ReactiveServiceRegistryBuilder
 import org.springframework.beans.factory.annotation.Value
+import org.springframework.boot.autoconfigure.AutoConfigurationPackages
+import org.springframework.context.ApplicationContext
 import org.springframework.context.annotation.Bean
+import org.springframework.context.annotation.ClassPathScanningCandidateComponentProvider
+import org.springframework.core.type.filter.AnnotationTypeFilter
 import org.springframework.context.annotation.Configuration as SpringConfiguration
 
 @SpringConfiguration
 class HibernateReactiveConfig(
+    private val applicationContext: ApplicationContext,
     @Value($$"${spring.datasource.url}") private val jdbcUrl: String,
     @Value($$"${spring.datasource.username}") private val username: String,
     @Value($$"${spring.datasource.password}") private val password: String,
@@ -37,19 +31,13 @@ class HibernateReactiveConfig(
         val reactiveUrl = jdbcUrl.replace("jdbc:", "")
 
         val configuration =
-            Configuration()
-                .addAnnotatedClass(PrayerTopicEntity::class.java)
-                .addAnnotatedClass(PrayerEntity::class.java)
-                .addAnnotatedClass(PrayerPrayerTopicEntity::class.java)
-                .addAnnotatedClass(LookbackSelectionEntity::class.java)
-                .addAnnotatedClass(SessionEntity::class.java)
-                .addAnnotatedClass(MemberEntity::class.java)
-                .addAnnotatedClass(ApiKeyEntity::class.java)
-                .addAnnotatedClass(OAuthConnectionEntity::class.java)
-                .addAnnotatedClass(PasswordResetTokenEntity::class.java)
-                .addAnnotatedClass(EmailVerificationTokenEntity::class.java)
-                .addAnnotatedClass(ServerKeyEntity::class.java)
-                .addAnnotatedClass(EncryptionSettingsEntity::class.java)
+            Configuration().apply {
+                // @SpringBootApplication 패키지 기준으로 @Entity 클래스 자동 스캔
+                val basePackages = AutoConfigurationPackages.get(applicationContext)
+                findEntityClasses(basePackages).forEach { entityClass ->
+                    addAnnotatedClass(entityClass)
+                }
+            }
                 .setProperty(AvailableSettings.JAKARTA_JDBC_URL, reactiveUrl)
                 .setProperty(AvailableSettings.JAKARTA_JDBC_USER, username)
                 .setProperty(AvailableSettings.JAKARTA_JDBC_PASSWORD, password)
@@ -67,6 +55,20 @@ class HibernateReactiveConfig(
         return configuration
             .buildSessionFactory(serviceRegistry)
             .unwrap(Mutiny.SessionFactory::class.java)
+    }
+
+    private fun findEntityClasses(basePackages: List<String>): List<Class<*>> {
+        val scanner =
+            ClassPathScanningCandidateComponentProvider(false).apply {
+                addIncludeFilter(AnnotationTypeFilter(Entity::class.java))
+            }
+
+        return basePackages.flatMap { basePackage ->
+            scanner
+                .findCandidateComponents(basePackage)
+                .mapNotNull { it.beanClassName }
+                .map { Class.forName(it) }
+        }
     }
 
     @Bean
