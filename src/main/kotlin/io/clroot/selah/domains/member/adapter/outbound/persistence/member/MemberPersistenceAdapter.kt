@@ -3,14 +3,13 @@ package io.clroot.selah.domains.member.adapter.outbound.persistence.member
 import com.linecorp.kotlinjdsl.dsl.jpql.jpql
 import com.linecorp.kotlinjdsl.render.jpql.JpqlRenderContext
 import com.linecorp.kotlinjdsl.support.hibernate.reactive.extension.createQuery
+import io.clroot.selah.common.reactive.ReactiveSessionProvider
 import io.clroot.selah.domains.member.application.port.outbound.LoadMemberPort
 import io.clroot.selah.domains.member.application.port.outbound.SaveMemberPort
 import io.clroot.selah.domains.member.domain.Email
 import io.clroot.selah.domains.member.domain.Member
 import io.clroot.selah.domains.member.domain.MemberId
 import io.clroot.selah.domains.member.domain.OAuthProvider
-import io.smallrye.mutiny.coroutines.awaitSuspending
-import org.hibernate.reactive.mutiny.Mutiny
 import org.springframework.stereotype.Component
 
 /**
@@ -21,110 +20,104 @@ import org.springframework.stereotype.Component
  */
 @Component
 class MemberPersistenceAdapter(
-    private val sessionFactory: Mutiny.SessionFactory,
+    private val sessions: ReactiveSessionProvider,
     private val jpqlRenderContext: JpqlRenderContext,
     private val mapper: MemberMapper,
 ) : LoadMemberPort,
     SaveMemberPort {
     override suspend fun findById(memberId: MemberId): Member? =
-        sessionFactory
-            .withSession { session ->
-                session
-                    .createQuery(
-                        jpql {
-                            selectDistinct(entity(MemberEntity::class))
-                                .from(
-                                    entity(MemberEntity::class),
-                                    leftFetchJoin(MemberEntity::oauthConnections),
-                                ).where(path(MemberEntity::id).eq(memberId.value))
-                        },
-                        jpqlRenderContext,
-                    ).singleResultOrNull
-            }.awaitSuspending()
-            ?.let { mapper.toDomain(it) }
+        sessions.read { session ->
+            session
+                .createQuery(
+                    jpql {
+                        selectDistinct(entity(MemberEntity::class))
+                            .from(
+                                entity(MemberEntity::class),
+                                leftFetchJoin(MemberEntity::oauthConnections),
+                            ).where(path(MemberEntity::id).eq(memberId.value))
+                    },
+                    jpqlRenderContext,
+                ).singleResultOrNull
+                .map { it?.let { entity -> mapper.toDomain(entity) } }
+        }
 
     override suspend fun findByEmail(email: Email): Member? =
-        sessionFactory
-            .withSession { session ->
-                session
-                    .createQuery(
-                        jpql {
-                            selectDistinct(entity(MemberEntity::class))
-                                .from(
-                                    entity(MemberEntity::class),
-                                    leftFetchJoin(MemberEntity::oauthConnections),
-                                ).where(path(MemberEntity::email).eq(email.value))
-                        },
-                        jpqlRenderContext,
-                    ).singleResultOrNull
-            }.awaitSuspending()
-            ?.let { mapper.toDomain(it) }
+        sessions.read { session ->
+            session
+                .createQuery(
+                    jpql {
+                        selectDistinct(entity(MemberEntity::class))
+                            .from(
+                                entity(MemberEntity::class),
+                                leftFetchJoin(MemberEntity::oauthConnections),
+                            ).where(path(MemberEntity::email).eq(email.value))
+                    },
+                    jpqlRenderContext,
+                ).singleResultOrNull
+                .map { it?.let { entity -> mapper.toDomain(entity) } }
+        }
 
     override suspend fun findByOAuthConnection(
         provider: OAuthProvider,
         providerId: String,
     ): Member? =
-        sessionFactory
-            .withSession { session ->
-                session
-                    .createQuery(
-                        jpql {
-                            select(entity(MemberEntity::class))
-                                .from(
-                                    entity(MemberEntity::class),
-                                    leftFetchJoin(MemberEntity::oauthConnections),
-                                ).where(
-                                    and(
-                                        path(OAuthConnectionEntity::provider).eq(provider),
-                                        path(OAuthConnectionEntity::providerId).eq(providerId),
-                                    ),
-                                )
-                        },
-                        jpqlRenderContext,
-                    ).singleResultOrNull
-            }.awaitSuspending()
-            ?.let { mapper.toDomain(it) }
+        sessions.read { session ->
+            session
+                .createQuery(
+                    jpql {
+                        select(entity(MemberEntity::class))
+                            .from(
+                                entity(MemberEntity::class),
+                                leftFetchJoin(MemberEntity::oauthConnections),
+                            ).where(
+                                and(
+                                    path(OAuthConnectionEntity::provider).eq(provider),
+                                    path(OAuthConnectionEntity::providerId).eq(providerId),
+                                ),
+                            )
+                    },
+                    jpqlRenderContext,
+                ).singleResultOrNull
+                .map { it?.let { entity -> mapper.toDomain(entity) } }
+        }
 
     override suspend fun existsByEmail(email: Email): Boolean =
-        sessionFactory
-            .withSession { session ->
-                session
-                    .createQuery(
-                        jpql {
-                            select(count(entity(MemberEntity::class)))
-                                .from(entity(MemberEntity::class))
-                                .where(path(MemberEntity::email).eq(email.value))
-                        },
-                        jpqlRenderContext,
-                    ).singleResultOrNull
-                    .map { count: Long -> count > 0 }
-            }.awaitSuspending()
+        sessions.read { session ->
+            session
+                .createQuery(
+                    jpql {
+                        select(count(entity(MemberEntity::class)))
+                            .from(entity(MemberEntity::class))
+                            .where(path(MemberEntity::email).eq(email.value))
+                    },
+                    jpqlRenderContext,
+                ).singleResultOrNull
+                .map { count: Long -> count > 0 }
+        }
 
     override suspend fun save(member: Member): Member =
-        sessionFactory
-            .withTransaction { session, _ ->
-                session
-                    .createQuery(
-                        jpql {
-                            selectDistinct(entity(MemberEntity::class))
-                                .from(
-                                    entity(MemberEntity::class),
-                                    leftFetchJoin(MemberEntity::oauthConnections),
-                                ).where(path(MemberEntity::id).eq(member.id.value))
-                        },
-                        jpqlRenderContext,
-                    ).singleResultOrNull
-                    .chain { existing: MemberEntity? ->
-                        if (existing != null) {
-                            // Update
-                            mapper.updateEntity(existing, member)
-                            session.merge(existing)
-                        } else {
-                            // Insert
-                            val newEntity = mapper.toEntity(member)
-                            session.persist(newEntity).replaceWith(newEntity)
-                        }
+        sessions.write { session ->
+            session
+                .createQuery(
+                    jpql {
+                        selectDistinct(entity(MemberEntity::class))
+                            .from(
+                                entity(MemberEntity::class),
+                                leftFetchJoin(MemberEntity::oauthConnections),
+                            ).where(path(MemberEntity::id).eq(member.id.value))
+                    },
+                    jpqlRenderContext,
+                ).singleResultOrNull
+                .chain { existing: MemberEntity? ->
+                    if (existing != null) {
+                        // Update
+                        mapper.updateEntity(existing, member)
+                        session.merge(existing)
+                    } else {
+                        // Insert
+                        val newEntity = mapper.toEntity(member)
+                        session.persist(newEntity).replaceWith(newEntity)
                     }
-            }.awaitSuspending()
-            .let { mapper.toDomain(it) }
+                }.map { mapper.toDomain(it) }
+        }
 }

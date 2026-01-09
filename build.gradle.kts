@@ -67,6 +67,7 @@ dependencies {
     runtimeOnly("org.postgresql:postgresql") // JDBC Driver (Liquibase + Test)
     implementation("io.vertx:vertx-core:$vertxVersion") // Vert.x Core (Reactive)
     implementation("io.vertx:vertx-pg-client:$vertxVersion") // Reactive Driver (Prayer Context Reactive)
+    implementation("io.vertx:vertx-lang-kotlin-coroutines:$vertxVersion") // Vert.x Coroutines Support
     implementation("com.ongres.scram:client:2.1") // SCRAM Authentication for PostgreSQL
 
     // ===== Database Migration =====

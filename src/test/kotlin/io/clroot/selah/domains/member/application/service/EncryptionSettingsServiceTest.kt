@@ -1,5 +1,6 @@
 package io.clroot.selah.domains.member.application.service
 
+import io.clroot.selah.common.reactive.ReactiveTransactionExecutor
 import io.clroot.selah.domains.member.application.port.inbound.SetupEncryptionCommand
 import io.clroot.selah.domains.member.application.port.inbound.UpdateEncryptionCommand
 import io.clroot.selah.domains.member.application.port.inbound.UpdateRecoveryKeyCommand
@@ -32,6 +33,7 @@ import io.mockk.mockk
 import io.mockk.slot
 import org.springframework.context.ApplicationEventPublisher
 import java.util.Base64
+import kotlin.time.Duration
 
 class EncryptionSettingsServiceTest :
     DescribeSpec({
@@ -44,6 +46,13 @@ class EncryptionSettingsServiceTest :
         val deleteServerKeyPort = mockk<DeleteServerKeyPort>()
         val serverKeyEncryptionPort = mockk<ServerKeyEncryptionPort>()
         val eventPublisher = mockk<ApplicationEventPublisher>(relaxed = true)
+        val tx =
+            mockk<ReactiveTransactionExecutor> {
+                coEvery { transactional<Any>(any<Duration>(), any()) } coAnswers {
+                    val block = secondArg<suspend () -> Any>()
+                    block()
+                }
+            }
 
         val encryptionSettingsService =
             EncryptionSettingsService(
@@ -55,6 +64,7 @@ class EncryptionSettingsServiceTest :
                 deleteServerKeyPort = deleteServerKeyPort,
                 serverKeyEncryptionPort = serverKeyEncryptionPort,
                 eventPublisher = eventPublisher,
+                tx = tx,
             )
 
         beforeTest {
