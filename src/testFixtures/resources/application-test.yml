@@ -2,6 +2,8 @@
 # TestContainer에서 datasource 설정을 시스템 프로퍼티로 주입합니다.
 
 spring:
+  liquibase:
+    enabled: false  # 테스트에서는 Hibernate가 스키마를 관리
   jpa:
     hibernate:
       ddl-auto: create-drop

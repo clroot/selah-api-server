@@ -33,7 +33,7 @@ class LookbackSelectionPersistenceAdapterTest : IntegrationTestBase() {
     private lateinit var prayerTopicAdapter: PrayerTopicPersistenceAdapter
 
     @Autowired
-    private lateinit var lookbackSelectionJpaRepository: LookbackSelectionJpaRepository
+    private lateinit var lookbackSelectionEntityRepository: LookbackSelectionEntityRepository
 
     @Autowired
     private lateinit var lookbackSelectionMapper: LookbackSelectionMapper
@@ -226,7 +226,7 @@ class LookbackSelectionPersistenceAdapterTest : IntegrationTestBase() {
         return adapter.save(selection)
     }
 
-    private fun createAndSaveSelectionWithDate(
+    private suspend fun createAndSaveSelectionWithDate(
         memberId: MemberId,
         prayerTopicId: PrayerTopicId,
         selectedAt: LocalDate,
@@ -242,7 +242,7 @@ class LookbackSelectionPersistenceAdapterTest : IntegrationTestBase() {
                 createdAt = now,
                 updatedAt = now,
             )
-        val saved = lookbackSelectionJpaRepository.saveAndFlush(entity)
+        val saved = lookbackSelectionEntityRepository.save(entity)
         return lookbackSelectionMapper.toDomain(saved)
     }
 }

@@ -19,12 +19,12 @@ class PrayerTopicPersistenceAdapterIntegrationTest : IntegrationTestBase() {
     private lateinit var prayerTopicPersistenceAdapter: PrayerTopicPersistenceAdapter
 
     @Autowired
-    private lateinit var prayerTopicJpaRepository: PrayerTopicJpaRepository
+    private lateinit var prayerTopicEntityRepository: PrayerTopicEntityRepository
 
     init {
         describe("PrayerTopicPersistenceAdapter") {
             afterEach {
-                prayerTopicJpaRepository.deleteAll()
+                prayerTopicEntityRepository.deleteAll()
             }
 
             describe("save") {
@@ -47,7 +47,7 @@ class PrayerTopicPersistenceAdapterIntegrationTest : IntegrationTestBase() {
                         savedTopic.reflection.shouldBeNull()
 
                         // DB에서 직접 확인
-                        val entity = prayerTopicJpaRepository.findById(prayerTopic.id.value).orElse(null)
+                        val entity = prayerTopicEntityRepository.findById(prayerTopic.id.value)
                         entity.shouldNotBeNull()
                         entity.title shouldBe "encrypted_title_base64"
                         entity.status shouldBe PrayerTopicStatus.PRAYING
@@ -72,7 +72,7 @@ class PrayerTopicPersistenceAdapterIntegrationTest : IntegrationTestBase() {
                         updatedTopic.title shouldBe "updated_title"
 
                         // DB에서 확인
-                        val entity = prayerTopicJpaRepository.findById(prayerTopic.id.value).orElse(null)
+                        val entity = prayerTopicEntityRepository.findById(prayerTopic.id.value)
                         entity.shouldNotBeNull()
                         entity.title shouldBe "updated_title"
                     }
@@ -98,7 +98,7 @@ class PrayerTopicPersistenceAdapterIntegrationTest : IntegrationTestBase() {
                         answeredTopic.reflection.shouldBeNull()
 
                         // DB에서 확인
-                        val entity = prayerTopicJpaRepository.findById(prayerTopic.id.value).orElse(null)
+                        val entity = prayerTopicEntityRepository.findById(prayerTopic.id.value)
                         entity.shouldNotBeNull()
                         entity.status shouldBe PrayerTopicStatus.ANSWERED
                         entity.answeredAt.shouldNotBeNull()
@@ -125,7 +125,7 @@ class PrayerTopicPersistenceAdapterIntegrationTest : IntegrationTestBase() {
                         answeredTopic.reflection shouldBe "encrypted_reflection"
 
                         // DB에서 확인
-                        val entity = prayerTopicJpaRepository.findById(prayerTopic.id.value).orElse(null)
+                        val entity = prayerTopicEntityRepository.findById(prayerTopic.id.value)
                         entity.shouldNotBeNull()
                         entity.reflection shouldBe "encrypted_reflection"
                     }
@@ -153,7 +153,7 @@ class PrayerTopicPersistenceAdapterIntegrationTest : IntegrationTestBase() {
                         cancelledTopic.reflection.shouldBeNull()
 
                         // DB에서 확인
-                        val entity = prayerTopicJpaRepository.findById(prayerTopic.id.value).orElse(null)
+                        val entity = prayerTopicEntityRepository.findById(prayerTopic.id.value)
                         entity.shouldNotBeNull()
                         entity.status shouldBe PrayerTopicStatus.PRAYING
                         entity.answeredAt.shouldBeNull()
@@ -181,7 +181,7 @@ class PrayerTopicPersistenceAdapterIntegrationTest : IntegrationTestBase() {
                         updatedTopic.reflection shouldBe "updated_reflection"
 
                         // DB에서 확인
-                        val entity = prayerTopicJpaRepository.findById(prayerTopic.id.value).orElse(null)
+                        val entity = prayerTopicEntityRepository.findById(prayerTopic.id.value)
                         entity.shouldNotBeNull()
                         entity.reflection shouldBe "updated_reflection"
                     }
@@ -478,7 +478,7 @@ class PrayerTopicPersistenceAdapterIntegrationTest : IntegrationTestBase() {
                         deletedTopic.shouldBeNull()
 
                         // DB에서도 삭제 확인
-                        val entity = prayerTopicJpaRepository.findById(prayerTopic.id.value).orElse(null)
+                        val entity = prayerTopicEntityRepository.findById(prayerTopic.id.value)
                         entity.shouldBeNull()
                     }
                 }
@@ -515,7 +515,7 @@ class PrayerTopicPersistenceAdapterIntegrationTest : IntegrationTestBase() {
                         savedTopic.reflection shouldBe "updated_reflection"
 
                         // DB에서 최종 상태 확인
-                        val entity = prayerTopicJpaRepository.findById(prayerTopic.id.value).orElse(null)
+                        val entity = prayerTopicEntityRepository.findById(prayerTopic.id.value)
                         entity.shouldNotBeNull()
                         entity.title shouldBe "updated_title"
                         entity.status shouldBe PrayerTopicStatus.ANSWERED

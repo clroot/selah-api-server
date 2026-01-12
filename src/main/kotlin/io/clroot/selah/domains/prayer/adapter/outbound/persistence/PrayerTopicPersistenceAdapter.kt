@@ -2,7 +2,6 @@ package io.clroot.selah.domains.prayer.adapter.outbound.persistence
 
 import com.linecorp.kotlinjdsl.dsl.jpql.jpql
 import com.linecorp.kotlinjdsl.render.jpql.JpqlRenderContext
-import com.linecorp.kotlinjdsl.support.hibernate.reactive.extension.createMutationQuery
 import com.linecorp.kotlinjdsl.support.hibernate.reactive.extension.createQuery
 import io.clroot.hibernate.reactive.ReactiveSessionProvider
 import io.clroot.selah.domains.member.domain.MemberId
@@ -18,35 +17,28 @@ import org.springframework.data.domain.Pageable
 import org.springframework.stereotype.Component
 import java.time.LocalDateTime
 
+/**
+ * PrayerTopic Persistence Adapter
+ *
+ * 단순 CRUD는 CoroutineCrudRepository를 사용하고,
+ * 복잡한 쿼리(동적 조건, 페이지네이션 등)는 JDSL을 사용합니다.
+ */
 @Component
 class PrayerTopicPersistenceAdapter(
+    private val repository: PrayerTopicEntityRepository,
     private val sessions: ReactiveSessionProvider,
     private val jpqlRenderContext: JpqlRenderContext,
     private val mapper: PrayerTopicMapper,
 ) : SavePrayerTopicPort,
     LoadPrayerTopicPort,
     DeletePrayerTopicPort {
-    override suspend fun save(prayerTopic: PrayerTopic): PrayerTopic =
-        sessions.write { session ->
-            session
-                .find(PrayerTopicEntity::class.java, prayerTopic.id.value)
-                .chain { existing: PrayerTopicEntity? ->
-                    if (existing != null) {
-                        mapper.updateEntity(existing, prayerTopic)
-                        session.merge(existing)
-                    } else {
-                        val newEntity = mapper.toEntity(prayerTopic)
-                        session.persist(newEntity).replaceWith(newEntity)
-                    }
-                }.map { mapper.toDomain(it) }
-        }
+    override suspend fun save(prayerTopic: PrayerTopic): PrayerTopic {
+        val saved = repository.save(mapper.toEntity(prayerTopic))
+        return mapper.toDomain(saved)
+    }
 
     override suspend fun findById(id: PrayerTopicId): PrayerTopic? =
-        sessions.read { session ->
-            session
-                .find(PrayerTopicEntity::class.java, id.value)
-                .map { it?.let { entity -> mapper.toDomain(entity) } }
-        }
+        repository.findById(id.value)?.let { mapper.toDomain(it) }
 
     override suspend fun findByIdAndMemberId(
         id: PrayerTopicId,
@@ -55,12 +47,14 @@ class PrayerTopicPersistenceAdapter(
         sessions.read { session ->
             val query =
                 jpql {
-                    select(entity(PrayerTopicEntity::class)).from(entity(PrayerTopicEntity::class)).where(
-                        and(
-                            path(PrayerTopicEntity::id).eq(id.value),
-                            path(PrayerTopicEntity::memberId).eq(memberId.value),
-                        ),
-                    )
+                    select(entity(PrayerTopicEntity::class))
+                        .from(entity(PrayerTopicEntity::class))
+                        .where(
+                            and(
+                                path(PrayerTopicEntity::id).eq(id.value),
+                                path(PrayerTopicEntity::memberId).eq(memberId.value),
+                            ),
+                        )
                 }
             session
                 .createQuery(query, jpqlRenderContext)
@@ -68,6 +62,11 @@ class PrayerTopicPersistenceAdapter(
                 .map { it?.let { entity -> mapper.toDomain(entity) } }
         }
 
+    override suspend fun deleteById(id: PrayerTopicId) {
+        repository.deleteById(id.value)
+    }
+
+    // 동적 조건 + 페이지네이션이 필요한 복잡한 쿼리 - JDSL 사용
     override suspend fun findAllByMemberId(
         memberId: MemberId,
         status: PrayerTopicStatus?,
@@ -104,19 +103,7 @@ class PrayerTopicPersistenceAdapter(
             }
         }
 
-    override suspend fun deleteById(id: PrayerTopicId) {
-        sessions.write { session ->
-            val query =
-                jpql {
-                    deleteFrom(entity(PrayerTopicEntity::class))
-                        .where(path(PrayerTopicEntity::id).eq(id.value))
-                }
-            session
-                .createMutationQuery(query, jpqlRenderContext)
-                .executeUpdate()
-        }
-    }
-
+    // 동적 조건이 필요한 복잡한 쿼리 - JDSL 사용
     override suspend fun findCandidatesForLookback(
         memberId: MemberId,
         cutoffDate: LocalDateTime,

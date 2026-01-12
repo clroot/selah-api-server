@@ -2,7 +2,6 @@ package io.clroot.selah.domains.prayer.adapter.outbound.persistence
 
 import com.linecorp.kotlinjdsl.dsl.jpql.jpql
 import com.linecorp.kotlinjdsl.render.jpql.JpqlRenderContext
-import com.linecorp.kotlinjdsl.support.hibernate.reactive.extension.createMutationQuery
 import com.linecorp.kotlinjdsl.support.hibernate.reactive.extension.createQuery
 import io.clroot.hibernate.reactive.ReactiveSessionProvider
 import io.clroot.selah.domains.member.domain.MemberId
@@ -17,35 +16,28 @@ import org.springframework.data.domain.PageImpl
 import org.springframework.data.domain.Pageable
 import org.springframework.stereotype.Component
 
+/**
+ * Prayer Persistence Adapter
+ *
+ * 단순 CRUD는 CoroutineCrudRepository를 사용하고,
+ * 복잡한 쿼리(서브쿼리, GROUP BY 등)는 JDSL을 사용합니다.
+ */
 @Component
 class PrayerPersistenceAdapter(
+    private val repository: PrayerEntityRepository,
     private val sessions: ReactiveSessionProvider,
     private val jpqlRenderContext: JpqlRenderContext,
     private val mapper: PrayerMapper,
 ) : SavePrayerPort,
     LoadPrayerPort,
     DeletePrayerPort {
-    override suspend fun save(prayer: Prayer): Prayer =
-        sessions.write { session ->
-            session
-                .find(PrayerEntity::class.java, prayer.id.value)
-                .chain { existing: PrayerEntity? ->
-                    if (existing != null) {
-                        mapper.updateEntity(existing, prayer)
-                        session.merge(existing)
-                    } else {
-                        val newEntity = mapper.toEntity(prayer)
-                        session.persist(newEntity).replaceWith(newEntity)
-                    }
-                }.map { mapper.toDomain(it) }
-        }
+    override suspend fun save(prayer: Prayer): Prayer {
+        val saved = repository.save(mapper.toEntity(prayer))
+        return mapper.toDomain(saved)
+    }
 
     override suspend fun findById(id: PrayerId): Prayer? =
-        sessions.read { session ->
-            session
-                .find(PrayerEntity::class.java, id.value)
-                .map { it?.let { entity -> mapper.toDomain(entity) } }
-        }
+        repository.findById(id.value)?.let { mapper.toDomain(it) }
 
     override suspend fun findByIdAndMemberId(
         id: PrayerId,
@@ -54,12 +46,14 @@ class PrayerPersistenceAdapter(
         sessions.read { session ->
             val query =
                 jpql {
-                    select(entity(PrayerEntity::class)).from(entity(PrayerEntity::class)).where(
-                        and(
-                            path(PrayerEntity::id).eq(id.value),
-                            path(PrayerEntity::memberId).eq(memberId.value),
-                        ),
-                    )
+                    select(entity(PrayerEntity::class))
+                        .from(entity(PrayerEntity::class))
+                        .where(
+                            and(
+                                path(PrayerEntity::id).eq(id.value),
+                                path(PrayerEntity::memberId).eq(memberId.value),
+                            ),
+                        )
                 }
             session
                 .createQuery(query, jpqlRenderContext)
@@ -67,6 +61,11 @@ class PrayerPersistenceAdapter(
                 .map { it?.let { entity -> mapper.toDomain(entity) } }
         }
 
+    override suspend fun deleteById(id: PrayerId) {
+        repository.deleteById(id.value)
+    }
+
+    // 페이지네이션이 필요한 복잡한 쿼리 - JDSL 사용
     override suspend fun findAllByMemberId(
         memberId: MemberId,
         pageable: Pageable,
@@ -99,17 +98,7 @@ class PrayerPersistenceAdapter(
             }
         }
 
-    override suspend fun deleteById(id: PrayerId) {
-        sessions.write { session ->
-            val query =
-                jpql {
-                    deleteFrom(entity(PrayerEntity::class))
-                        .where(path(PrayerEntity::id).eq(id.value))
-                }
-            session.createMutationQuery(query, jpqlRenderContext).executeUpdate()
-        }
-    }
-
+    // 서브쿼리가 필요한 복잡한 쿼리 - JDSL 사용
     override suspend fun findAllByMemberIdAndPrayerTopicId(
         memberId: MemberId,
         prayerTopicId: PrayerTopicId,
@@ -162,6 +151,7 @@ class PrayerPersistenceAdapter(
             }
         }
 
+    // GROUP BY가 필요한 복잡한 쿼리 - JDSL 사용
     override suspend fun countByPrayerTopicIds(prayerTopicIds: List<PrayerTopicId>): Map<PrayerTopicId, Long> {
         if (prayerTopicIds.isEmpty()) {
             return emptyMap()
