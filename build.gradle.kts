@@ -19,6 +19,7 @@ group = "io.clroot.selah"
 
 repositories {
     mavenCentral()
+    maven { url = uri("https://jitpack.io") }
 }
 
 java {
@@ -60,9 +61,8 @@ dependencies {
     implementation("com.linecorp.kotlin-jdsl:jpql-render:$kotlinJdslVersion")
     implementation("com.linecorp.kotlin-jdsl:hibernate-reactive-support:$kotlinJdslVersion") // Member + Prayer Context (Reactive)
 
-    // ===== Hibernate Reactive (Prayer Context POC) =====
-    implementation("org.hibernate.reactive:hibernate-reactive-core:$hibernateReactiveVersion")
-    implementation("io.smallrye.reactive:mutiny-kotlin:$mutinyVersion") // Kotlin 확장
+    // ===== Hibernate Reactive =====
+    implementation("com.github.clroot.hibernate-reactive-coroutines:hibernate-reactive-coroutines-spring-boot-starter:0.1.0")
 
     // ===== Database =====
     runtimeOnly("org.postgresql:postgresql") // JDBC Driver (Liquibase + Test)
@@ -107,6 +107,7 @@ dependencies {
     testFixturesApi("org.testcontainers:postgresql:$testcontainersVersion")
     testFixturesApi("org.testcontainers:junit-jupiter:$testcontainersVersion")
     testFixturesApi("org.postgresql:postgresql")
+    testFixturesApi("com.github.clroot.hibernate-reactive-coroutines:hibernate-reactive-coroutines-spring-boot-starter:0.1.0")
 }
 
 tasks {

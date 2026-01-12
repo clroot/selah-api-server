@@ -3,7 +3,7 @@ package io.clroot.selah.domains.member.adapter.outbound.persistence.member
 import com.linecorp.kotlinjdsl.dsl.jpql.jpql
 import com.linecorp.kotlinjdsl.render.jpql.JpqlRenderContext
 import com.linecorp.kotlinjdsl.support.hibernate.reactive.extension.createQuery
-import io.clroot.selah.common.reactive.ReactiveSessionProvider
+import io.clroot.hibernate.reactive.ReactiveSessionProvider
 import io.clroot.selah.domains.member.application.port.outbound.LoadMemberPort
 import io.clroot.selah.domains.member.application.port.outbound.SaveMemberPort
 import io.clroot.selah.domains.member.domain.Email

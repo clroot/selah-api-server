@@ -4,7 +4,7 @@ import com.linecorp.kotlinjdsl.dsl.jpql.jpql
 import com.linecorp.kotlinjdsl.render.jpql.JpqlRenderContext
 import com.linecorp.kotlinjdsl.support.hibernate.reactive.extension.createMutationQuery
 import com.linecorp.kotlinjdsl.support.hibernate.reactive.extension.createQuery
-import io.clroot.selah.common.reactive.ReactiveSessionProvider
+import io.clroot.hibernate.reactive.ReactiveSessionProvider
 import io.clroot.selah.domains.member.domain.MemberId
 import io.clroot.selah.domains.prayer.application.port.outbound.DeleteLookbackSelectionPort
 import io.clroot.selah.domains.prayer.application.port.outbound.LoadLookbackSelectionPort

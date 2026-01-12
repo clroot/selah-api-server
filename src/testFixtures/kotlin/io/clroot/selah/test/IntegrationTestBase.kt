@@ -1,10 +1,8 @@
 package io.clroot.selah.test
 
-import io.clroot.selah.common.reactive.HibernateReactiveConfig
 import io.clroot.selah.test.container.DatabaseTestExtension
 import io.kotest.core.spec.style.DescribeSpec
 import io.kotest.extensions.spring.SpringExtension
-import org.springframework.context.annotation.Import
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.transaction.annotation.Propagation
 import org.springframework.transaction.annotation.Transactional
@@ -45,7 +43,6 @@ import org.springframework.transaction.annotation.Transactional
  */
 @ActiveProfiles("test")
 @Transactional(propagation = Propagation.NOT_SUPPORTED)
-@Import(HibernateReactiveConfig::class)
 abstract class IntegrationTestBase : DescribeSpec() {
     init {
         extension(DatabaseTestExtension()) // TestContainer 관리 (먼저 실행되어야 함)
