@@ -1,11 +1,17 @@
 package io.clroot.selah.domains.member.adapter.outbound.persistence.emailverification
 
+import com.linecorp.kotlinjdsl.dsl.jpql.jpql
+import com.linecorp.kotlinjdsl.render.jpql.JpqlRenderContext
+import com.linecorp.kotlinjdsl.support.hibernate.reactive.extension.createMutationQuery
+import com.linecorp.kotlinjdsl.support.hibernate.reactive.extension.createQuery
 import io.clroot.selah.domains.member.domain.MemberId
 import io.clroot.selah.test.IntegrationTestBase
 import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldHaveLength
+import io.smallrye.mutiny.coroutines.awaitSuspending
+import org.hibernate.reactive.mutiny.Mutiny
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import java.security.MessageDigest
@@ -17,12 +23,22 @@ class EmailVerificationTokenPersistenceAdapterIntegrationTest : IntegrationTestB
     private lateinit var adapter: EmailVerificationTokenPersistenceAdapter
 
     @Autowired
-    private lateinit var repository: EmailVerificationTokenJpaRepository
+    private lateinit var sessionFactory: Mutiny.SessionFactory
+
+    @Autowired
+    private lateinit var jpqlRenderContext: JpqlRenderContext
 
     init {
         describe("EmailVerificationTokenPersistenceAdapter") {
             afterEach {
-                repository.deleteAll()
+                sessionFactory
+                    .withTransaction { session ->
+                        session
+                            .createMutationQuery(
+                                jpql { deleteFrom(entity(EmailVerificationTokenEntity::class)) },
+                                jpqlRenderContext,
+                            ).executeUpdate()
+                    }.awaitSuspending()
             }
 
             describe("create") {
@@ -33,16 +49,19 @@ class EmailVerificationTokenPersistenceAdapterIntegrationTest : IntegrationTestB
                         val result = adapter.create(memberId)
 
                         result.shouldNotBeNull()
-                        result.rawToken shouldHaveLength 64 // 32 bytes * 2 (hex)
+                        result.rawToken shouldHaveLength 64
                         result.info.memberId shouldBe memberId
                         result.info.usedAt.shouldBeNull()
                         result.info.isValid() shouldBe true
 
-                        // DB에서 직접 확인 (해시된 값으로 저장됨)
-                        val entity = repository.findById(result.info.id).orElse(null)
+                        val entity =
+                            sessionFactory
+                                .withSession { session ->
+                                    session.find(EmailVerificationTokenEntity::class.java, result.info.id)
+                                }.awaitSuspending()
                         entity.shouldNotBeNull()
                         entity.memberId shouldBe memberId.value
-                        entity.tokenHash shouldHaveLength 64 // SHA-256 hash hex
+                        entity.tokenHash shouldHaveLength 64
                     }
                 }
             }
@@ -75,7 +94,6 @@ class EmailVerificationTokenPersistenceAdapterIntegrationTest : IntegrationTestB
                         val memberId = MemberId.new()
                         val now = LocalDateTime.now()
 
-                        // 이미 만료된 토큰을 직접 생성 (해시값을 알고 있어야 함)
                         val rawToken = "test-expired-token-12345"
                         val tokenHash = hashToken(rawToken)
 
@@ -84,10 +102,13 @@ class EmailVerificationTokenPersistenceAdapterIntegrationTest : IntegrationTestB
                                 id = "expired-token-id",
                                 tokenHash = tokenHash,
                                 memberId = memberId.value,
-                                expiresAt = now.minusHours(1), // 1시간 전에 만료됨
+                                expiresAt = now.minusHours(1),
                                 createdAt = now.minusDays(2),
                             )
-                        repository.save(expiredEntity)
+                        sessionFactory
+                            .withTransaction { session ->
+                                session.persist(expiredEntity)
+                            }.awaitSuspending()
 
                         val found = adapter.findValidByToken(rawToken)
 
@@ -100,7 +121,6 @@ class EmailVerificationTokenPersistenceAdapterIntegrationTest : IntegrationTestB
                         val memberId = MemberId.new()
                         val createResult = adapter.create(memberId)
 
-                        // 토큰을 사용 처리
                         adapter.markAsUsed(createResult.info.id)
 
                         val found = adapter.findValidByToken(createResult.rawToken)
@@ -118,7 +138,11 @@ class EmailVerificationTokenPersistenceAdapterIntegrationTest : IntegrationTestB
 
                         adapter.markAsUsed(createResult.info.id)
 
-                        val entity = repository.findById(createResult.info.id).orElse(null)
+                        val entity =
+                            sessionFactory
+                                .withSession { session ->
+                                    session.find(EmailVerificationTokenEntity::class.java, createResult.info.id)
+                                }.awaitSuspending()
                         entity.shouldNotBeNull()
                         entity.usedAt.shouldNotBeNull()
                     }
@@ -126,7 +150,6 @@ class EmailVerificationTokenPersistenceAdapterIntegrationTest : IntegrationTestB
 
                 context("존재하지 않는 토큰 ID로 호출할 때") {
                     it("예외 없이 무시된다") {
-                        // 예외가 발생하지 않아야 함
                         adapter.markAsUsed("nonexistent-id")
                     }
                 }
@@ -138,22 +161,33 @@ class EmailVerificationTokenPersistenceAdapterIntegrationTest : IntegrationTestB
                         val memberId = MemberId.new()
                         val otherMemberId = MemberId.new()
 
-                        // 동일 회원의 여러 토큰 생성
                         adapter.create(memberId)
                         adapter.create(memberId)
 
-                        // 다른 회원의 토큰 생성
                         val otherToken = adapter.create(otherMemberId)
 
-                        // 회원의 모든 토큰 무효화
                         adapter.invalidateAllByMemberId(memberId)
 
-                        // 해당 회원의 토큰은 모두 삭제됨
-                        val memberTokens = repository.findAll().filter { it.memberId == memberId.value }
-                        memberTokens.size shouldBe 0
+                        val memberTokenCount =
+                            sessionFactory
+                                .withSession { session ->
+                                    session
+                                        .createQuery(
+                                            jpql {
+                                                select(count(entity(EmailVerificationTokenEntity::class)))
+                                                    .from(entity(EmailVerificationTokenEntity::class))
+                                                    .where(path(EmailVerificationTokenEntity::memberId).eq(memberId.value))
+                                            },
+                                            jpqlRenderContext,
+                                        ).singleResult
+                                }.awaitSuspending()
+                        memberTokenCount shouldBe 0L
 
-                        // 다른 회원의 토큰은 유지됨
-                        val otherEntity = repository.findById(otherToken.info.id).orElse(null)
+                        val otherEntity =
+                            sessionFactory
+                                .withSession { session ->
+                                    session.find(EmailVerificationTokenEntity::class.java, otherToken.info.id)
+                                }.awaitSuspending()
                         otherEntity.shouldNotBeNull()
                     }
                 }
@@ -164,15 +198,13 @@ class EmailVerificationTokenPersistenceAdapterIntegrationTest : IntegrationTestB
                     it("가장 최근 생성 시간을 반환한다") {
                         val memberId = MemberId.new()
 
-                        // 토큰 생성 (시간 간격 두고)
                         adapter.create(memberId)
-                        Thread.sleep(100) // 시간 차이 확보
+                        Thread.sleep(100)
                         val latestToken = adapter.create(memberId)
 
                         val latestCreatedAt = adapter.findLatestCreatedAtByMemberId(memberId)
 
                         latestCreatedAt.shouldNotBeNull()
-                        // 최근 생성된 토큰의 시간과 근접해야 함
                         latestCreatedAt shouldBe latestToken.info.createdAt
                     }
                 }
@@ -194,36 +226,43 @@ class EmailVerificationTokenPersistenceAdapterIntegrationTest : IntegrationTestB
                         val memberId = MemberId.new()
                         val now = LocalDateTime.now()
 
-                        // 만료된 토큰 직접 생성
                         val expiredEntity =
                             EmailVerificationTokenEntity(
                                 id = "expired-token-1",
                                 tokenHash = "expired-hash-1",
                                 memberId = memberId.value,
-                                expiresAt = now.minusHours(1), // 1시간 전 만료
+                                expiresAt = now.minusHours(1),
                                 createdAt = now.minusDays(2),
                             )
-                        repository.save(expiredEntity)
+                        sessionFactory
+                            .withTransaction { session ->
+                                session.persist(expiredEntity)
+                            }.awaitSuspending()
 
-                        // 유효한 토큰 생성
                         val validToken = adapter.create(MemberId.new())
 
-                        // 만료된 토큰 삭제
                         val deletedCount = adapter.deleteExpiredTokens()
 
                         deletedCount shouldBe 1
 
-                        // 만료된 토큰은 삭제됨
-                        repository.findById("expired-token-1").isEmpty shouldBe true
+                        val expiredEntityAfter =
+                            sessionFactory
+                                .withSession { session ->
+                                    session.find(EmailVerificationTokenEntity::class.java, "expired-token-1")
+                                }.awaitSuspending()
+                        expiredEntityAfter.shouldBeNull()
 
-                        // 유효한 토큰은 유지됨
-                        repository.findById(validToken.info.id).isPresent shouldBe true
+                        val validEntityAfter =
+                            sessionFactory
+                                .withSession { session ->
+                                    session.find(EmailVerificationTokenEntity::class.java, validToken.info.id)
+                                }.awaitSuspending()
+                        validEntityAfter.shouldNotBeNull()
                     }
                 }
 
                 context("만료된 토큰이 없을 때") {
                     it("0을 반환한다") {
-                        // 유효한 토큰만 생성
                         adapter.create(MemberId.new())
 
                         val deletedCount = adapter.deleteExpiredTokens()
@@ -236,15 +275,8 @@ class EmailVerificationTokenPersistenceAdapterIntegrationTest : IntegrationTestB
     }
 }
 
-// region Test Utilities
-
-/**
- * SHA-256 해시 생성 (어댑터와 동일한 로직)
- */
 private fun hashToken(token: String): String {
     val digest = MessageDigest.getInstance("SHA-256")
     val hashBytes = digest.digest(token.toByteArray(Charsets.UTF_8))
     return hashBytes.joinToString("") { "%02x".format(it) }
 }
-
-// endregion

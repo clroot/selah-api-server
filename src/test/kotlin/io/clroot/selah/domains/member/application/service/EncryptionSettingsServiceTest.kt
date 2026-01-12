@@ -1,16 +1,10 @@
 package io.clroot.selah.domains.member.application.service
 
+import io.clroot.hibernate.reactive.ReactiveTransactionExecutor
 import io.clroot.selah.domains.member.application.port.inbound.SetupEncryptionCommand
 import io.clroot.selah.domains.member.application.port.inbound.UpdateEncryptionCommand
 import io.clroot.selah.domains.member.application.port.inbound.UpdateRecoveryKeyCommand
-import io.clroot.selah.domains.member.application.port.outbound.DeleteEncryptionSettingsPort
-import io.clroot.selah.domains.member.application.port.outbound.DeleteServerKeyPort
-import io.clroot.selah.domains.member.application.port.outbound.EncryptedServerKeyResult
-import io.clroot.selah.domains.member.application.port.outbound.LoadEncryptionSettingsPort
-import io.clroot.selah.domains.member.application.port.outbound.LoadServerKeyPort
-import io.clroot.selah.domains.member.application.port.outbound.SaveEncryptionSettingsPort
-import io.clroot.selah.domains.member.application.port.outbound.SaveServerKeyPort
-import io.clroot.selah.domains.member.application.port.outbound.ServerKeyEncryptionPort
+import io.clroot.selah.domains.member.application.port.outbound.*
 import io.clroot.selah.domains.member.domain.EncryptionSettings
 import io.clroot.selah.domains.member.domain.MemberId
 import io.clroot.selah.domains.member.domain.ServerKey
@@ -22,16 +16,10 @@ import io.kotest.matchers.booleans.shouldBeFalse
 import io.kotest.matchers.booleans.shouldBeTrue
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
-import io.mockk.Runs
-import io.mockk.clearMocks
-import io.mockk.coEvery
-import io.mockk.coVerify
-import io.mockk.every
-import io.mockk.just
-import io.mockk.mockk
-import io.mockk.slot
+import io.mockk.*
 import org.springframework.context.ApplicationEventPublisher
-import java.util.Base64
+import java.util.*
+import kotlin.time.Duration
 
 class EncryptionSettingsServiceTest :
     DescribeSpec({
@@ -44,6 +32,13 @@ class EncryptionSettingsServiceTest :
         val deleteServerKeyPort = mockk<DeleteServerKeyPort>()
         val serverKeyEncryptionPort = mockk<ServerKeyEncryptionPort>()
         val eventPublisher = mockk<ApplicationEventPublisher>(relaxed = true)
+        val tx =
+            mockk<ReactiveTransactionExecutor> {
+                coEvery { transactional<Any>(any<Duration>(), any()) } coAnswers {
+                    val block = secondArg<suspend () -> Any>()
+                    block()
+                }
+            }
 
         val encryptionSettingsService =
             EncryptionSettingsService(
@@ -55,6 +50,7 @@ class EncryptionSettingsServiceTest :
                 deleteServerKeyPort = deleteServerKeyPort,
                 serverKeyEncryptionPort = serverKeyEncryptionPort,
                 eventPublisher = eventPublisher,
+                tx = tx,
             )
 
         beforeTest {

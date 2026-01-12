@@ -1,52 +1,85 @@
 package io.clroot.selah.domains.member.adapter.outbound.persistence.serverkey
 
+import com.linecorp.kotlinjdsl.dsl.jpql.jpql
+import com.linecorp.kotlinjdsl.render.jpql.JpqlRenderContext
+import com.linecorp.kotlinjdsl.support.hibernate.reactive.extension.createMutationQuery
+import com.linecorp.kotlinjdsl.support.hibernate.reactive.extension.createQuery
+import io.clroot.hibernate.reactive.ReactiveSessionProvider
 import io.clroot.selah.domains.member.application.port.outbound.DeleteServerKeyPort
 import io.clroot.selah.domains.member.application.port.outbound.LoadServerKeyPort
 import io.clroot.selah.domains.member.application.port.outbound.SaveServerKeyPort
 import io.clroot.selah.domains.member.domain.MemberId
 import io.clroot.selah.domains.member.domain.ServerKey
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import org.springframework.stereotype.Component
 
-/**
- * ServerKey Persistence Adapter
- */
 @Component
 class ServerKeyPersistenceAdapter(
-    private val repository: ServerKeyJpaRepository,
+    private val sessions: ReactiveSessionProvider,
+    private val jpqlRenderContext: JpqlRenderContext,
     private val mapper: ServerKeyMapper,
 ) : LoadServerKeyPort,
     SaveServerKeyPort,
     DeleteServerKeyPort {
     override suspend fun findByMemberId(memberId: MemberId): ServerKey? =
-        withContext(Dispatchers.IO) {
-            repository.findByMemberId(memberId.value)?.let { mapper.toDomain(it) }
+        sessions.read { session ->
+            session
+                .createQuery(
+                    jpql {
+                        select(entity(ServerKeyEntity::class))
+                            .from(entity(ServerKeyEntity::class))
+                            .where(path(ServerKeyEntity::memberId).eq(memberId.value))
+                    },
+                    jpqlRenderContext,
+                ).singleResultOrNull
+                .map { it?.let { entity -> mapper.toDomain(entity) } }
         }
 
     override suspend fun existsByMemberId(memberId: MemberId): Boolean =
-        withContext(Dispatchers.IO) {
-            repository.existsByMemberId(memberId.value)
+        sessions.read { session ->
+            session
+                .createQuery(
+                    jpql {
+                        select(count(entity(ServerKeyEntity::class)))
+                            .from(entity(ServerKeyEntity::class))
+                            .where(path(ServerKeyEntity::memberId).eq(memberId.value))
+                    },
+                    jpqlRenderContext,
+                ).singleResult
+                .map { count: Long -> count > 0 }
         }
 
     override suspend fun save(serverKey: ServerKey): ServerKey =
-        withContext(Dispatchers.IO) {
-            val savedEntity =
-                if (repository.existsById(serverKey.id.value)) {
-                    // 기존 Entity 업데이트
-                    val existingEntity = repository.findById(serverKey.id.value).orElseThrow()
-                    mapper.updateEntity(existingEntity, serverKey)
-                    repository.save(existingEntity)
-                } else {
-                    // 새 Entity 생성
-                    repository.save(mapper.toEntity(serverKey))
-                }
-
-            mapper.toDomain(savedEntity)
+        sessions.write { session ->
+            session
+                .createQuery(
+                    jpql {
+                        select(entity(ServerKeyEntity::class))
+                            .from(entity(ServerKeyEntity::class))
+                            .where(path(ServerKeyEntity::id).eq(serverKey.id.value))
+                    },
+                    jpqlRenderContext,
+                ).singleResultOrNull
+                .chain { existing: ServerKeyEntity? ->
+                    if (existing != null) {
+                        mapper.updateEntity(existing, serverKey)
+                        session.merge(existing)
+                    } else {
+                        val newEntity = mapper.toEntity(serverKey)
+                        session.persist(newEntity).replaceWith(newEntity)
+                    }
+                }.map { mapper.toDomain(it) }
         }
 
-    override suspend fun deleteByMemberId(memberId: MemberId): Unit =
-        withContext(Dispatchers.IO) {
-            repository.deleteByMemberId(memberId.value)
+    override suspend fun deleteByMemberId(memberId: MemberId) {
+        sessions.write { session ->
+            session
+                .createMutationQuery(
+                    jpql {
+                        deleteFrom(entity(ServerKeyEntity::class))
+                            .where(path(ServerKeyEntity::memberId).eq(memberId.value))
+                    },
+                    jpqlRenderContext,
+                ).executeUpdate()
         }
+    }
 }

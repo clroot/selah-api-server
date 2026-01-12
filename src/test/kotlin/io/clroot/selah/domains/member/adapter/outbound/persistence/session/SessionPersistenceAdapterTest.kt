@@ -1,13 +1,12 @@
 package io.clroot.selah.domains.member.adapter.outbound.persistence.session
 
+import io.clroot.selah.domains.member.adapter.outbound.persistence.member.MemberPersistenceAdapter
 import io.clroot.selah.domains.member.domain.Email
 import io.clroot.selah.domains.member.domain.Member
 import io.clroot.selah.domains.member.domain.PasswordHash
-import io.clroot.selah.domains.member.adapter.outbound.persistence.member.MemberPersistenceAdapter
 import io.clroot.selah.test.IntegrationTestBase
 import io.kotest.matchers.booleans.shouldBeFalse
 import io.kotest.matchers.booleans.shouldBeTrue
-import io.kotest.matchers.ints.shouldBeGreaterThan
 import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
@@ -42,12 +41,13 @@ class SessionPersistenceAdapterTest : IntegrationTestBase() {
                 context("새 세션을 생성할 때") {
                     it("세션이 정상적으로 생성된다") {
                         // When
-                        val session = adapter.create(
-                            memberId = testMember.id,
-                            role = testMember.role,
-                            userAgent = "Mozilla/5.0",
-                            ipAddress = "127.0.0.1",
-                        )
+                        val session =
+                            adapter.create(
+                                memberId = testMember.id,
+                                role = testMember.role,
+                                userAgent = "Mozilla/5.0",
+                                ipAddress = "127.0.0.1",
+                            )
 
                         // Then
                         session.shouldNotBeNull()
@@ -65,12 +65,13 @@ class SessionPersistenceAdapterTest : IntegrationTestBase() {
                 context("User-Agent 없이 세션을 생성할 때") {
                     it("null User-Agent로 세션이 생성된다") {
                         // When
-                        val session = adapter.create(
-                            memberId = testMember.id,
-                            role = testMember.role,
-                            userAgent = null,
-                            ipAddress = "192.168.1.1",
-                        )
+                        val session =
+                            adapter.create(
+                                memberId = testMember.id,
+                                role = testMember.role,
+                                userAgent = null,
+                                ipAddress = "192.168.1.1",
+                            )
 
                         // Then
                         session.userAgent.shouldBeNull()
@@ -81,12 +82,13 @@ class SessionPersistenceAdapterTest : IntegrationTestBase() {
                 context("IP 주소 없이 세션을 생성할 때") {
                     it("null IP로 세션이 생성된다") {
                         // When
-                        val session = adapter.create(
-                            memberId = testMember.id,
-                            role = testMember.role,
-                            userAgent = "Chrome/90.0",
-                            ipAddress = null,
-                        )
+                        val session =
+                            adapter.create(
+                                memberId = testMember.id,
+                                role = testMember.role,
+                                userAgent = "Chrome/90.0",
+                                ipAddress = null,
+                            )
 
                         // Then
                         session.createdIp.shouldBeNull()
@@ -100,12 +102,13 @@ class SessionPersistenceAdapterTest : IntegrationTestBase() {
                         val longUserAgent = "A".repeat(600)
 
                         // When
-                        val session = adapter.create(
-                            memberId = testMember.id,
-                            role = testMember.role,
-                            userAgent = longUserAgent,
-                            ipAddress = "127.0.0.1",
-                        )
+                        val session =
+                            adapter.create(
+                                memberId = testMember.id,
+                                role = testMember.role,
+                                userAgent = longUserAgent,
+                                ipAddress = "127.0.0.1",
+                            )
 
                         // Then
                         session.userAgent?.length shouldBe 500
@@ -117,12 +120,13 @@ class SessionPersistenceAdapterTest : IntegrationTestBase() {
                 context("세션이 존재할 때") {
                     it("세션을 반환한다") {
                         // Given
-                        val created = adapter.create(
-                            memberId = testMember.id,
-                            role = testMember.role,
-                            userAgent = "Safari/14.0",
-                            ipAddress = "10.0.0.1",
-                        )
+                        val created =
+                            adapter.create(
+                                memberId = testMember.id,
+                                role = testMember.role,
+                                userAgent = "Safari/14.0",
+                                ipAddress = "10.0.0.1",
+                            )
 
                         // When
                         val found = adapter.findByToken(created.token)
@@ -150,12 +154,13 @@ class SessionPersistenceAdapterTest : IntegrationTestBase() {
                 context("세션을 삭제할 때") {
                     it("세션이 삭제된다") {
                         // Given
-                        val session = adapter.create(
-                            memberId = testMember.id,
-                            role = testMember.role,
-                            userAgent = null,
-                            ipAddress = null,
-                        )
+                        val session =
+                            adapter.create(
+                                memberId = testMember.id,
+                                role = testMember.role,
+                                userAgent = null,
+                                ipAddress = null,
+                            )
 
                         // When
                         adapter.delete(session.token)
@@ -322,11 +327,12 @@ class SessionPersistenceAdapterTest : IntegrationTestBase() {
     }
 
     private suspend fun createAndSaveMember(): Member {
-        val member = Member.createWithEmail(
-            email = Email("session-test-${System.currentTimeMillis()}@example.com"),
-            nickname = "세션 테스트 사용자",
-            passwordHash = PasswordHash("hashed-password"),
-        )
+        val member =
+            Member.createWithEmail(
+                email = Email("session-test-${System.currentTimeMillis()}@example.com"),
+                nickname = "세션 테스트 사용자",
+                passwordHash = PasswordHash("hashed-password"),
+            )
         return memberAdapter.save(member)
     }
 }

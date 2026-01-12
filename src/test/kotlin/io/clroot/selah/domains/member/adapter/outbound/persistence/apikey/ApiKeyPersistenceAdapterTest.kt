@@ -42,12 +42,13 @@ class ApiKeyPersistenceAdapterTest : IntegrationTestBase() {
                 context("새 API Key를 생성할 때") {
                     it("API Key가 생성되고 원본 키가 반환된다") {
                         // When
-                        val result = adapter.create(
-                            memberId = testMember.id,
-                            role = testMember.role,
-                            name = "테스트 API Key",
-                            ipAddress = "127.0.0.1",
-                        )
+                        val result =
+                            adapter.create(
+                                memberId = testMember.id,
+                                role = testMember.role,
+                                name = "테스트 API Key",
+                                ipAddress = "127.0.0.1",
+                            )
 
                         // Then
                         result.shouldNotBeNull()
@@ -81,12 +82,13 @@ class ApiKeyPersistenceAdapterTest : IntegrationTestBase() {
                 context("IP 주소 없이 API Key를 생성할 때") {
                     it("null IP로 키가 생성된다") {
                         // When
-                        val result = adapter.create(
-                            memberId = testMember.id,
-                            role = testMember.role,
-                            name = "No IP Key",
-                            ipAddress = null,
-                        )
+                        val result =
+                            adapter.create(
+                                memberId = testMember.id,
+                                role = testMember.role,
+                                name = "No IP Key",
+                                ipAddress = null,
+                            )
 
                         // Then
                         result.info.createdIp.shouldBeNull()
@@ -171,11 +173,12 @@ class ApiKeyPersistenceAdapterTest : IntegrationTestBase() {
 
                         // Then
                         keys shouldHaveSize 3
-                        keys.map { it.id } shouldContainExactlyInAnyOrder listOf(
-                            key1.info.id,
-                            key2.info.id,
-                            key3.info.id,
-                        )
+                        keys.map { it.id } shouldContainExactlyInAnyOrder
+                            listOf(
+                                key1.info.id,
+                                key2.info.id,
+                                key3.info.id,
+                            )
                     }
                 }
 
@@ -277,12 +280,13 @@ class ApiKeyPersistenceAdapterTest : IntegrationTestBase() {
                 context("API Key 생성부터 삭제까지") {
                     it("전체 생명주기가 정상 작동한다") {
                         // Given - Create
-                        val created = adapter.create(
-                            memberId = testMember.id,
-                            role = testMember.role,
-                            name = "Production API Key",
-                            ipAddress = "203.0.113.1",
-                        )
+                        val created =
+                            adapter.create(
+                                memberId = testMember.id,
+                                role = testMember.role,
+                                name = "Production API Key",
+                                ipAddress = "203.0.113.1",
+                            )
 
                         // When - Find
                         val found = adapter.findByKey(created.rawKey)
@@ -309,11 +313,12 @@ class ApiKeyPersistenceAdapterTest : IntegrationTestBase() {
     }
 
     private suspend fun createAndSaveMember(): Member {
-        val member = Member.createWithEmail(
-            email = Email("apikey-test-${System.currentTimeMillis()}@example.com"),
-            nickname = "API Key 테스트",
-            passwordHash = PasswordHash("hashed-password"),
-        )
+        val member =
+            Member.createWithEmail(
+                email = Email("apikey-test-${System.currentTimeMillis()}@example.com"),
+                nickname = "API Key 테스트",
+                passwordHash = PasswordHash("hashed-password"),
+            )
         return memberAdapter.save(member)
     }
 }

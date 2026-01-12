@@ -33,7 +33,7 @@ class LookbackSelectionPersistenceAdapterTest : IntegrationTestBase() {
     private lateinit var prayerTopicAdapter: PrayerTopicPersistenceAdapter
 
     @Autowired
-    private lateinit var lookbackSelectionJpaRepository: LookbackSelectionJpaRepository
+    private lateinit var lookbackSelectionEntityRepository: LookbackSelectionEntityRepository
 
     @Autowired
     private lateinit var lookbackSelectionMapper: LookbackSelectionMapper
@@ -52,10 +52,11 @@ class LookbackSelectionPersistenceAdapterTest : IntegrationTestBase() {
                 context("새 돌아보기 선정을 저장할 때") {
                     it("저장된 선정을 반환한다") {
                         // Given
-                        val selection = LookbackSelection.create(
-                            memberId = testMember.id,
-                            prayerTopicId = prayerTopic.id,
-                        )
+                        val selection =
+                            LookbackSelection.create(
+                                memberId = testMember.id,
+                                prayerTopicId = prayerTopic.id,
+                            )
 
                         // When
                         val saved = adapter.save(selection)
@@ -195,19 +196,21 @@ class LookbackSelectionPersistenceAdapterTest : IntegrationTestBase() {
     }
 
     private suspend fun createAndSaveMember(): Member {
-        val member = Member.createWithEmail(
-            email = Email("test-${System.currentTimeMillis()}@example.com"),
-            nickname = "테스트 사용자",
-            passwordHash = PasswordHash("hashed-password"),
-        )
+        val member =
+            Member.createWithEmail(
+                email = Email("test-${System.currentTimeMillis()}@example.com"),
+                nickname = "테스트 사용자",
+                passwordHash = PasswordHash("hashed-password"),
+            )
         return memberAdapter.save(member)
     }
 
     private suspend fun createAndSavePrayerTopic(memberId: MemberId): PrayerTopic {
-        val topic = PrayerTopic.create(
-            memberId = memberId,
-            title = "암호화된 기도제목-${System.currentTimeMillis()}",
-        )
+        val topic =
+            PrayerTopic.create(
+                memberId = memberId,
+                title = "암호화된 기도제목-${System.currentTimeMillis()}",
+            )
         return prayerTopicAdapter.save(topic)
     }
 
@@ -215,29 +218,31 @@ class LookbackSelectionPersistenceAdapterTest : IntegrationTestBase() {
         memberId: MemberId,
         prayerTopicId: PrayerTopicId,
     ): LookbackSelection {
-        val selection = LookbackSelection.create(
-            memberId = memberId,
-            prayerTopicId = prayerTopicId,
-        )
+        val selection =
+            LookbackSelection.create(
+                memberId = memberId,
+                prayerTopicId = prayerTopicId,
+            )
         return adapter.save(selection)
     }
 
-    private fun createAndSaveSelectionWithDate(
+    private suspend fun createAndSaveSelectionWithDate(
         memberId: MemberId,
         prayerTopicId: PrayerTopicId,
         selectedAt: LocalDate,
     ): LookbackSelection {
         val now = LocalDateTime.now()
-        val entity = LookbackSelectionEntity(
-            id = LookbackSelectionId.new().value,
-            memberId = memberId.value,
-            prayerTopicId = prayerTopicId.value,
-            selectedAt = selectedAt,
-            version = null,
-            createdAt = now,
-            updatedAt = now,
-        )
-        val saved = lookbackSelectionJpaRepository.saveAndFlush(entity)
+        val entity =
+            LookbackSelectionEntity(
+                id = LookbackSelectionId.new().value,
+                memberId = memberId.value,
+                prayerTopicId = prayerTopicId.value,
+                selectedAt = selectedAt,
+                version = null,
+                createdAt = now,
+                updatedAt = now,
+            )
+        val saved = lookbackSelectionEntityRepository.save(entity)
         return lookbackSelectionMapper.toDomain(saved)
     }
 }

@@ -11,15 +11,7 @@ import io.clroot.selah.domains.member.domain.MemberId
 import io.clroot.selah.domains.member.domain.PasswordHash
 import io.kotest.core.spec.style.DescribeSpec
 import io.kotest.matchers.shouldBe
-import io.mockk.Runs
-import io.mockk.clearAllMocks
-import io.mockk.coEvery
-import io.mockk.coVerify
-import io.mockk.every
-import io.mockk.just
-import io.mockk.mockk
-import io.mockk.mockkObject
-import io.mockk.unmockkObject
+import io.mockk.*
 import org.springframework.http.HttpStatus
 import java.time.LocalDateTime
 
@@ -126,7 +118,7 @@ private fun createVerifiedMember(
         email = email,
         nickname = nickname,
         profileImageUrl = null,
-        passwordHash = PasswordHash.from("${"$"}argon2id${"$"}v=19${"$"}m=65536,t=3,p=4${"$"}hashedvalue"),
+        passwordHash = PasswordHash.from($$"$argon2id$v=19$m=65536,t=3,p=4$hashedvalue"),
         emailVerified = true,
         oauthConnections = emptyList(),
         role = Member.Role.USER,

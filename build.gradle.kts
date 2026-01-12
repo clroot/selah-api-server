@@ -19,6 +19,7 @@ group = "io.clroot.selah"
 
 repositories {
     mavenCentral()
+    maven { url = uri("https://jitpack.io") }
 }
 
 java {
@@ -31,7 +32,12 @@ val kotlinJdslVersion = "3.6.1"
 val kotestVersion = "6.0.7"
 val coroutinesVersion = "1.10.2"
 val testcontainersVersion = "1.20.4"
+val testcontainersCoreVersion = "2.0.2"
 val mockkVersion = "1.14.7"
+val hibernateReactiveVersion = "3.1.0.Final"
+val hibernateReactiveCoroutinesVersion = "1.0.0"
+val mutinyVersion = "2.6.0"
+val vertxVersion = "4.5.23"
 
 dependencies {
     // ===== Kotlin =====
@@ -45,8 +51,8 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-actuator")
     implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("org.springframework.boot:spring-boot-starter-security")
-    implementation("org.springframework.boot:spring-boot-starter-data-jpa")
-    developmentOnly("org.springframework.boot:spring-boot-devtools")
+    implementation("org.springframework.data:spring-data-commons") // Page, Pageable
+    // developmentOnly("org.springframework.boot:spring-boot-devtools")
 
     // ===== Spring AOP =====
     implementation("org.springframework:spring-aspects")
@@ -54,10 +60,16 @@ dependencies {
     // ===== Kotlin JDSL =====
     implementation("com.linecorp.kotlin-jdsl:jpql-dsl:$kotlinJdslVersion")
     implementation("com.linecorp.kotlin-jdsl:jpql-render:$kotlinJdslVersion")
-    implementation("com.linecorp.kotlin-jdsl:spring-data-jpa-support:$kotlinJdslVersion")
+    implementation("com.linecorp.kotlin-jdsl:hibernate-reactive-support:$kotlinJdslVersion") // Member + Prayer Context (Reactive)
+
+    // ===== Hibernate Reactive =====
+    implementation("com.github.clroot.hibernate-reactive-coroutines:hibernate-reactive-coroutines-spring-boot-starter:$hibernateReactiveCoroutinesVersion")
 
     // ===== Database =====
-    runtimeOnly("org.postgresql:postgresql")
+    runtimeOnly("org.postgresql:postgresql") // JDBC Driver (Liquibase + Test)
+    implementation("io.vertx:vertx-core:$vertxVersion") // Vert.x Core (Reactive)
+    implementation("io.vertx:vertx-pg-client:$vertxVersion") // Reactive Driver (Prayer Context Reactive)
+    implementation("io.vertx:vertx-lang-kotlin-coroutines:$vertxVersion") // Vert.x Coroutines Support
 
     // ===== Database Migration =====
     implementation("org.springframework.boot:spring-boot-starter-liquibase")
@@ -87,14 +99,14 @@ dependencies {
     // ===== TestFixtures =====
     testFixturesImplementation("io.github.oshai:kotlin-logging-jvm:7.0.3")
     testFixturesApi("org.springframework.boot:spring-boot-starter-test")
-    testFixturesApi("org.springframework.boot:spring-boot-starter-data-jpa")
     testFixturesApi("io.kotest:kotest-runner-junit5:$kotestVersion")
     testFixturesApi("io.kotest:kotest-assertions-core:$kotestVersion")
     testFixturesApi("io.kotest:kotest-extensions-spring:$kotestVersion")
-    testFixturesApi("org.testcontainers:testcontainers:$testcontainersVersion")
+    testFixturesApi("org.testcontainers:testcontainers:$testcontainersCoreVersion")
     testFixturesApi("org.testcontainers:postgresql:$testcontainersVersion")
     testFixturesApi("org.testcontainers:junit-jupiter:$testcontainersVersion")
     testFixturesApi("org.postgresql:postgresql")
+    testFixturesApi("com.github.clroot.hibernate-reactive-coroutines:hibernate-reactive-coroutines-spring-boot-starter:$hibernateReactiveCoroutinesVersion")
 }
 
 tasks {
@@ -125,7 +137,7 @@ tasks {
                     "**/*DTO*",
                     "**/*Properties*",
                 )
-            }
+            },
         )
     }
 
@@ -138,19 +150,20 @@ tasks {
                     value = "COVEREDRATIO"
                     minimum = "0.60".toBigDecimal()
                 }
-                excludes = listOf(
-                    "*.**Entity",
-                    "*.**MapperImpl",
-                    "*.**Application",
-                    "*.**Id",
-                    "*.**Request",
-                    "*.**Response",
-                    "*.**Command",
-                    "*.**Query",
-                    "*.**Dto",
-                    "*.**DTO",
-                    "*.**Properties",
-                )
+                excludes =
+                    listOf(
+                        "*.**Entity",
+                        "*.**MapperImpl",
+                        "*.**Application",
+                        "*.**Id",
+                        "*.**Request",
+                        "*.**Response",
+                        "*.**Command",
+                        "*.**Query",
+                        "*.**Dto",
+                        "*.**DTO",
+                        "*.**Properties",
+                    )
             }
 
             // Persistence Adapter는 실제 DB 테스트가 필수이므로 높은 커버리지 강제

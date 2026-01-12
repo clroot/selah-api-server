@@ -328,11 +328,12 @@ class PasswordResetTokenPersistenceAdapterTest : IntegrationTestBase() {
     }
 
     private suspend fun createAndSaveMember(): Member {
-        val member = Member.createWithEmail(
-            email = Email("password-reset-test-${System.currentTimeMillis()}@example.com"),
-            nickname = "비밀번호 재설정 테스트",
-            passwordHash = PasswordHash("hashed-password"),
-        )
+        val member =
+            Member.createWithEmail(
+                email = Email("password-reset-test-${System.currentTimeMillis()}@example.com"),
+                nickname = "비밀번호 재설정 테스트",
+                passwordHash = PasswordHash("hashed-password"),
+            )
         return memberAdapter.save(member)
     }
 }

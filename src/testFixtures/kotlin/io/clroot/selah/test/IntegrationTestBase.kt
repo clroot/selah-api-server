@@ -4,8 +4,6 @@ import io.clroot.selah.test.container.DatabaseTestExtension
 import io.kotest.core.spec.style.DescribeSpec
 import io.kotest.extensions.spring.SpringExtension
 import org.springframework.test.context.ActiveProfiles
-import org.springframework.transaction.annotation.Propagation
-import org.springframework.transaction.annotation.Transactional
 
 /**
  * 통합 테스트를 위한 기본 클래스 (DescribeSpec)
@@ -17,8 +15,8 @@ import org.springframework.transaction.annotation.Transactional
  * 4. Kotest의 DescribeSpec을 사용한 describe-context-it 스타일 테스트를 작성할 수 있습니다
  *
  * 주의사항:
- * - 통합 테스트이므로 테스트 트랜잭션을 사용하지 않습니다 (NOT_SUPPORTED)
- * - UseCase의 트랜잭션만 사용하여 실제 DB 커밋을 수행합니다
+ * - Hibernate Reactive 환경이므로 Spring @Transactional은 사용하지 않습니다
+ * - ReactiveTransactionExecutor를 통해 트랜잭션을 관리합니다
  * - 각 테스트 suite마다 DB 스키마가 재생성(create-drop)되므로 데이터 격리가 보장됩니다
  *
  * 사용 예시:
@@ -42,7 +40,6 @@ import org.springframework.transaction.annotation.Transactional
  * ```
  */
 @ActiveProfiles("test")
-@Transactional(propagation = Propagation.NOT_SUPPORTED)
 abstract class IntegrationTestBase : DescribeSpec() {
     init {
         extension(DatabaseTestExtension()) // TestContainer 관리 (먼저 실행되어야 함)

@@ -773,6 +773,23 @@ val query = jpql {
 | Adapter | `~Adapter` | `PrayerTopicPersistenceAdapter` |
 | JPA Entity | `~Entity` | `PrayerTopicEntity` |
 
+### 문자열 내 `$` 문자 처리
+
+**원칙**: 문자열에 `$` 문자가 포함될 때는 `$$` prefix를 사용합니다.
+
+```kotlin
+// ✅ Good: $$ prefix 사용 (권장)
+@Value($$"${spring.datasource.url}") private val jdbcUrl: String
+
+// ❌ Bad: 백슬래시 이스케이프
+@Value("\${spring.datasource.url}") private val jdbcUrl: String
+```
+
+**이유**:
+- `$` 문자가 포함된 문자열에서는 변수 바인딩을 사용하는 경우가 드뭄
+- `$$` prefix를 사용하면 이스케이프 없이 깔끔하게 작성 가능
+- 가독성이 향상되고 실수를 줄일 수 있음
+
 ### Logging
 
 **원칙**: SLF4J를 직접 사용하지 않고 `kotlin-logging`을 사용합니다.

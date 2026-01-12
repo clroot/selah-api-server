@@ -1,5 +1,8 @@
 package io.clroot.selah.domains.member.adapter.outbound.persistence.session
 
+import com.linecorp.kotlinjdsl.dsl.jpql.jpql
+import com.linecorp.kotlinjdsl.render.jpql.JpqlRenderContext
+import com.linecorp.kotlinjdsl.support.hibernate.reactive.extension.createMutationQuery
 import io.clroot.selah.domains.member.domain.Member
 import io.clroot.selah.domains.member.domain.MemberId
 import io.clroot.selah.test.IntegrationTestBase
@@ -7,10 +10,10 @@ import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
-import jakarta.persistence.EntityManager
+import io.smallrye.mutiny.coroutines.awaitSuspending
+import org.hibernate.reactive.mutiny.Mutiny
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.transaction.support.TransactionTemplate
 import java.time.LocalDateTime
 
 @SpringBootTest
@@ -19,18 +22,22 @@ class SessionPersistenceAdapterIntegrationTest : IntegrationTestBase() {
     private lateinit var sessionPersistenceAdapter: SessionPersistenceAdapter
 
     @Autowired
-    private lateinit var sessionJpaRepository: SessionJpaRepository
+    private lateinit var sessionFactory: Mutiny.SessionFactory
 
     @Autowired
-    private lateinit var entityManager: EntityManager
-
-    @Autowired
-    private lateinit var transactionTemplate: TransactionTemplate
+    private lateinit var jpqlRenderContext: JpqlRenderContext
 
     init {
         describe("SessionPersistenceAdapter") {
             afterEach {
-                sessionJpaRepository.deleteAll()
+                sessionFactory
+                    .withTransaction { session ->
+                        session
+                            .createMutationQuery(
+                                jpql { deleteFrom(entity(SessionEntity::class)) },
+                                jpqlRenderContext,
+                            ).executeUpdate()
+                    }.awaitSuspending()
             }
 
             describe("create") {
@@ -59,8 +66,11 @@ class SessionPersistenceAdapterIntegrationTest : IntegrationTestBase() {
                         sessionInfo.expiresAt shouldNotBe null
                         sessionInfo.createdAt shouldNotBe null
 
-                        // DB에서 직접 확인
-                        val entity = sessionJpaRepository.findById(sessionInfo.token).orElse(null)
+                        val entity =
+                            sessionFactory
+                                .withSession { session ->
+                                    session.find(SessionEntity::class.java, sessionInfo.token)
+                                }.awaitSuspending()
                         entity.shouldNotBeNull()
                         entity.memberId shouldBe memberId.value
                     }
@@ -157,7 +167,6 @@ class SessionPersistenceAdapterIntegrationTest : IntegrationTestBase() {
                         val memberId = MemberId.new()
                         val otherMemberId = MemberId.new()
 
-                        // 동일 회원의 여러 세션 생성
                         val session1 =
                             sessionPersistenceAdapter.create(
                                 memberId = memberId,
@@ -173,7 +182,6 @@ class SessionPersistenceAdapterIntegrationTest : IntegrationTestBase() {
                                 ipAddress = "2.2.2.2",
                             )
 
-                        // 다른 회원의 세션 생성
                         val otherSession =
                             sessionPersistenceAdapter.create(
                                 memberId = otherMemberId,
@@ -182,14 +190,11 @@ class SessionPersistenceAdapterIntegrationTest : IntegrationTestBase() {
                                 ipAddress = "3.3.3.3",
                             )
 
-                        // 회원의 모든 세션 삭제
                         sessionPersistenceAdapter.deleteAllByMemberId(memberId)
 
-                        // 해당 회원의 세션은 모두 삭제됨
                         sessionPersistenceAdapter.findByToken(session1.token).shouldBeNull()
                         sessionPersistenceAdapter.findByToken(session2.token).shouldBeNull()
 
-                        // 다른 회원의 세션은 유지됨
                         sessionPersistenceAdapter.findByToken(otherSession.token).shouldNotBeNull()
                     }
                 }
@@ -201,11 +206,8 @@ class SessionPersistenceAdapterIntegrationTest : IntegrationTestBase() {
                         val memberId = MemberId.new()
                         val token = "test-session-token-for-extend"
                         val now = LocalDateTime.now()
-                        // 테스트 프로파일의 extend-threshold는 PT10M(10분)
-                        // 확실히 threshold 이하가 되도록 5분으로 설정
                         val shortExpiry = now.plusMinutes(5)
 
-                        // 만료 시간이 5분인 세션을 직접 생성 (threshold 10분 이하)
                         val shortExpirySession =
                             SessionEntity(
                                 token = token,
@@ -217,15 +219,13 @@ class SessionPersistenceAdapterIntegrationTest : IntegrationTestBase() {
                                 expiresAt = shortExpiry,
                                 createdAt = now,
                             )
-                        transactionTemplate.execute {
-                            sessionJpaRepository.saveAndFlush(shortExpirySession)
-                            entityManager.clear()
-                        }
+                        sessionFactory
+                            .withTransaction { session ->
+                                session.persist(shortExpirySession)
+                            }.awaitSuspending()
 
-                        // 어댑터가 올바른 만료 시간을 보는지 확인
                         val beforeExtend = sessionPersistenceAdapter.findByToken(token)
                         beforeExtend.shouldNotBeNull()
-                        // 만료 시간이 10분 미만인지 확인 (threshold 이하)
                         val remainingBeforeExtend =
                             java.time.Duration.between(
                                 LocalDateTime.now(),
@@ -235,15 +235,12 @@ class SessionPersistenceAdapterIntegrationTest : IntegrationTestBase() {
 
                         val newIpAddress = "10.0.0.2"
 
-                        // extendExpiry 호출
                         sessionPersistenceAdapter.extendExpiry(token, newIpAddress)
 
-                        // 결과 확인
                         val updatedSession = sessionPersistenceAdapter.findByToken(token)
                         updatedSession.shouldNotBeNull()
                         updatedSession.lastAccessedIp shouldBe newIpAddress
 
-                        // 만료 시간이 연장되었는지 확인 (테스트 프로파일 ttl은 1시간)
                         val expectedMinExpiry = LocalDateTime.now().plusMinutes(50)
                         (updatedSession.expiresAt > expectedMinExpiry) shouldBe true
                     }
@@ -251,7 +248,6 @@ class SessionPersistenceAdapterIntegrationTest : IntegrationTestBase() {
 
                 context("존재하지 않는 토큰일 때") {
                     it("예외 없이 무시된다") {
-                        // 예외가 발생하지 않아야 함
                         sessionPersistenceAdapter.extendExpiry("nonexistent-token", "1.1.1.1")
                     }
                 }
@@ -262,7 +258,6 @@ class SessionPersistenceAdapterIntegrationTest : IntegrationTestBase() {
                     it("만료된 세션만 삭제되고 삭제된 개수를 반환한다") {
                         val memberId = MemberId.new()
 
-                        // 만료된 세션 생성 (직접 DB에 삽입)
                         val expiredSession =
                             SessionEntity(
                                 token = "expired-token-1",
@@ -271,12 +266,14 @@ class SessionPersistenceAdapterIntegrationTest : IntegrationTestBase() {
                                 userAgent = null,
                                 createdIp = null,
                                 lastAccessedIp = null,
-                                expiresAt = LocalDateTime.now().minusHours(1), // 1시간 전 만료
+                                expiresAt = LocalDateTime.now().minusHours(1),
                                 createdAt = LocalDateTime.now().minusDays(1),
                             )
-                        sessionJpaRepository.save(expiredSession)
+                        sessionFactory
+                            .withTransaction { session ->
+                                session.persist(expiredSession)
+                            }.awaitSuspending()
 
-                        // 유효한 세션 생성
                         val validSession =
                             sessionPersistenceAdapter.create(
                                 memberId = MemberId.new(),
@@ -285,15 +282,12 @@ class SessionPersistenceAdapterIntegrationTest : IntegrationTestBase() {
                                 ipAddress = null,
                             )
 
-                        // 만료된 세션 삭제
                         val deletedCount = sessionPersistenceAdapter.deleteExpiredSessions()
 
                         deletedCount shouldBe 1
 
-                        // 만료된 세션은 삭제됨
                         sessionPersistenceAdapter.findByToken("expired-token-1").shouldBeNull()
 
-                        // 유효한 세션은 유지됨
                         sessionPersistenceAdapter.findByToken(validSession.token).shouldNotBeNull()
                     }
                 }

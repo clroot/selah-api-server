@@ -2,40 +2,40 @@ package io.clroot.selah.domains.prayer.adapter.outbound.persistence
 
 import com.linecorp.kotlinjdsl.dsl.jpql.jpql
 import com.linecorp.kotlinjdsl.render.jpql.JpqlRenderContext
-import com.linecorp.kotlinjdsl.support.spring.data.jpa.extension.createQuery
+import com.linecorp.kotlinjdsl.support.hibernate.reactive.extension.createMutationQuery
+import com.linecorp.kotlinjdsl.support.hibernate.reactive.extension.createQuery
+import io.clroot.hibernate.reactive.ReactiveSessionProvider
 import io.clroot.selah.domains.member.domain.MemberId
 import io.clroot.selah.domains.prayer.application.port.outbound.DeleteLookbackSelectionPort
 import io.clroot.selah.domains.prayer.application.port.outbound.LoadLookbackSelectionPort
 import io.clroot.selah.domains.prayer.application.port.outbound.SaveLookbackSelectionPort
 import io.clroot.selah.domains.prayer.domain.LookbackSelection
 import io.clroot.selah.domains.prayer.domain.PrayerTopicId
-import jakarta.persistence.EntityManager
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import org.springframework.stereotype.Component
 import java.time.LocalDate
 
 @Component
 class LookbackSelectionPersistenceAdapter(
-    private val repository: LookbackSelectionJpaRepository,
-    private val entityManager: EntityManager,
+    private val sessions: ReactiveSessionProvider,
     private val jpqlRenderContext: JpqlRenderContext,
     private val mapper: LookbackSelectionMapper,
 ) : SaveLookbackSelectionPort,
     LoadLookbackSelectionPort,
     DeleteLookbackSelectionPort {
     override suspend fun save(selection: LookbackSelection): LookbackSelection =
-        withContext(Dispatchers.IO) {
+        sessions.write { session ->
             val entity = mapper.toEntity(selection)
-            val saved = repository.save(entity)
-            mapper.toDomain(saved)
+            session
+                .persist(entity)
+                .chain { _ -> session.flush() }
+                .replaceWith(mapper.toDomain(entity))
         }
 
     override suspend fun findByMemberIdAndDate(
         memberId: MemberId,
         date: LocalDate,
     ): LookbackSelection? =
-        withContext(Dispatchers.IO) {
+        sessions.read { session ->
             val query =
                 jpql {
                     select(entity(LookbackSelectionEntity::class))
@@ -47,19 +47,19 @@ class LookbackSelectionPersistenceAdapter(
                             ),
                         )
                 }
-            entityManager
+            session
                 .createQuery(query, jpqlRenderContext)
-                .resultList
-                .firstOrNull()
-                ?.let { mapper.toDomain(it) }
+                .singleResultOrNull
+                .map { it?.let { entity -> mapper.toDomain(entity) } }
         }
 
     override suspend fun findRecentPrayerTopicIds(
         memberId: MemberId,
         days: Int,
-    ): List<PrayerTopicId> =
-        withContext(Dispatchers.IO) {
-            val cutoffDate = LocalDate.now().minusDays(days.toLong())
+    ): List<PrayerTopicId> {
+        val cutoffDate = LocalDate.now().minusDays(days.toLong())
+
+        return sessions.read { session ->
             val query =
                 jpql {
                     select(path(LookbackSelectionEntity::prayerTopicId))
@@ -71,16 +71,26 @@ class LookbackSelectionPersistenceAdapter(
                             ),
                         )
                 }
-            entityManager
+            session
                 .createQuery(query, jpqlRenderContext)
                 .resultList
-                .map { PrayerTopicId.from(it) }
+                .map { results -> results.map { PrayerTopicId.from(it) } }
         }
+    }
 
     override suspend fun deleteByMemberIdAndDate(
         memberId: MemberId,
         date: LocalDate,
-    ) = withContext(Dispatchers.IO) {
-        repository.deleteByMemberIdAndSelectedAt(memberId.value, date)
+    ) {
+        sessions.write { session ->
+            val query =
+                jpql {
+                    deleteFrom(entity(LookbackSelectionEntity::class))
+                        .where(path(LookbackSelectionEntity::selectedAt).eq(date))
+                }
+            session
+                .createMutationQuery(query, jpqlRenderContext)
+                .executeUpdate()
+        }
     }
 }

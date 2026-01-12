@@ -35,13 +35,14 @@ class EncryptionSettingsPersistenceAdapterTest : IntegrationTestBase() {
                 context("새 암호화 설정을 저장할 때") {
                     it("저장된 설정을 반환한다") {
                         // Given
-                        val settings = EncryptionSettings.create(
-                            memberId = testMember.id,
-                            salt = "base64-salt",
-                            encryptedDEK = "encrypted-dek",
-                            recoveryEncryptedDEK = "recovery-encrypted-dek",
-                            recoveryKeyHash = "recovery-key-hash",
-                        )
+                        val settings =
+                            EncryptionSettings.create(
+                                memberId = testMember.id,
+                                salt = "base64-salt",
+                                encryptedDEK = "encrypted-dek",
+                                recoveryEncryptedDEK = "recovery-encrypted-dek",
+                                recoveryKeyHash = "recovery-key-hash",
+                            )
 
                         // When
                         val saved = adapter.save(settings)
@@ -59,13 +60,14 @@ class EncryptionSettingsPersistenceAdapterTest : IntegrationTestBase() {
                 context("placeholder로 초기 설정을 저장할 때") {
                     it("PENDING 상태로 저장된다") {
                         // Given
-                        val settings = EncryptionSettings.create(
-                            memberId = testMember.id,
-                            salt = "base64-salt",
-                            encryptedDEK = null,
-                            recoveryEncryptedDEK = "recovery-encrypted-dek",
-                            recoveryKeyHash = "recovery-key-hash",
-                        )
+                        val settings =
+                            EncryptionSettings.create(
+                                memberId = testMember.id,
+                                salt = "base64-salt",
+                                encryptedDEK = null,
+                                recoveryEncryptedDEK = "recovery-encrypted-dek",
+                                recoveryKeyHash = "recovery-key-hash",
+                            )
 
                         // When
                         val saved = adapter.save(settings)
@@ -205,22 +207,24 @@ class EncryptionSettingsPersistenceAdapterTest : IntegrationTestBase() {
     }
 
     private suspend fun createAndSaveMember(): Member {
-        val member = Member.createWithEmail(
-            email = Email("test-${System.currentTimeMillis()}@example.com"),
-            nickname = "테스트 사용자",
-            passwordHash = PasswordHash("hashed-password"),
-        )
+        val member =
+            Member.createWithEmail(
+                email = Email("test-${System.currentTimeMillis()}@example.com"),
+                nickname = "테스트 사용자",
+                passwordHash = PasswordHash("hashed-password"),
+            )
         return memberAdapter.save(member)
     }
 
     private suspend fun createAndSaveEncryptionSettings(memberId: MemberId): EncryptionSettings {
-        val settings = EncryptionSettings.create(
-            memberId = memberId,
-            salt = "base64-salt-${System.currentTimeMillis()}",
-            encryptedDEK = "encrypted-dek",
-            recoveryEncryptedDEK = "recovery-encrypted-dek",
-            recoveryKeyHash = "recovery-key-hash",
-        )
+        val settings =
+            EncryptionSettings.create(
+                memberId = memberId,
+                salt = "base64-salt-${System.currentTimeMillis()}",
+                encryptedDEK = "encrypted-dek",
+                recoveryEncryptedDEK = "recovery-encrypted-dek",
+                recoveryKeyHash = "recovery-key-hash",
+            )
         return adapter.save(settings)
     }
 }

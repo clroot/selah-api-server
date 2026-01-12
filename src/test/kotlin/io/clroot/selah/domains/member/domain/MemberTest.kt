@@ -1,6 +1,10 @@
 package io.clroot.selah.domains.member.domain
 
 import io.clroot.selah.domains.member.domain.event.*
+import io.clroot.selah.domains.member.domain.exception.CannotDisconnectLastLoginMethodException
+import io.clroot.selah.domains.member.domain.exception.OAuthProviderAlreadyConnectedException
+import io.clroot.selah.domains.member.domain.exception.OAuthProviderNotConnectedException
+import io.clroot.selah.domains.member.domain.exception.PasswordNotSetException
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.DescribeSpec
 import io.kotest.matchers.booleans.shouldBeFalse
@@ -162,7 +166,7 @@ class MemberTest :
                             providerId = "google_123",
                         )
 
-                    shouldThrow<IllegalArgumentException> {
+                    shouldThrow<OAuthProviderAlreadyConnectedException> {
                         member.connectOAuth(OAuthProvider.GOOGLE, "google_456")
                     }
                 }
@@ -234,7 +238,7 @@ class MemberTest :
                             providerId = "google_123",
                         )
 
-                    shouldThrow<IllegalArgumentException> {
+                    shouldThrow<CannotDisconnectLastLoginMethodException> {
                         member.disconnectOAuth(OAuthProvider.GOOGLE)
                     }
                 }
@@ -248,7 +252,7 @@ class MemberTest :
                             providerId = "google_123",
                         )
 
-                    shouldThrow<IllegalArgumentException> {
+                    shouldThrow<OAuthProviderNotConnectedException> {
                         member.disconnectOAuth(OAuthProvider.KAKAO)
                     }
                 }
@@ -393,7 +397,7 @@ class MemberTest :
                             providerId = "google_123",
                         )
 
-                    shouldThrow<IllegalArgumentException> {
+                    shouldThrow<PasswordNotSetException> {
                         member.changePassword(PasswordHash.from("new_password"))
                     }
                 }

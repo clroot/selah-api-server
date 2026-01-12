@@ -48,11 +48,12 @@ class PrayerPersistenceAdapterTest : IntegrationTestBase() {
                 context("새 기도문을 저장할 때") {
                     it("저장된 기도문을 반환한다") {
                         // Given
-                        val prayer = Prayer.create(
-                            memberId = testMember.id,
-                            prayerTopicIds = listOf(prayerTopic1.id),
-                            content = "암호화된 기도문 내용",
-                        )
+                        val prayer =
+                            Prayer.create(
+                                memberId = testMember.id,
+                                prayerTopicIds = listOf(prayerTopic1.id),
+                                content = "암호화된 기도문 내용",
+                            )
 
                         // When
                         val saved = adapter.save(prayer)
@@ -68,21 +69,23 @@ class PrayerPersistenceAdapterTest : IntegrationTestBase() {
                 context("여러 기도제목과 연결된 기도문을 저장할 때") {
                     it("모든 연결이 저장된다") {
                         // Given
-                        val prayer = Prayer.create(
-                            memberId = testMember.id,
-                            prayerTopicIds = listOf(prayerTopic1.id, prayerTopic2.id),
-                            content = "여러 제목의 기도문",
-                        )
+                        val prayer =
+                            Prayer.create(
+                                memberId = testMember.id,
+                                prayerTopicIds = listOf(prayerTopic1.id, prayerTopic2.id),
+                                content = "여러 제목의 기도문",
+                            )
 
                         // When
                         val saved = adapter.save(prayer)
 
                         // Then
                         saved.prayerTopicIds shouldHaveSize 2
-                        saved.prayerTopicIds shouldContainExactlyInAnyOrder listOf(
-                            prayerTopic1.id,
-                            prayerTopic2.id,
-                        )
+                        saved.prayerTopicIds shouldContainExactlyInAnyOrder
+                            listOf(
+                                prayerTopic1.id,
+                                prayerTopic2.id,
+                            )
                     }
                 }
 
@@ -285,16 +288,18 @@ class PrayerPersistenceAdapterTest : IntegrationTestBase() {
                         val pageable = PageRequest.of(0, 10)
 
                         // When
-                        val page1 = adapter.findAllByMemberIdAndPrayerTopicId(
-                            testMember.id,
-                            prayerTopic1.id,
-                            pageable,
-                        )
-                        val page2 = adapter.findAllByMemberIdAndPrayerTopicId(
-                            testMember.id,
-                            prayerTopic2.id,
-                            pageable,
-                        )
+                        val page1 =
+                            adapter.findAllByMemberIdAndPrayerTopicId(
+                                testMember.id,
+                                prayerTopic1.id,
+                                pageable,
+                            )
+                        val page2 =
+                            adapter.findAllByMemberIdAndPrayerTopicId(
+                                testMember.id,
+                                prayerTopic2.id,
+                                pageable,
+                            )
 
                         // Then
                         page1.content shouldHaveSize 2
@@ -309,11 +314,12 @@ class PrayerPersistenceAdapterTest : IntegrationTestBase() {
                         val pageable = PageRequest.of(0, 10)
 
                         // When
-                        val page = adapter.findAllByMemberIdAndPrayerTopicId(
-                            testMember.id,
-                            emptyTopic.id,
-                            pageable,
-                        )
+                        val page =
+                            adapter.findAllByMemberIdAndPrayerTopicId(
+                                testMember.id,
+                                emptyTopic.id,
+                                pageable,
+                            )
 
                         // Then
                         page.content.shouldBeEmpty()
@@ -331,11 +337,12 @@ class PrayerPersistenceAdapterTest : IntegrationTestBase() {
                         val pageable = PageRequest.of(0, 10)
 
                         // When
-                        val page = adapter.findAllByMemberIdAndPrayerTopicId(
-                            testMember.id,
-                            prayerTopic1.id,
-                            pageable,
-                        )
+                        val page =
+                            adapter.findAllByMemberIdAndPrayerTopicId(
+                                testMember.id,
+                                prayerTopic1.id,
+                                pageable,
+                            )
 
                         // Then
                         page.content shouldHaveSize 1
@@ -354,15 +361,17 @@ class PrayerPersistenceAdapterTest : IntegrationTestBase() {
                         createAndSavePrayer(testMember.id, listOf(prayerTopic1.id, prayerTopic2.id))
 
                         // When
-                        val counts = adapter.countByPrayerTopicIds(
-                            listOf(prayerTopic1.id, prayerTopic2.id),
-                        )
+                        val counts =
+                            adapter.countByPrayerTopicIds(
+                                listOf(prayerTopic1.id, prayerTopic2.id),
+                            )
 
                         // Then
-                        counts shouldContainExactly mapOf(
-                            prayerTopic1.id to 3L,
-                            prayerTopic2.id to 2L,
-                        )
+                        counts shouldContainExactly
+                            mapOf(
+                                prayerTopic1.id to 3L,
+                                prayerTopic2.id to 2L,
+                            )
                     }
                 }
 
@@ -373,9 +382,10 @@ class PrayerPersistenceAdapterTest : IntegrationTestBase() {
                         createAndSavePrayer(testMember.id, listOf(prayerTopic1.id))
 
                         // When
-                        val counts = adapter.countByPrayerTopicIds(
-                            listOf(prayerTopic1.id, emptyTopic.id),
-                        )
+                        val counts =
+                            adapter.countByPrayerTopicIds(
+                                listOf(prayerTopic1.id, emptyTopic.id),
+                            )
 
                         // Then
                         counts shouldContainExactly mapOf(prayerTopic1.id to 1L)
@@ -396,11 +406,12 @@ class PrayerPersistenceAdapterTest : IntegrationTestBase() {
     }
 
     private suspend fun createAndSaveMember(): Member {
-        val member = Member.createWithEmail(
-            email = Email("test-${System.currentTimeMillis()}@example.com"),
-            nickname = "테스트 사용자",
-            passwordHash = PasswordHash("hashed-password"),
-        )
+        val member =
+            Member.createWithEmail(
+                email = Email("test-${System.currentTimeMillis()}@example.com"),
+                nickname = "테스트 사용자",
+                passwordHash = PasswordHash("hashed-password"),
+            )
         return memberAdapter.save(member)
     }
 
@@ -408,10 +419,11 @@ class PrayerPersistenceAdapterTest : IntegrationTestBase() {
         memberId: MemberId,
         title: String = "암호화된 기도제목-${System.currentTimeMillis()}",
     ): PrayerTopic {
-        val topic = PrayerTopic.create(
-            memberId = memberId,
-            title = title,
-        )
+        val topic =
+            PrayerTopic.create(
+                memberId = memberId,
+                title = title,
+            )
         return prayerTopicAdapter.save(topic)
     }
 
@@ -420,11 +432,12 @@ class PrayerPersistenceAdapterTest : IntegrationTestBase() {
         prayerTopicIds: List<PrayerTopicId>,
         content: String = "암호화된 기도문-${System.currentTimeMillis()}",
     ): Prayer {
-        val prayer = Prayer.create(
-            memberId = memberId,
-            prayerTopicIds = prayerTopicIds,
-            content = content,
-        )
+        val prayer =
+            Prayer.create(
+                memberId = memberId,
+                prayerTopicIds = prayerTopicIds,
+                content = content,
+            )
         return adapter.save(prayer)
     }
 }

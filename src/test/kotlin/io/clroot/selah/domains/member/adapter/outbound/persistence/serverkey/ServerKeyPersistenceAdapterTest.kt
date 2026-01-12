@@ -35,11 +35,12 @@ class ServerKeyPersistenceAdapterTest : IntegrationTestBase() {
                 context("새 서버 키를 저장할 때") {
                     it("저장된 서버 키를 반환한다") {
                         // Given
-                        val serverKey = ServerKey.create(
-                            memberId = testMember.id,
-                            encryptedServerKey = "encrypted-server-key-base64",
-                            iv = "iv-base64",
-                        )
+                        val serverKey =
+                            ServerKey.create(
+                                memberId = testMember.id,
+                                encryptedServerKey = "encrypted-server-key-base64",
+                                iv = "iv-base64",
+                            )
 
                         // When
                         val saved = adapter.save(serverKey)
@@ -166,20 +167,22 @@ class ServerKeyPersistenceAdapterTest : IntegrationTestBase() {
     }
 
     private suspend fun createAndSaveMember(): Member {
-        val member = Member.createWithEmail(
-            email = Email("test-${System.currentTimeMillis()}@example.com"),
-            nickname = "테스트 사용자",
-            passwordHash = PasswordHash("hashed-password"),
-        )
+        val member =
+            Member.createWithEmail(
+                email = Email("test-${System.currentTimeMillis()}@example.com"),
+                nickname = "테스트 사용자",
+                passwordHash = PasswordHash("hashed-password"),
+            )
         return memberAdapter.save(member)
     }
 
     private suspend fun createAndSaveServerKey(memberId: MemberId): ServerKey {
-        val serverKey = ServerKey.create(
-            memberId = memberId,
-            encryptedServerKey = "encrypted-server-key-${System.currentTimeMillis()}",
-            iv = "iv-${System.currentTimeMillis()}",
-        )
+        val serverKey =
+            ServerKey.create(
+                memberId = memberId,
+                encryptedServerKey = "encrypted-server-key-${System.currentTimeMillis()}",
+                iv = "iv-${System.currentTimeMillis()}",
+            )
         return adapter.save(serverKey)
     }
 }

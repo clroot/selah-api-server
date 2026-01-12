@@ -7,7 +7,6 @@ import io.clroot.selah.domains.member.domain.PasswordHash
 import io.clroot.selah.test.IntegrationTestBase
 import io.kotest.matchers.booleans.shouldBeFalse
 import io.kotest.matchers.booleans.shouldBeTrue
-import io.kotest.matchers.ints.shouldBeGreaterThan
 import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
@@ -329,11 +328,12 @@ class EmailVerificationTokenPersistenceAdapterTest : IntegrationTestBase() {
     }
 
     private suspend fun createAndSaveMember(): Member {
-        val member = Member.createWithEmail(
-            email = Email("email-verification-test-${System.currentTimeMillis()}@example.com"),
-            nickname = "이메일 인증 테스트",
-            passwordHash = PasswordHash("hashed-password"),
-        )
+        val member =
+            Member.createWithEmail(
+                email = Email("email-verification-test-${System.currentTimeMillis()}@example.com"),
+                nickname = "이메일 인증 테스트",
+                passwordHash = PasswordHash("hashed-password"),
+            )
         return memberAdapter.save(member)
     }
 }

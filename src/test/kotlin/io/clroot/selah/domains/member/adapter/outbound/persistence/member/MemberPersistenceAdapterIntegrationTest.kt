@@ -1,5 +1,8 @@
 package io.clroot.selah.domains.member.adapter.outbound.persistence.member
 
+import com.linecorp.kotlinjdsl.dsl.jpql.jpql
+import com.linecorp.kotlinjdsl.render.jpql.JpqlRenderContext
+import com.linecorp.kotlinjdsl.support.hibernate.reactive.extension.createMutationQuery
 import io.clroot.selah.domains.member.domain.*
 import io.clroot.selah.test.IntegrationTestBase
 import io.kotest.matchers.collections.shouldContainExactlyInAnyOrder
@@ -7,6 +10,8 @@ import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
+import io.smallrye.mutiny.coroutines.awaitSuspending
+import org.hibernate.reactive.mutiny.Mutiny
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 
@@ -16,12 +21,29 @@ class MemberPersistenceAdapterIntegrationTest : IntegrationTestBase() {
     private lateinit var memberPersistenceAdapter: MemberPersistenceAdapter
 
     @Autowired
-    private lateinit var memberJpaRepository: MemberJpaRepository
+    private lateinit var sessionFactory: Mutiny.SessionFactory
+
+    @Autowired
+    private lateinit var jpqlRenderContext: JpqlRenderContext
 
     init {
         describe("MemberPersistenceAdapter") {
             afterEach {
-                memberJpaRepository.deleteAll()
+                sessionFactory
+                    .withTransaction { session ->
+                        session
+                            .createMutationQuery(
+                                jpql { deleteFrom(entity(OAuthConnectionEntity::class)) },
+                                jpqlRenderContext,
+                            ).executeUpdate()
+                            .chain { _ ->
+                                session
+                                    .createMutationQuery(
+                                        jpql { deleteFrom(entity(MemberEntity::class)) },
+                                        jpqlRenderContext,
+                                    ).executeUpdate()
+                            }
+                    }.awaitSuspending()
             }
 
             describe("save") {
@@ -44,8 +66,11 @@ class MemberPersistenceAdapterIntegrationTest : IntegrationTestBase() {
                         savedMember.role shouldBe Member.Role.USER
                         savedMember.oauthConnections shouldHaveSize 0
 
-                        // DB에서 직접 확인
-                        val entity = memberJpaRepository.findById(member.id.value).orElse(null)
+                        val entity =
+                            sessionFactory
+                                .withSession { session ->
+                                    session.find(MemberEntity::class.java, member.id.value)
+                                }.awaitSuspending()
                         entity.shouldNotBeNull()
                         entity.email shouldBe member.email.value
                     }
@@ -88,15 +113,17 @@ class MemberPersistenceAdapterIntegrationTest : IntegrationTestBase() {
 
                         val savedMember = memberPersistenceAdapter.save(member)
 
-                        // 프로필 업데이트
                         savedMember.updateProfile(newNickname = "UpdatedNickname")
 
                         val updatedMember = memberPersistenceAdapter.save(savedMember)
 
                         updatedMember.nickname shouldBe "UpdatedNickname"
 
-                        // DB에서 확인
-                        val entity = memberJpaRepository.findById(member.id.value).orElse(null)
+                        val entity =
+                            sessionFactory
+                                .withSession { session ->
+                                    session.find(MemberEntity::class.java, member.id.value)
+                                }.awaitSuspending()
                         entity.shouldNotBeNull()
                         entity.nickname shouldBe "UpdatedNickname"
                     }
@@ -260,7 +287,6 @@ class MemberPersistenceAdapterIntegrationTest : IntegrationTestBase() {
 
                         val savedMember = memberPersistenceAdapter.save(member)
 
-                        // 추가 OAuth 연결
                         savedMember.connectOAuth(OAuthProvider.KAKAO, "kakao-multi-456")
 
                         val updatedMember = memberPersistenceAdapter.save(savedMember)
@@ -272,7 +298,6 @@ class MemberPersistenceAdapterIntegrationTest : IntegrationTestBase() {
                                 OAuthProvider.KAKAO,
                             )
 
-                        // 각 Provider로 조회
                         val byGoogle =
                             memberPersistenceAdapter.findByOAuthConnection(
                                 OAuthProvider.GOOGLE,

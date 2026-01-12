@@ -20,12 +20,12 @@ class PrayerPersistenceAdapterIntegrationTest : IntegrationTestBase() {
     private lateinit var prayerPersistenceAdapter: PrayerPersistenceAdapter
 
     @Autowired
-    private lateinit var prayerJpaRepository: PrayerJpaRepository
+    private lateinit var prayerEntityRepository: PrayerEntityRepository
 
     init {
         describe("PrayerPersistenceAdapter") {
             afterEach {
-                prayerJpaRepository.deleteAll()
+                prayerEntityRepository.deleteAll()
             }
 
             describe("save") {
@@ -47,7 +47,7 @@ class PrayerPersistenceAdapterIntegrationTest : IntegrationTestBase() {
                         savedPrayer.prayerTopicIds shouldHaveSize 0
 
                         // DB에서 직접 확인
-                        val entity = prayerJpaRepository.findById(prayer.id.value).orElse(null)
+                        val entity = prayerEntityRepository.findById(prayer.id.value)
                         entity.shouldNotBeNull()
                         entity.content shouldBe "encrypted_content_base64"
                     }
@@ -71,7 +71,7 @@ class PrayerPersistenceAdapterIntegrationTest : IntegrationTestBase() {
                         savedPrayer.prayerTopicIds shouldBe listOf(topicId1, topicId2)
 
                         // DB에서 직접 확인
-                        val entity = prayerJpaRepository.findById(prayer.id.value).orElse(null)
+                        val entity = prayerEntityRepository.findById(prayer.id.value)
                         entity.shouldNotBeNull()
                         entity.prayerTopicIds shouldHaveSize 2
                     }
@@ -97,7 +97,7 @@ class PrayerPersistenceAdapterIntegrationTest : IntegrationTestBase() {
                         updatedPrayer.content shouldBe "updated_content"
 
                         // DB에서 확인
-                        val entity = prayerJpaRepository.findById(prayer.id.value).orElse(null)
+                        val entity = prayerEntityRepository.findById(prayer.id.value)
                         entity.shouldNotBeNull()
                         entity.content shouldBe "updated_content"
                     }
@@ -127,7 +127,7 @@ class PrayerPersistenceAdapterIntegrationTest : IntegrationTestBase() {
                         updatedPrayer.prayerTopicIds shouldBe listOf(newTopicId1, newTopicId2)
 
                         // DB에서 확인
-                        val entity = prayerJpaRepository.findById(prayer.id.value).orElse(null)
+                        val entity = prayerEntityRepository.findById(prayer.id.value)
                         entity.shouldNotBeNull()
                         entity.prayerTopicIds shouldHaveSize 2
                     }
@@ -159,7 +159,7 @@ class PrayerPersistenceAdapterIntegrationTest : IntegrationTestBase() {
                         updatedPrayer.updatedAt shouldNotBe originalUpdatedAt
 
                         // DB에서 확인
-                        val entity = prayerJpaRepository.findById(prayer.id.value).orElse(null)
+                        val entity = prayerEntityRepository.findById(prayer.id.value)
                         entity.shouldNotBeNull()
                         entity.content shouldBe "new_content"
                         entity.prayerTopicIds shouldHaveSize 1
@@ -344,7 +344,7 @@ class PrayerPersistenceAdapterIntegrationTest : IntegrationTestBase() {
                         deletedPrayer.shouldBeNull()
 
                         // DB에서도 삭제 확인
-                        val entity = prayerJpaRepository.findById(prayer.id.value).orElse(null)
+                        val entity = prayerEntityRepository.findById(prayer.id.value)
                         entity.shouldBeNull()
                     }
                 }

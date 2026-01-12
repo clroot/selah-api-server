@@ -1,5 +1,10 @@
 package io.clroot.selah.domains.member.adapter.outbound.persistence.emailverification
 
+import com.linecorp.kotlinjdsl.dsl.jpql.jpql
+import com.linecorp.kotlinjdsl.render.jpql.JpqlRenderContext
+import com.linecorp.kotlinjdsl.support.hibernate.reactive.extension.createMutationQuery
+import com.linecorp.kotlinjdsl.support.hibernate.reactive.extension.createQuery
+import io.clroot.hibernate.reactive.ReactiveSessionProvider
 import io.clroot.selah.common.util.HexSupport.hashSha256
 import io.clroot.selah.common.util.HexSupport.toHexString
 import io.clroot.selah.common.util.ULIDSupport
@@ -7,22 +12,16 @@ import io.clroot.selah.domains.member.application.port.outbound.EmailVerificatio
 import io.clroot.selah.domains.member.application.port.outbound.EmailVerificationTokenInfo
 import io.clroot.selah.domains.member.application.port.outbound.EmailVerificationTokenPort
 import io.clroot.selah.domains.member.domain.MemberId
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import org.springframework.beans.factory.annotation.Value
-import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Component
-import org.springframework.transaction.annotation.Transactional
 import java.security.SecureRandom
 import java.time.Duration
 import java.time.LocalDateTime
 
-/**
- * 이메일 인증 토큰 Persistence Adapter
- */
 @Component
 class EmailVerificationTokenPersistenceAdapter(
-    private val repository: EmailVerificationTokenJpaRepository,
+    private val sessions: ReactiveSessionProvider,
+    private val jpqlRenderContext: JpqlRenderContext,
     @Value($$"${selah.email-verification.ttl:P1D}")
     private val tokenTtl: Duration,
 ) : EmailVerificationTokenPort {
@@ -31,13 +30,10 @@ class EmailVerificationTokenPersistenceAdapter(
         private val SECURE_RANDOM = SecureRandom()
     }
 
-    @Transactional
     override suspend fun create(memberId: MemberId): EmailVerificationTokenCreateResult =
-        withContext(Dispatchers.IO) {
+        sessions.write { session ->
             val now = LocalDateTime.now()
             val id = ULIDSupport.generateULID()
-
-            // 랜덤 토큰 생성
             val rawToken = generateToken()
             val tokenHash = hashToken(rawToken)
 
@@ -50,64 +46,98 @@ class EmailVerificationTokenPersistenceAdapter(
                     createdAt = now,
                 )
 
-            repository.save(entity)
-
-            EmailVerificationTokenCreateResult(
-                info = entity.toInfo(),
-                rawToken = rawToken,
+            session.persist(entity).replaceWith(
+                EmailVerificationTokenCreateResult(
+                    info = entity.toInfo(),
+                    rawToken = rawToken,
+                ),
             )
         }
 
-    override suspend fun findValidByToken(token: String): EmailVerificationTokenInfo? =
-        withContext(Dispatchers.IO) {
-            val tokenHash = hashToken(token)
-            val entity = repository.findByTokenHash(tokenHash) ?: return@withContext null
-
-            val info = entity.toInfo()
-            if (!info.isValid()) {
-                return@withContext null
-            }
-
-            info
+    override suspend fun findValidByToken(token: String): EmailVerificationTokenInfo? {
+        val tokenHash = hashToken(token)
+        val now = LocalDateTime.now()
+        return sessions.read { session ->
+            session
+                .createQuery(
+                    jpql {
+                        select(entity(EmailVerificationTokenEntity::class))
+                            .from(entity(EmailVerificationTokenEntity::class))
+                            .where(
+                                and(
+                                    path(EmailVerificationTokenEntity::tokenHash).eq(tokenHash),
+                                    path(EmailVerificationTokenEntity::expiresAt).gt(now),
+                                    path(EmailVerificationTokenEntity::usedAt).isNull(),
+                                ),
+                            )
+                    },
+                    jpqlRenderContext,
+                ).singleResultOrNull
+                .map { it?.toInfo() }
         }
+    }
 
-    @Transactional
     override suspend fun markAsUsed(id: String) {
-        withContext(Dispatchers.IO) {
-            val entity = repository.findByIdOrNull(id) ?: return@withContext
-            entity.usedAt = LocalDateTime.now()
-            repository.save(entity)
+        sessions.write { session ->
+            session
+                .createMutationQuery(
+                    jpql {
+                        update(entity(EmailVerificationTokenEntity::class))
+                            .set(path(EmailVerificationTokenEntity::usedAt), LocalDateTime.now())
+                            .where(path(EmailVerificationTokenEntity::id).eq(id))
+                    },
+                    jpqlRenderContext,
+                ).executeUpdate()
         }
     }
 
     override suspend fun invalidateAllByMemberId(memberId: MemberId) {
-        withContext(Dispatchers.IO) {
-            repository.deleteAllByMemberId(memberId.value)
+        sessions.write { session ->
+            session
+                .createMutationQuery(
+                    jpql {
+                        deleteFrom(entity(EmailVerificationTokenEntity::class))
+                            .where(path(EmailVerificationTokenEntity::memberId).eq(memberId.value))
+                    },
+                    jpqlRenderContext,
+                ).executeUpdate()
         }
     }
 
     override suspend fun findLatestCreatedAtByMemberId(memberId: MemberId): LocalDateTime? =
-        withContext(Dispatchers.IO) {
-            repository.findTopByMemberIdOrderByCreatedAtDesc(memberId.value)?.createdAt
+        sessions.read { session ->
+            session
+                .createQuery(
+                    jpql {
+                        select(path(EmailVerificationTokenEntity::createdAt))
+                            .from(entity(EmailVerificationTokenEntity::class))
+                            .where(path(EmailVerificationTokenEntity::memberId).eq(memberId.value))
+                            .orderBy(path(EmailVerificationTokenEntity::createdAt).desc())
+                    },
+                    jpqlRenderContext,
+                ).setMaxResults(1)
+                .singleResultOrNull
         }
 
     override suspend fun deleteExpiredTokens(): Int =
-        withContext(Dispatchers.IO) {
-            repository.deleteAllByExpiresAtBefore(LocalDateTime.now())
+        sessions.write { session ->
+            session
+                .createMutationQuery(
+                    jpql {
+                        deleteFrom(entity(EmailVerificationTokenEntity::class))
+                            .where(path(EmailVerificationTokenEntity::expiresAt).lt(LocalDateTime.now()))
+                    },
+                    jpqlRenderContext,
+                ).executeUpdate()
+                .map { it ?: 0 }
         }
 
-    /**
-     * 랜덤 토큰 생성 (hex 문자열)
-     */
     private fun generateToken(): String {
         val bytes = ByteArray(TOKEN_LENGTH)
         SECURE_RANDOM.nextBytes(bytes)
         return bytes.toHexString()
     }
 
-    /**
-     * 토큰 해싱 (SHA-256)
-     */
     private fun hashToken(token: String): String = hashSha256(token)
 
     private fun EmailVerificationTokenEntity.toInfo(): EmailVerificationTokenInfo =

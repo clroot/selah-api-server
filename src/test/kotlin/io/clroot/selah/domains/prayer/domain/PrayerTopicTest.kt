@@ -1,6 +1,8 @@
 package io.clroot.selah.domains.prayer.domain
 
 import io.clroot.selah.domains.member.domain.MemberId
+import io.clroot.selah.domains.prayer.domain.exception.PrayerTopicAlreadyAnsweredException
+import io.clroot.selah.domains.prayer.domain.exception.PrayerTopicNotAnsweredException
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.DescribeSpec
 import io.kotest.matchers.shouldBe
@@ -202,7 +204,7 @@ class PrayerTopicTest :
                         )
                     prayerTopic.markAsAnswered()
 
-                    shouldThrow<IllegalStateException> {
+                    shouldThrow<PrayerTopicAlreadyAnsweredException> {
                         prayerTopic.markAsAnswered()
                     }
                 }
@@ -247,7 +249,7 @@ class PrayerTopicTest :
                             title = "encrypted_title",
                         )
 
-                    shouldThrow<IllegalStateException> {
+                    shouldThrow<PrayerTopicNotAnsweredException> {
                         prayerTopic.cancelAnswer()
                     }
                 }
@@ -302,7 +304,7 @@ class PrayerTopicTest :
                             title = "encrypted_title",
                         )
 
-                    shouldThrow<IllegalStateException> {
+                    shouldThrow<PrayerTopicNotAnsweredException> {
                         prayerTopic.updateReflection("some_reflection")
                     }
                 }
