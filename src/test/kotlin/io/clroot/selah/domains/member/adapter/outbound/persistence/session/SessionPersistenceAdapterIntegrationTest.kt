@@ -200,62 +200,41 @@ class SessionPersistenceAdapterIntegrationTest : IntegrationTestBase() {
                 }
             }
 
-            describe("extendExpiry") {
-                context("세션 만료 시간이 threshold 이하일 때") {
-                    it("만료 시간이 연장되고 마지막 접근 IP가 업데이트된다") {
+            describe("update") {
+                context("세션 정보를 업데이트할 때") {
+                    it("세션이 정상적으로 업데이트된다") {
                         val memberId = MemberId.new()
-                        val token = "test-session-token-for-extend"
-                        val now = LocalDateTime.now()
-                        val shortExpiry = now.plusMinutes(5)
-
-                        val shortExpirySession =
-                            SessionEntity(
-                                token = token,
-                                memberId = memberId.value,
+                        val session =
+                            sessionPersistenceAdapter.create(
+                                memberId = memberId,
                                 role = Member.Role.USER,
-                                userAgent = null,
-                                createdIp = "10.0.0.1",
-                                lastAccessedIp = "10.0.0.1",
-                                expiresAt = shortExpiry,
-                                createdAt = now,
+                                userAgent = "Test Agent",
+                                ipAddress = "10.0.0.1",
                             )
-                        sessionFactory
-                            .withTransaction { session ->
-                                session.persist(shortExpirySession)
-                            }.awaitSuspending()
 
-                        val beforeExtend = sessionPersistenceAdapter.findByToken(token)
-                        beforeExtend.shouldNotBeNull()
-                        val remainingBeforeExtend =
-                            java.time.Duration.between(
-                                LocalDateTime.now(),
-                                beforeExtend.expiresAt,
+                        val newExpiry = session.expiresAt.plusHours(2)
+                        val updatedSession =
+                            session.copy(
+                                lastAccessedIp = "10.0.0.2",
+                                expiresAt = newExpiry,
                             )
-                        (remainingBeforeExtend.toMinutes() < 10) shouldBe true
 
-                        val newIpAddress = "10.0.0.2"
+                        val result = sessionPersistenceAdapter.update(updatedSession)
 
-                        sessionPersistenceAdapter.extendExpiry(token, newIpAddress)
+                        result.shouldNotBeNull()
+                        result.lastAccessedIp shouldBe "10.0.0.2"
+                        result.expiresAt shouldBe newExpiry
 
-                        val updatedSession = sessionPersistenceAdapter.findByToken(token)
-                        updatedSession.shouldNotBeNull()
-                        updatedSession.lastAccessedIp shouldBe newIpAddress
-
-                        val expectedMinExpiry = LocalDateTime.now().plusMinutes(50)
-                        (updatedSession.expiresAt > expectedMinExpiry) shouldBe true
-                    }
-                }
-
-                context("존재하지 않는 토큰일 때") {
-                    it("예외 없이 무시된다") {
-                        sessionPersistenceAdapter.extendExpiry("nonexistent-token", "1.1.1.1")
+                        val found = sessionPersistenceAdapter.findByToken(session.token)
+                        found.shouldNotBeNull()
+                        found.lastAccessedIp shouldBe "10.0.0.2"
                     }
                 }
             }
 
-            describe("deleteExpiredSessions") {
+            describe("deleteExpiredBefore") {
                 context("만료된 세션이 존재할 때") {
-                    it("만료된 세션만 삭제되고 삭제된 개수를 반환한다") {
+                    it("지정된 시간 이전에 만료된 세션만 삭제되고 삭제된 개수를 반환한다") {
                         val memberId = MemberId.new()
 
                         val expiredSession =
@@ -282,7 +261,7 @@ class SessionPersistenceAdapterIntegrationTest : IntegrationTestBase() {
                                 ipAddress = null,
                             )
 
-                        val deletedCount = sessionPersistenceAdapter.deleteExpiredSessions()
+                        val deletedCount = sessionPersistenceAdapter.deleteExpiredBefore(LocalDateTime.now())
 
                         deletedCount shouldBe 1
 

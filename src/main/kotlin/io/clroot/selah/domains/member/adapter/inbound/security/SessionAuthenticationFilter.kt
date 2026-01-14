@@ -1,6 +1,7 @@
 package io.clroot.selah.domains.member.adapter.inbound.security
 
 import io.clroot.selah.common.util.HttpRequestUtils
+import io.clroot.selah.domains.member.application.port.outbound.SessionInfo
 import io.clroot.selah.domains.member.application.port.outbound.SessionPort
 import jakarta.servlet.FilterChain
 import jakarta.servlet.http.HttpServletRequest
@@ -10,17 +11,24 @@ import org.springframework.beans.factory.annotation.Value
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.stereotype.Component
 import org.springframework.web.filter.OncePerRequestFilter
+import java.time.Duration
+import java.time.LocalDateTime
 
 /**
  * 세션 인증 필터
  *
  * 쿠키에서 세션 토큰을 추출하여 인증을 수행합니다.
+ * Sliding Session 정책에 따라 세션 만료 시간을 연장합니다.
  */
 @Component
 class SessionAuthenticationFilter(
     private val sessionPort: SessionPort,
     @Value($$"${selah.session.cookie-name:SELAH_SESSION}")
     private val sessionCookieName: String,
+    @Value($$"${selah.session.ttl:P7D}")
+    private val sessionTtl: Duration,
+    @Value($$"${selah.session.extend-threshold:P1D}")
+    private val extendThreshold: Duration,
 ) : OncePerRequestFilter() {
     /**
      * 비동기 디스패치 시에도 필터를 적용하도록 설정
@@ -93,7 +101,38 @@ class SessionAuthenticationFilter(
             SecurityContextHolder.getContext().authentication = authentication
 
             // 세션 연장 및 마지막 접근 IP 업데이트 (Sliding Session)
-            sessionPort.extendExpiry(sessionToken, ipAddress)
+            extendSessionIfNeeded(sessionInfo, ipAddress)
+        }
+    }
+
+    /**
+     * Sliding Session 정책에 따라 세션 만료 시간을 연장합니다.
+     * 남은 시간이 threshold 이하일 때만 연장합니다.
+     */
+    private suspend fun extendSessionIfNeeded(
+        sessionInfo: SessionInfo,
+        ipAddress: String?,
+    ) {
+        val now = LocalDateTime.now()
+        val remainingTime = Duration.between(now, sessionInfo.expiresAt)
+
+        val updatedIp = ipAddress?.take(45)
+        val shouldExtend = remainingTime <= extendThreshold
+
+        // IP가 변경되었거나 연장이 필요한 경우에만 업데이트
+        if (updatedIp != sessionInfo.lastAccessedIp || shouldExtend) {
+            val updatedSession =
+                SessionInfo(
+                    token = sessionInfo.token,
+                    memberId = sessionInfo.memberId,
+                    role = sessionInfo.role,
+                    userAgent = sessionInfo.userAgent,
+                    createdIp = sessionInfo.createdIp,
+                    lastAccessedIp = updatedIp,
+                    expiresAt = if (shouldExtend) now.plus(sessionTtl) else sessionInfo.expiresAt,
+                    createdAt = sessionInfo.createdAt,
+                )
+            sessionPort.update(updatedSession)
         }
     }
 }

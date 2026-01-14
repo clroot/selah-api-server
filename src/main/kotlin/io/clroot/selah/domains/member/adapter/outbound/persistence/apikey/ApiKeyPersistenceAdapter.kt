@@ -18,8 +18,15 @@ import org.springframework.stereotype.Component
 import java.security.SecureRandom
 import java.time.LocalDateTime
 
+/**
+ * ApiKey Persistence Adapter
+ *
+ * 단순 조회는 CoroutineCrudRepository를 사용하고,
+ * 복잡한 쿼리(updateLastUsedAt 등)는 JDSL을 사용합니다.
+ */
 @Component
 class ApiKeyPersistenceAdapter(
+    private val repository: ApiKeyEntityRepository,
     private val sessions: ReactiveSessionProvider,
     private val jpqlRenderContext: JpqlRenderContext,
     @Value($$"${selah.api-key.prefix:selah_}")
@@ -67,46 +74,15 @@ class ApiKeyPersistenceAdapter(
 
     override suspend fun findByKey(apiKey: String): ApiKeyInfo? {
         val keyHash = hashKey(apiKey)
-        return sessions.read { session ->
-            session
-                .createQuery(
-                    jpql {
-                        select(entity(ApiKeyEntity::class))
-                            .from(entity(ApiKeyEntity::class))
-                            .where(path(ApiKeyEntity::keyHash).eq(keyHash))
-                    },
-                    jpqlRenderContext,
-                ).singleResultOrNull
-                .map { it?.toApiKeyInfo() }
-        }
+        return repository.findByKeyHash(keyHash)?.toApiKeyInfo()
     }
 
     override suspend fun delete(id: String) {
-        sessions.write { session ->
-            session
-                .createMutationQuery(
-                    jpql {
-                        deleteFrom(entity(ApiKeyEntity::class))
-                            .where(path(ApiKeyEntity::id).eq(id))
-                    },
-                    jpqlRenderContext,
-                ).executeUpdate()
-        }
+        repository.deleteById(id)
     }
 
     override suspend fun findAllByMemberId(memberId: MemberId): List<ApiKeyInfo> =
-        sessions.read { session ->
-            session
-                .createQuery(
-                    jpql {
-                        select(entity(ApiKeyEntity::class))
-                            .from(entity(ApiKeyEntity::class))
-                            .where(path(ApiKeyEntity::memberId).eq(memberId.value))
-                    },
-                    jpqlRenderContext,
-                ).resultList
-                .map { results -> results.map { it.toApiKeyInfo() } }
-        }
+        repository.findAllByMemberId(memberId.value).map { it.toApiKeyInfo() }
 
     override suspend fun updateLastUsedAt(
         id: String,

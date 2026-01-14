@@ -35,7 +35,7 @@ val testcontainersVersion = "1.20.4"
 val testcontainersCoreVersion = "2.0.2"
 val mockkVersion = "1.14.7"
 val hibernateReactiveVersion = "3.1.0.Final"
-val hibernateReactiveCoroutinesVersion = "1.0.0"
+val hibernateReactiveCoroutinesVersion = "1.1.0"
 val mutinyVersion = "2.6.0"
 val vertxVersion = "4.5.23"
 
@@ -63,7 +63,7 @@ dependencies {
     implementation("com.linecorp.kotlin-jdsl:hibernate-reactive-support:$kotlinJdslVersion") // Member + Prayer Context (Reactive)
 
     // ===== Hibernate Reactive =====
-    implementation("com.github.clroot.hibernate-reactive-coroutines:hibernate-reactive-coroutines-spring-boot-starter:$hibernateReactiveCoroutinesVersion")
+    implementation("com.github.clroot.hibernate-reactive-coroutines:hibernate-reactive-coroutines-spring-boot-starter-boot4:$hibernateReactiveCoroutinesVersion")
 
     // ===== Database =====
     runtimeOnly("org.postgresql:postgresql") // JDBC Driver (Liquibase + Test)

@@ -3,136 +3,95 @@ package io.clroot.selah.domains.member.adapter.outbound.persistence.session
 import com.linecorp.kotlinjdsl.dsl.jpql.jpql
 import com.linecorp.kotlinjdsl.render.jpql.JpqlRenderContext
 import com.linecorp.kotlinjdsl.support.hibernate.reactive.extension.createMutationQuery
-import com.linecorp.kotlinjdsl.support.hibernate.reactive.extension.createQuery
 import io.clroot.hibernate.reactive.ReactiveSessionProvider
 import io.clroot.selah.domains.member.application.port.outbound.SessionInfo
 import io.clroot.selah.domains.member.application.port.outbound.SessionPort
 import io.clroot.selah.domains.member.domain.Member
 import io.clroot.selah.domains.member.domain.MemberId
-import io.smallrye.mutiny.Uni
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component
 import java.time.Duration
 import java.time.LocalDateTime
 import java.util.*
 
+/**
+ * Session Persistence Adapter
+ *
+ * 단순 CRUD는 CoroutineCrudRepository를 사용하고,
+ * 삭제 개수 반환이 필요한 deleteExpiredBefore는 JDSL을 사용합니다.
+ */
 @Component
 class SessionPersistenceAdapter(
+    private val repository: SessionEntityRepository,
     private val sessions: ReactiveSessionProvider,
     private val jpqlRenderContext: JpqlRenderContext,
     @Value($$"${selah.session.ttl:P7D}")
     private val sessionTtl: Duration,
-    @Value($$"${selah.session.extend-threshold:P1D}")
-    private val extendThreshold: Duration,
 ) : SessionPort {
     override suspend fun create(
         memberId: MemberId,
         role: Member.Role,
         userAgent: String?,
         ipAddress: String?,
-    ): SessionInfo =
-        sessions.write { session ->
-            val now = LocalDateTime.now()
-            val token = UUID.randomUUID().toString()
-            val expiresAt = now.plus(sessionTtl)
+    ): SessionInfo {
+        val now = LocalDateTime.now()
+        val token = UUID.randomUUID().toString()
+        val expiresAt = now.plus(sessionTtl)
 
-            val entity =
-                SessionEntity(
-                    token = token,
-                    memberId = memberId.value,
-                    role = role,
-                    userAgent = userAgent?.take(500),
-                    createdIp = ipAddress?.take(45),
-                    lastAccessedIp = ipAddress?.take(45),
-                    expiresAt = expiresAt,
-                    createdAt = now,
-                )
+        val entity =
+            SessionEntity(
+                token = token,
+                memberId = memberId.value,
+                role = role,
+                userAgent = userAgent?.take(500),
+                createdIp = ipAddress?.take(45),
+                lastAccessedIp = ipAddress?.take(45),
+                expiresAt = expiresAt,
+                createdAt = now,
+            )
 
-            session.persist(entity).replaceWith(entity.toSessionInfo())
-        }
+        val saved = repository.save(entity)
+        return saved.toSessionInfo()
+    }
 
     override suspend fun findByToken(token: String): SessionInfo? =
-        sessions.read { session ->
-            session
-                .createQuery(
-                    jpql {
-                        select(entity(SessionEntity::class))
-                            .from(entity(SessionEntity::class))
-                            .where(path(SessionEntity::token).eq(token))
-                    },
-                    jpqlRenderContext,
-                ).singleResultOrNull
-                .map { it?.toSessionInfo() }
-        }
+        repository.findByToken(token)?.toSessionInfo()
+
+    override suspend fun update(sessionInfo: SessionInfo): SessionInfo {
+        val entity =
+            SessionEntity(
+                token = sessionInfo.token,
+                memberId = sessionInfo.memberId.value,
+                role = sessionInfo.role,
+                userAgent = sessionInfo.userAgent,
+                createdIp = sessionInfo.createdIp,
+                lastAccessedIp = sessionInfo.lastAccessedIp,
+                expiresAt = sessionInfo.expiresAt,
+                createdAt = sessionInfo.createdAt,
+            )
+        val saved = repository.save(entity)
+        return saved.toSessionInfo()
+    }
 
     override suspend fun delete(token: String) {
-        sessions.write { session ->
-            session
-                .createMutationQuery(
-                    jpql {
-                        deleteFrom(entity(SessionEntity::class))
-                            .where(path(SessionEntity::token).eq(token))
-                    },
-                    jpqlRenderContext,
-                ).executeUpdate()
-        }
+        repository.deleteByToken(token)
     }
 
     override suspend fun deleteAllByMemberId(memberId: MemberId) {
+        repository.deleteAllByMemberId(memberId.value)
+    }
+
+    override suspend fun deleteExpiredBefore(before: LocalDateTime): Long =
         sessions.write { session ->
             session
                 .createMutationQuery(
                     jpql {
                         deleteFrom(entity(SessionEntity::class))
-                            .where(path(SessionEntity::memberId).eq(memberId.value))
+                            .where(path(SessionEntity::expiresAt).lessThan(before))
                     },
                     jpqlRenderContext,
                 ).executeUpdate()
-        }
-    }
-
-    override suspend fun extendExpiry(
-        token: String,
-        ipAddress: String?,
-    ) {
-        sessions.write { session ->
-            session
-                .createQuery(
-                    jpql {
-                        select(entity(SessionEntity::class))
-                            .from(entity(SessionEntity::class))
-                            .where(path(SessionEntity::token).eq(token))
-                    },
-                    jpqlRenderContext,
-                ).singleResultOrNull
-                .chain { entity: SessionEntity? ->
-                    if (entity == null) {
-                        return@chain Uni.createFrom().nullItem<SessionEntity>()
-                    }
-                    val now = LocalDateTime.now()
-                    val remainingTime = Duration.between(now, entity.expiresAt)
-
-                    entity.lastAccessedIp = ipAddress?.take(45)
-
-                    if (remainingTime <= extendThreshold) {
-                        entity.expiresAt = now.plus(sessionTtl)
-                    }
-                    session.merge(entity)
-                }
-        }
-    }
-
-    override suspend fun deleteExpiredSessions(): Int =
-        sessions.write { session ->
-            session
-                .createMutationQuery(
-                    jpql {
-                        deleteFrom(entity(SessionEntity::class))
-                            .where(path(SessionEntity::expiresAt).lt(LocalDateTime.now()))
-                    },
-                    jpqlRenderContext,
-                ).executeUpdate()
-                .map { it ?: 0 }
+                .map { (it ?: 0).toLong() }
         }
 
     private fun SessionEntity.toSessionInfo(): SessionInfo =

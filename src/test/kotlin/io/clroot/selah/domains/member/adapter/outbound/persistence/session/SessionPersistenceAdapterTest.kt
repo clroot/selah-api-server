@@ -225,53 +225,48 @@ class SessionPersistenceAdapterTest : IntegrationTestBase() {
                 }
             }
 
-            describe("extendExpiry") {
-                context("세션 만료 시간이 threshold 이하일 때") {
-                    it("세션 만료 시간이 연장된다") {
-                        // Given - Create session manually with near-expiry time
+            describe("update") {
+                context("세션 정보를 업데이트할 때") {
+                    it("세션이 정상적으로 업데이트된다") {
+                        // Given
                         val session = adapter.create(testMember.id, testMember.role, "Agent", "127.0.0.1")
 
-                        // Simulate near-expiry by waiting or manipulating time
-                        // For test purposes, we'll manually update the entity
-                        // (In real scenario, session would be near expiry naturally)
-
-                        val originalExpiry = session.expiresAt
-
-                        // When - Extend expiry after threshold has passed
-                        adapter.extendExpiry(session.token, "192.168.1.100")
+                        // When
+                        val updatedSession =
+                            session.copy(
+                                lastAccessedIp = "192.168.1.100",
+                                expiresAt = session.expiresAt.plusHours(1),
+                            )
+                        val result = adapter.update(updatedSession)
 
                         // Then
-                        val updated = adapter.findByToken(session.token)
-                        updated.shouldNotBeNull()
-                        updated.lastAccessedIp shouldBe "192.168.1.100"
-                        // Since we're within threshold in test config (PT30M), expiry should extend
+                        result.shouldNotBeNull()
+                        result.lastAccessedIp shouldBe "192.168.1.100"
+
+                        val found = adapter.findByToken(session.token)
+                        found.shouldNotBeNull()
+                        found.lastAccessedIp shouldBe "192.168.1.100"
                     }
                 }
 
-                context("마지막 접근 IP가 업데이트될 때") {
+                context("마지막 접근 IP만 업데이트할 때") {
                     it("IP 주소가 변경된다") {
                         // Given
                         val session = adapter.create(testMember.id, testMember.role, "Agent", "127.0.0.1")
 
                         // When
-                        adapter.extendExpiry(session.token, "10.0.0.5")
+                        val updatedSession = session.copy(lastAccessedIp = "10.0.0.5")
+                        adapter.update(updatedSession)
 
                         // Then
-                        val updated = adapter.findByToken(session.token)
-                        updated.shouldNotBeNull()
-                        updated.lastAccessedIp shouldBe "10.0.0.5"
-                    }
-                }
-
-                context("존재하지 않는 세션을 연장할 때") {
-                    it("오류 없이 무시된다") {
-                        // When & Then (no exception)
-                        adapter.extendExpiry("non-existent-token", "127.0.0.1")
+                        val found = adapter.findByToken(session.token)
+                        found.shouldNotBeNull()
+                        found.lastAccessedIp shouldBe "10.0.0.5"
                     }
                 }
             }
 
-            describe("deleteExpiredSessions") {
+            describe("deleteExpiredBefore") {
                 context("만료된 세션이 있을 때") {
                     it("만료된 세션만 삭제된다") {
                         // Given - Create a valid session
@@ -282,7 +277,7 @@ class SessionPersistenceAdapterTest : IntegrationTestBase() {
                         // we'll verify the method executes without error
 
                         // When
-                        val deletedCount = adapter.deleteExpiredSessions()
+                        val deletedCount = adapter.deleteExpiredBefore(LocalDateTime.now())
 
                         // Then
                         deletedCount shouldBe 0 // No expired sessions in test
@@ -293,7 +288,7 @@ class SessionPersistenceAdapterTest : IntegrationTestBase() {
                 context("만료된 세션이 없을 때") {
                     it("0을 반환한다") {
                         // When
-                        val deletedCount = adapter.deleteExpiredSessions()
+                        val deletedCount = adapter.deleteExpiredBefore(LocalDateTime.now())
 
                         // Then
                         deletedCount shouldBe 0

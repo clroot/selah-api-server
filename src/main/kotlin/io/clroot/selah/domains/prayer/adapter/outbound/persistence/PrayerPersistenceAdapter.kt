@@ -43,60 +43,17 @@ class PrayerPersistenceAdapter(
         id: PrayerId,
         memberId: MemberId,
     ): Prayer? =
-        sessions.read { session ->
-            val query =
-                jpql {
-                    select(entity(PrayerEntity::class))
-                        .from(entity(PrayerEntity::class))
-                        .where(
-                            and(
-                                path(PrayerEntity::id).eq(id.value),
-                                path(PrayerEntity::memberId).eq(memberId.value),
-                            ),
-                        )
-                }
-            session
-                .createQuery(query, jpqlRenderContext)
-                .singleResultOrNull
-                .map { it?.let { entity -> mapper.toDomain(entity) } }
-        }
+        repository.findByIdAndMemberId(id.value, memberId.value)?.let { mapper.toDomain(it) }
 
     override suspend fun deleteById(id: PrayerId) {
         repository.deleteById(id.value)
     }
 
-    // 페이지네이션이 필요한 복잡한 쿼리 - JDSL 사용
     override suspend fun findAllByMemberId(
         memberId: MemberId,
         pageable: Pageable,
     ): Page<Prayer> =
-        sessions.read { session ->
-            val countQuery =
-                jpql {
-                    select(count(entity(PrayerEntity::class)))
-                        .from(entity(PrayerEntity::class))
-                        .where(path(PrayerEntity::memberId).eq(memberId.value))
-                }
-
-            session.createQuery(countQuery, jpqlRenderContext).singleResult.chain { total: Long ->
-                val dataQuery =
-                    jpql {
-                        select(entity(PrayerEntity::class))
-                            .from(entity(PrayerEntity::class))
-                            .where(path(PrayerEntity::memberId).eq(memberId.value))
-                            .orderBy(path(PrayerEntity::createdAt).desc())
-                    }
-
-                session
-                    .createQuery(dataQuery, jpqlRenderContext)
-                    .setFirstResult(pageable.offset.toInt())
-                    .setMaxResults(pageable.pageSize)
-                    .resultList
-                    .map { entities: List<PrayerEntity> ->
-                        PageImpl(entities.map { mapper.toDomain(it) }, pageable, total)
-                    }
-            }
-        }
+        repository.findAllByMemberId(memberId.value, pageable).map { mapper.toDomain(it) }
 
     // 서브쿼리가 필요한 복잡한 쿼리 - JDSL 사용
     override suspend fun findAllByMemberIdAndPrayerTopicId(
