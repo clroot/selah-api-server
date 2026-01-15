@@ -12,34 +12,47 @@ import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.DescribeSpec
 import io.kotest.matchers.shouldBe
 import io.mockk.*
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.advanceUntilIdle
 import java.time.Duration
 import java.time.LocalDateTime
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class PasswordResetServiceTest :
     DescribeSpec({
 
-        val loadMemberPort = mockk<LoadMemberPort>()
-        val saveMemberPort = mockk<SaveMemberPort>()
-        val passwordResetTokenPort = mockk<PasswordResetTokenPort>()
-        val passwordHashPort = mockk<PasswordHashPort>()
-        val sessionPort = mockk<SessionPort>()
-        val sendEmailPort = mockk<SendEmailPort>()
+        lateinit var loadMemberPort: LoadMemberPort
+        lateinit var saveMemberPort: SaveMemberPort
+        lateinit var passwordResetTokenPort: PasswordResetTokenPort
+        lateinit var passwordHashPort: PasswordHashPort
+        lateinit var sessionPort: SessionPort
+        lateinit var sendEmailPort: SendEmailPort
+        lateinit var testScope: TestScope
+        lateinit var passwordResetService: PasswordResetService
 
         val resendCooldown = Duration.ofMinutes(1)
 
-        val passwordResetService =
-            PasswordResetService(
+        beforeEach {
+            clearAllMocks()
+            loadMemberPort = mockk()
+            saveMemberPort = mockk()
+            passwordResetTokenPort = mockk()
+            passwordHashPort = mockk()
+            sessionPort = mockk()
+            sendEmailPort = mockk()
+            testScope = TestScope()
+
+            passwordResetService = PasswordResetService(
                 loadMemberPort = loadMemberPort,
                 saveMemberPort = saveMemberPort,
                 passwordResetTokenPort = passwordResetTokenPort,
                 passwordHashPort = passwordHashPort,
                 sessionPort = sessionPort,
                 sendEmailPort = sendEmailPort,
+                applicationScope = testScope,
                 resendCooldown = resendCooldown,
             )
-
-        beforeTest {
-            clearAllMocks()
         }
 
         describe("requestPasswordReset") {
@@ -61,6 +74,7 @@ class PasswordResetServiceTest :
                     } just Runs
 
                     passwordResetService.requestPasswordReset(command)
+                    testScope.advanceUntilIdle()
 
                     coVerify(exactly = 1) { loadMemberPort.findByEmail(email) }
                     coVerify(exactly = 1) { passwordResetTokenPort.invalidateAllByMemberId(memberId) }
@@ -124,6 +138,7 @@ class PasswordResetServiceTest :
                     } just Runs
 
                     passwordResetService.requestPasswordReset(command)
+                    testScope.advanceUntilIdle()
 
                     coVerify(exactly = 1) { passwordResetTokenPort.create(memberId) }
                     coVerify(exactly = 1) {
@@ -213,6 +228,7 @@ class PasswordResetServiceTest :
                     } just Runs
 
                     passwordResetService.resetPassword(command)
+                    testScope.advanceUntilIdle()
 
                     coVerify(exactly = 1) { passwordResetTokenPort.findValidByToken(rawToken) }
                     coVerify(exactly = 1) { loadMemberPort.findById(memberId) }

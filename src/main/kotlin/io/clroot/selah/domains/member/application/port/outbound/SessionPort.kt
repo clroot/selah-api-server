@@ -8,6 +8,7 @@ import java.time.LocalDateTime
  * 세션 관리를 위한 Outbound Port
  *
  * DB 기반 구현과 Redis 기반 구현을 교체 가능하도록 추상화합니다.
+ * 순수 데이터 접근만 담당하며, 비즈니스 로직은 Application Layer에서 처리합니다.
  */
 interface SessionPort {
     /**
@@ -35,6 +36,14 @@ interface SessionPort {
     suspend fun findByToken(token: String): SessionInfo?
 
     /**
+     * 세션 정보를 업데이트합니다.
+     *
+     * @param sessionInfo 업데이트할 세션 정보
+     * @return 업데이트된 세션 정보
+     */
+    suspend fun update(sessionInfo: SessionInfo): SessionInfo
+
+    /**
      * 세션을 삭제합니다. (로그아웃)
      *
      * @param token 세션 토큰
@@ -49,23 +58,12 @@ interface SessionPort {
     suspend fun deleteAllByMemberId(memberId: MemberId)
 
     /**
-     * 세션 만료 시간을 연장하고, 마지막 접근 IP를 업데이트합니다. (Sliding Session)
+     * 만료된 세션을 삭제합니다.
      *
-     * @param token 세션 토큰
-     * @param ipAddress 클라이언트 IP 주소
-     */
-    suspend fun extendExpiry(
-        token: String,
-        ipAddress: String?,
-    )
-
-    /**
-     * 만료된 세션을 정리합니다.
-     * 스케줄러에서 주기적으로 호출합니다.
-     *
+     * @param before 이 시간 이전에 만료된 세션을 삭제
      * @return 삭제된 세션 수
      */
-    suspend fun deleteExpiredSessions(): Int
+    suspend fun deleteExpiredBefore(before: LocalDateTime): Long
 }
 
 /**
