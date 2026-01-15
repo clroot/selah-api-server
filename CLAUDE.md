@@ -1,3 +1,4 @@
+
 # Selah API Server - Claude Code Guidelines
 
 > 프로젝트 개요, Tech Stack, Architecture는 [README.md](./README.md) 참조
@@ -16,6 +17,8 @@
 
 | Category | Technology | Note |
 |----------|------------|------|
+| ORM | Hibernate Reactive | 논블로킹 JPA 구현체 |
+| Transaction | hibernate-reactive-coroutines | Spring `@Transactional` + 코루틴 통합 |
 | Query DSL | Kotlin JDSL | 타입 안전한 쿼리 (JPQL 문자열 대체) |
 | DB Migration | Liquibase | YAML 포맷 |
 | Logging | kotlin-logging | SLF4J 래퍼 |
@@ -214,6 +217,7 @@ data class MemberRegisteredEvent(
 class MemberRegisteredEventListener(
     private val emailVerificationTokenPort: EmailVerificationTokenPort,
     private val sendEmailPort: SendEmailPort,
+    private val applicationScope: CoroutineScope,  // 비동기 처리용 스코프
 ) {
     @EventListener
     fun handle(event: MemberRegisteredEvent) {
@@ -222,8 +226,8 @@ class MemberRegisteredEventListener(
         // OAuth 가입이면 스킵 (이미 이메일 인증됨)
         if (member.emailVerified) return
 
-        // 이메일 가입이면 인증 메일 발송
-        runBlocking {
+        // 이메일 가입이면 비동기로 인증 메일 발송
+        applicationScope.launch {
             val tokenResult = emailVerificationTokenPort.create(member.id)
             sendEmailPort.sendVerificationEmail(
                 to = member.email,
@@ -647,85 +651,190 @@ class CreatePrayerTopicService(
 
 **규칙**: 비즈니스 로직을 Service에 넣지 말고, Domain 객체에 위임
 
-### Adapter Layer
+### 트랜잭션 관리 (Hibernate Reactive)
 
-#### Persistence Adapter
+hibernate-reactive-coroutines 라이브러리를 사용하여 Spring의 `@Transactional`과 Hibernate Reactive를 통합합니다.
+
+#### 서비스 레이어: @Transactional
 
 ```kotlin
-@Component
-class PrayerTopicPersistenceAdapter(
-    private val repository: PrayerTopicJpaRepository,
-    private val mapper: PrayerTopicMapper
-) : SavePrayerTopicPort, LoadPrayerTopicPort {
+@Service
+@Transactional  // 클래스 레벨 선언 (suspend 함수 지원)
+class PrayerTopicService(
+    private val savePrayerTopicPort: SavePrayerTopicPort,
+    private val loadPrayerTopicPort: LoadPrayerTopicPort,
+    private val eventPublisher: ApplicationEventPublisher,
+) : CreatePrayerTopicUseCase, GetPrayerTopicUseCase {
 
-    override suspend fun save(prayerTopic: PrayerTopic): PrayerTopic {
-        // ⚠️ JPA는 Blocking! 반드시 Dispatchers.IO 사용
-        return withContext(Dispatchers.IO) {
-            val entity = mapper.toEntity(prayerTopic)
-            val saved = repository.save(entity)
-            mapper.toDomain(saved)
-        }
+    override suspend fun create(command: CreatePrayerTopicCommand): PrayerTopic {
+        val prayerTopic = PrayerTopic.create(command.memberId, command.title)
+        val saved = savePrayerTopicPort.save(prayerTopic)
+        saved.publishAndClearEvents(eventPublisher)
+        return saved
+    }
+
+    @Transactional(readOnly = true)  // 읽기 전용 트랜잭션
+    override suspend fun getById(id: PrayerTopicId, memberId: MemberId): PrayerTopic {
+        return loadPrayerTopicPort.findByIdAndMemberId(id, memberId)
+            ?: throw PrayerTopicNotFoundException(id.value)
     }
 }
 ```
 
+#### 어댑터 레이어: ReactiveSessionProvider
+
+복잡한 쿼리가 필요한 경우 `sessions.read/write` 블록을 사용합니다. 서비스의 `@Transactional` 컨텍스트가 있으면 해당 세션을 재사용합니다.
+
+```kotlin
+@Component
+class PrayerPersistenceAdapter(
+    private val repository: PrayerEntityRepository,
+    private val sessions: ReactiveSessionProvider,
+    private val jpqlRenderContext: JpqlRenderContext,
+) : LoadPrayerPort {
+
+    // sessions.read는 @Transactional 컨텍스트의 세션을 재사용
+    override suspend fun countByPrayerTopicIds(ids: List<PrayerTopicId>): Map<PrayerTopicId, Long> =
+        sessions.read { session ->
+            val query = jpql { /* GROUP BY 쿼리 */ }
+            session.createQuery(query, jpqlRenderContext).resultList
+                .map { results -> results.associate { ... } }
+        }
+}
+```
+
+#### 세션 우선순위 (라이브러리 내부 동작)
+
+1. `@Transactional` 컨텍스트의 ReactorContext에서 세션 조회
+2. `ReactiveSessionContext`의 CoroutineContext에서 세션 조회
+3. 새 세션 생성
+
+**핵심**: 서비스에서 `@Transactional`을 선언하면, 어댑터의 `sessions.read/write`가 동일한 트랜잭션 세션을 재사용합니다.
+
+### Adapter Layer
+
+#### Persistence Adapter
+
+Hibernate Reactive + hibernate-reactive-coroutines 라이브러리를 사용하여 논블로킹 데이터 접근을 구현합니다.
+
+**패턴 1: CoroutineCrudRepository (단순 CRUD)**
+
+```kotlin
+@Component
+class PrayerTopicPersistenceAdapter(
+    private val repository: PrayerTopicEntityRepository,  // CoroutineCrudRepository 상속
+    private val mapper: PrayerTopicMapper
+) : SavePrayerTopicPort, LoadPrayerTopicPort {
+
+    // 단순 CRUD는 Repository 직접 호출 (논블로킹, Dispatchers.IO 불필요)
+    override suspend fun save(prayerTopic: PrayerTopic): PrayerTopic {
+        val saved = repository.save(mapper.toEntity(prayerTopic))
+        return mapper.toDomain(saved)
+    }
+
+    override suspend fun findById(id: PrayerTopicId): PrayerTopic? =
+        repository.findById(id.value)?.let { mapper.toDomain(it) }
+}
+```
+
+**패턴 2: ReactiveSessionProvider (복잡한 쿼리)**
+
+```kotlin
+@Component
+class PrayerTopicPersistenceAdapter(
+    private val repository: PrayerTopicEntityRepository,
+    private val sessions: ReactiveSessionProvider,  // 복잡한 쿼리용
+    private val jpqlRenderContext: JpqlRenderContext,
+    private val mapper: PrayerTopicMapper
+) : SavePrayerTopicPort, LoadPrayerTopicPort {
+
+    // 동적 조건 + 페이지네이션이 필요한 복잡한 쿼리 - JDSL + sessions.read 사용
+    override suspend fun findAllByMemberId(
+        memberId: MemberId,
+        status: PrayerTopicStatus?,
+        pageable: Pageable
+    ): Page<PrayerTopic> = sessions.read { session ->
+        val query = jpql {
+            select(entity(PrayerTopicEntity::class))
+                .from(entity(PrayerTopicEntity::class))
+                .whereAnd(
+                    path(PrayerTopicEntity::memberId).eq(memberId.value),
+                    status?.let { path(PrayerTopicEntity::status).eq(it) }
+                )
+        }
+        session.createQuery(query, jpqlRenderContext)
+            .setFirstResult(pageable.offset.toInt())
+            .setMaxResults(pageable.pageSize)
+            .resultList
+            .map { entities -> PageImpl(entities.map { mapper.toDomain(it) }, pageable, total) }
+    }
+
+    // 쓰기 작업이 필요한 경우 - sessions.write 사용
+    override suspend fun saveWithFlush(entity: LookbackSelectionEntity): LookbackSelection =
+        sessions.write { session ->
+            session.persist(entity)
+                .chain { _ -> session.flush() }
+                .replaceWith(mapper.toDomain(entity))
+        }
+}
+```
+
 **주의사항**:
-- JPA 호출은 반드시 `withContext(Dispatchers.IO)` 내부에서
+- Hibernate Reactive는 논블로킹이므로 `withContext(Dispatchers.IO)` 사용 금지
+- 단순 CRUD: `CoroutineCrudRepository` 메서드 직접 호출
+- 복잡한 쿼리: `sessions.read { }` 또는 `sessions.write { }` 블록 사용
 - `version` 필드를 Entity에 정확히 매핑해야 낙관적 락 동작
 
 #### JDSL 사용 지침
 
 **원칙**: 복잡한 쿼리는 JPQL 문자열 대신 Kotlin JDSL을 사용하여 타입 안전하게 작성합니다.
 
-**JDSL을 사용해야 하는 경우**:
+**JDSL + sessions.read/write를 사용해야 하는 경우**:
 - Fetch Join이 필요한 경우 (Lazy Loading 방지)
 - 동적 조건이 포함된 복잡한 쿼리
 - 여러 Entity를 조인하는 쿼리
+- 서브쿼리, GROUP BY 등 복잡한 연산
 
-**Spring Data JPA만 사용해도 되는 경우**:
+**CoroutineCrudRepository만 사용해도 되는 경우**:
 - 단순 CRUD 작업 (`save`, `findById`, `delete`)
 - 단순 존재 확인 (`existsById`, `existsByEmail`)
-- 메서드 이름 기반 쿼리로 충분한 경우
+- 메서드 이름 기반 쿼리로 충분한 경우 (`findByEmail`, `findAllByStatus`)
 
 ```kotlin
-// ✅ Good: JDSL로 타입 안전한 쿼리 (Fetch Join 포함)
+// ✅ Good: JDSL + ReactiveSessionProvider로 타입 안전한 쿼리
 @Component
 class MemberPersistenceAdapter(
-    private val repository: MemberJpaRepository,
-    private val entityManager: EntityManager,
+    private val repository: MemberEntityRepository,  // CoroutineCrudRepository
+    private val sessions: ReactiveSessionProvider,
     private val jpqlRenderContext: JpqlRenderContext,
     private val mapper: MemberMapper,
 ) : LoadMemberPort, SaveMemberPort {
 
-    override suspend fun findById(memberId: MemberId): Member? = withContext(Dispatchers.IO) {
-        findMemberEntityBy { path(MemberEntity::id).eq(memberId.value) }
-            ?.let { mapper.toDomain(it) }
-    }
+    // 단순 쿼리는 Repository 직접 사용
+    override suspend fun existsByEmail(email: Email): Boolean =
+        repository.existsByEmail(email.value)
 
-    override suspend fun existsByEmail(email: Email): Boolean = withContext(Dispatchers.IO) {
-        repository.existsByEmail(email.value)  // 단순 쿼리는 JpaRepository 사용
-    }
-
-    // Helper: Fetch Join이 포함된 공통 조회 로직
-    private fun findMemberEntityBy(predicate: Jpql.() -> Predicate): MemberEntity? {
-        val query = jpql {
-            selectDistinct(entity(MemberEntity::class))
-                .from(
-                    entity(MemberEntity::class),
-                    leftFetchJoin(MemberEntity::oauthConnections),  // Lazy Loading 방지
-                ).where(predicate())
+    // Fetch Join이 필요한 복잡한 쿼리 - sessions.read 사용
+    override suspend fun findById(memberId: MemberId): Member? =
+        sessions.read { session ->
+            val query = jpql {
+                selectDistinct(entity(MemberEntity::class))
+                    .from(
+                        entity(MemberEntity::class),
+                        leftFetchJoin(MemberEntity::oauthConnections),  // Lazy Loading 방지
+                    ).where(path(MemberEntity::id).eq(memberId.value))
+            }
+            session.createQuery(query, jpqlRenderContext)
+                .singleResultOrNull
+                .map { it?.let { entity -> mapper.toDomain(entity) } }
         }
-        return entityManager.createQuery(query, jpqlRenderContext)
-            .resultList
-            .firstOrNull()
-    }
 }
 
 // ❌ Bad: JPQL 문자열 직접 사용 (타입 안전하지 않음)
 @Repository
-interface MemberJpaRepository : JpaRepository<MemberEntity, String> {
+interface MemberEntityRepository : CoroutineCrudRepository<MemberEntity, String> {
     @Query("SELECT m FROM MemberEntity m LEFT JOIN FETCH m.oauthConnections WHERE m.email = :email")
-    fun findByEmailWithConnections(@Param("email") email: String): MemberEntity?
+    suspend fun findByEmailWithConnections(@Param("email") email: String): MemberEntity?
 }
 ```
 
@@ -1030,9 +1139,9 @@ class PrayerTopicServiceTest : BehaviorSpec({
 | Aggregate Root를 `data class`로 구현 | `class` + `AggregateRoot<ID>` 상속 |
 | 모든 프로퍼티에 backing field 사용 | 단순 타입은 `var ... private set`, 타입 변환 필요 시만 `_property` 사용 |
 | Service에 비즈니스 로직 | Domain 객체에 위임 |
-| JPA 호출 시 `Dispatchers.IO` 누락 | `withContext(Dispatchers.IO) { }` 감싸기 |
+| `withContext(Dispatchers.IO)` 사용 | Hibernate Reactive는 논블로킹, 불필요 |
 | JPQL 문자열(`@Query`) 직접 사용 | Kotlin JDSL로 타입 안전한 쿼리 작성 |
-| suspend 함수에서 `runBlocking` | Coroutine 컨텍스트 전파 활용 |
+| suspend 함수에서 `runBlocking` | `applicationScope.launch { }` 사용 |
 | Entity ↔ Domain 매핑에서 메타 필드 누락 | id, version, createdAt, updatedAt 모두 매핑 |
 | 메타 필드를 자식에서 직접 관리 | 부모(AggregateRoot)에게 생성자로 전달 |
 | updatedAt 직접 변경 | `touch()` 메서드 사용 |
@@ -1079,10 +1188,12 @@ class PrayerTopicServiceTest : BehaviorSpec({
 - [ ] 공개 API에 `@PublicEndpoint` 어노테이션이 붙어있는가?
 - [ ] 에러 응답이 `ErrorResponse`를 사용하는가?
 
-### Persistence & Concurrency
-- [ ] JPA Repository 호출이 `withContext(Dispatchers.IO)` 내부에 있는가?
+### Transaction & Persistence
+- [ ] 서비스 레이어에 `@Transactional`이 선언되어 있는가?
+- [ ] 읽기 전용 메서드에 `@Transactional(readOnly = true)`를 사용하는가?
+- [ ] 단순 CRUD는 `CoroutineCrudRepository`, 복잡한 쿼리는 `sessions.read/write`를 사용하는가?
 - [ ] 복잡한 쿼리(Fetch Join, 동적 조건)가 JDSL로 작성되었는가? (JPQL 문자열 금지)
-- [ ] 단순 쿼리(existsById, save 등)는 Spring Data JPA 메서드를 활용하는가?
+- [ ] `withContext(Dispatchers.IO)`를 사용하지 않는가? (Hibernate Reactive는 논블로킹)
 
 ### E2E 암호화 (Backend)
 - [ ] 암호화 키를 서버에 저장하거나 로깅하지 않는가?

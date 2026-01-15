@@ -54,8 +54,7 @@ class SessionPersistenceAdapter(
         return saved.toSessionInfo()
     }
 
-    override suspend fun findByToken(token: String): SessionInfo? =
-        repository.findByToken(token)?.toSessionInfo()
+    override suspend fun findByToken(token: String): SessionInfo? = repository.findByToken(token)?.toSessionInfo()
 
     override suspend fun update(sessionInfo: SessionInfo): SessionInfo {
         val entity =

@@ -22,8 +22,7 @@ class ServerKeyPersistenceAdapter(
     override suspend fun findByMemberId(memberId: MemberId): ServerKey? =
         repository.findByMemberId(memberId.value)?.let { mapper.toDomain(it) }
 
-    override suspend fun existsByMemberId(memberId: MemberId): Boolean =
-        repository.existsByMemberId(memberId.value)
+    override suspend fun existsByMemberId(memberId: MemberId): Boolean = repository.existsByMemberId(memberId.value)
 
     override suspend fun save(serverKey: ServerKey): ServerKey {
         val saved = repository.save(mapper.toEntity(serverKey))

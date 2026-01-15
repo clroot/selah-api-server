@@ -37,14 +37,12 @@ class PrayerTopicPersistenceAdapter(
         return mapper.toDomain(saved)
     }
 
-    override suspend fun findById(id: PrayerTopicId): PrayerTopic? =
-        repository.findById(id.value)?.let { mapper.toDomain(it) }
+    override suspend fun findById(id: PrayerTopicId): PrayerTopic? = repository.findById(id.value)?.let { mapper.toDomain(it) }
 
     override suspend fun findByIdAndMemberId(
         id: PrayerTopicId,
         memberId: MemberId,
-    ): PrayerTopic? =
-        repository.findByIdAndMemberId(id.value, memberId.value)?.let { mapper.toDomain(it) }
+    ): PrayerTopic? = repository.findByIdAndMemberId(id.value, memberId.value)?.let { mapper.toDomain(it) }
 
     override suspend fun deleteById(id: PrayerTopicId) {
         repository.deleteById(id.value)

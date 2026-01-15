@@ -22,8 +22,7 @@ class EncryptionSettingsPersistenceAdapter(
     override suspend fun findByMemberId(memberId: MemberId): EncryptionSettings? =
         repository.findByMemberId(memberId.value)?.let { mapper.toDomain(it) }
 
-    override suspend fun existsByMemberId(memberId: MemberId): Boolean =
-        repository.existsByMemberId(memberId.value)
+    override suspend fun existsByMemberId(memberId: MemberId): Boolean = repository.existsByMemberId(memberId.value)
 
     override suspend fun save(encryptionSettings: EncryptionSettings): EncryptionSettings {
         val saved = repository.save(mapper.toEntity(encryptionSettings))

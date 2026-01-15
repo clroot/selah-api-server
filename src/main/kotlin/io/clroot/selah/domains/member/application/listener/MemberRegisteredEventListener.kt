@@ -4,7 +4,8 @@ import io.clroot.selah.domains.member.application.port.outbound.EmailVerificatio
 import io.clroot.selah.domains.member.application.port.outbound.SendEmailPort
 import io.clroot.selah.domains.member.domain.event.MemberRegisteredEvent
 import io.github.oshai.kotlinlogging.KotlinLogging
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
 import org.springframework.context.event.EventListener
 import org.springframework.stereotype.Component
 
@@ -17,6 +18,7 @@ import org.springframework.stereotype.Component
 class MemberRegisteredEventListener(
     private val emailVerificationTokenPort: EmailVerificationTokenPort,
     private val sendEmailPort: SendEmailPort,
+    private val applicationScope: CoroutineScope,
 ) {
     companion object {
         @JvmStatic
@@ -39,8 +41,8 @@ class MemberRegisteredEventListener(
             return
         }
 
-        // 이메일 가입인 경우 인증 메일 발송
-        runBlocking {
+        // 이메일 가입인 경우 비동기로 인증 메일 발송
+        applicationScope.launch {
             try {
                 val tokenResult = emailVerificationTokenPort.create(member.id)
 

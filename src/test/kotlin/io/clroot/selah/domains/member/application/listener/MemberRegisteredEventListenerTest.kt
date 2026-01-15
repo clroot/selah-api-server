@@ -18,47 +18,54 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.just
 import io.mockk.mockk
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.advanceUntilIdle
 import java.time.LocalDateTime
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class MemberRegisteredEventListenerTest :
     DescribeSpec({
 
-        val emailVerificationTokenPort = mockk<EmailVerificationTokenPort>()
-        val sendEmailPort = mockk<SendEmailPort>()
+        lateinit var emailVerificationTokenPort: EmailVerificationTokenPort
+        lateinit var sendEmailPort: SendEmailPort
+        lateinit var testScope: TestScope
+        lateinit var listener: MemberRegisteredEventListener
 
-        val listener =
-            MemberRegisteredEventListener(
+        beforeEach {
+            clearAllMocks()
+            emailVerificationTokenPort = mockk()
+            sendEmailPort = mockk()
+            testScope = TestScope()
+            listener = MemberRegisteredEventListener(
                 emailVerificationTokenPort = emailVerificationTokenPort,
                 sendEmailPort = sendEmailPort,
+                applicationScope = testScope,
             )
-
-        beforeTest {
-            clearAllMocks()
         }
 
         describe("handle") {
-            val memberId = MemberId.new()
-            val email = Email("test@example.com")
-            val nickname = "TestUser"
-
             context("이메일 가입 회원인 경우 (emailVerified = false)") {
-                val member =
-                    createEmailMember(
+                it("인증 이메일을 발송한다") {
+                    val memberId = MemberId.new()
+                    val email = Email("test@example.com")
+                    val nickname = "TestUser"
+                    val member = createEmailMember(
                         id = memberId,
                         email = email,
                         nickname = nickname,
                         emailVerified = false,
                     )
-                val event = MemberRegisteredEvent(member)
-                val tokenResult = createTokenResult(memberId)
+                    val event = MemberRegisteredEvent(member)
+                    val tokenResult = createTokenResult(memberId)
 
-                it("인증 이메일을 발송한다") {
                     coEvery { emailVerificationTokenPort.create(memberId) } returns tokenResult
                     coEvery {
                         sendEmailPort.sendVerificationEmail(email, nickname, tokenResult.rawToken)
                     } just Runs
 
                     listener.handle(event)
+                    testScope.advanceUntilIdle()
 
                     coVerify(exactly = 1) { emailVerificationTokenPort.create(memberId) }
                     coVerify(exactly = 1) {
@@ -68,16 +75,19 @@ class MemberRegisteredEventListenerTest :
             }
 
             context("OAuth 가입 회원인 경우 (emailVerified = true)") {
-                val member =
-                    createOAuthMember(
+                it("인증 이메일을 발송하지 않는다") {
+                    val memberId = MemberId.new()
+                    val email = Email("test@example.com")
+                    val nickname = "TestUser"
+                    val member = createOAuthMember(
                         id = memberId,
                         email = email,
                         nickname = nickname,
                     )
-                val event = MemberRegisteredEvent(member)
+                    val event = MemberRegisteredEvent(member)
 
-                it("인증 이메일을 발송하지 않는다") {
                     listener.handle(event)
+                    testScope.advanceUntilIdle()
 
                     coVerify(exactly = 0) { emailVerificationTokenPort.create(memberId) }
                     coVerify(exactly = 0) { sendEmailPort.sendVerificationEmail(email, nickname, any()) }
@@ -85,17 +95,19 @@ class MemberRegisteredEventListenerTest :
             }
 
             context("이메일 발송이 실패하는 경우") {
-                val member =
-                    createEmailMember(
+                it("예외가 전파되지 않는다 (회원가입은 성공해야 함)") {
+                    val memberId = MemberId.new()
+                    val email = Email("test@example.com")
+                    val nickname = "TestUser"
+                    val member = createEmailMember(
                         id = memberId,
                         email = email,
                         nickname = nickname,
                         emailVerified = false,
                     )
-                val event = MemberRegisteredEvent(member)
-                val tokenResult = createTokenResult(memberId)
+                    val event = MemberRegisteredEvent(member)
+                    val tokenResult = createTokenResult(memberId)
 
-                it("예외가 전파되지 않는다 (회원가입은 성공해야 함)") {
                     coEvery { emailVerificationTokenPort.create(memberId) } returns tokenResult
                     coEvery {
                         sendEmailPort.sendVerificationEmail(email, nickname, tokenResult.rawToken)
@@ -103,6 +115,7 @@ class MemberRegisteredEventListenerTest :
 
                     // 예외가 전파되지 않아야 함
                     listener.handle(event)
+                    testScope.advanceUntilIdle()
 
                     coVerify(exactly = 1) { emailVerificationTokenPort.create(memberId) }
                     coVerify(exactly = 1) {
@@ -112,22 +125,25 @@ class MemberRegisteredEventListenerTest :
             }
 
             context("토큰 생성이 실패하는 경우") {
-                val member =
-                    createEmailMember(
+                it("예외가 전파되지 않는다 (회원가입은 성공해야 함)") {
+                    val memberId = MemberId.new()
+                    val email = Email("test@example.com")
+                    val nickname = "TestUser"
+                    val member = createEmailMember(
                         id = memberId,
                         email = email,
                         nickname = nickname,
                         emailVerified = false,
                     )
-                val event = MemberRegisteredEvent(member)
+                    val event = MemberRegisteredEvent(member)
 
-                it("예외가 전파되지 않는다 (회원가입은 성공해야 함)") {
                     coEvery {
                         emailVerificationTokenPort.create(memberId)
                     } throws RuntimeException("Database connection failed")
 
                     // 예외가 전파되지 않아야 함
                     listener.handle(event)
+                    testScope.advanceUntilIdle()
 
                     coVerify(exactly = 1) { emailVerificationTokenPort.create(memberId) }
                     coVerify(exactly = 0) { sendEmailPort.sendVerificationEmail(email, nickname, any()) }
