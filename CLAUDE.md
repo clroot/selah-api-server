@@ -839,8 +839,8 @@ class MemberPersistenceAdapter(
                     ).where(path(MemberEntity::id).eq(memberId.value))
             }
             session.createQuery(query, jpqlRenderContext)
-                .singleResultOrNull
-                .map { it?.let { entity -> mapper.toDomain(entity) } }
+                .singleResultOrNull()
+                ?.let { mapper.toDomain(it) }
         }
 }
 

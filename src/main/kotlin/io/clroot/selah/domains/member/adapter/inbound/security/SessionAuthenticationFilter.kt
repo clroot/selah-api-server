@@ -128,17 +128,10 @@ class SessionAuthenticationFilter(
 
         // IP가 변경되었거나 연장이 필요한 경우에만 업데이트
         if (updatedIp != sessionInfo.lastAccessedIp || shouldExtend) {
-            val updatedSession =
-                SessionInfo(
-                    token = sessionInfo.token,
-                    memberId = sessionInfo.memberId,
-                    role = sessionInfo.role,
-                    userAgent = sessionInfo.userAgent,
-                    createdIp = sessionInfo.createdIp,
-                    lastAccessedIp = updatedIp,
-                    expiresAt = if (shouldExtend) now.plus(sessionTtl) else sessionInfo.expiresAt,
-                    createdAt = sessionInfo.createdAt,
-                )
+            val updatedSession = sessionInfo.copy(
+                lastAccessedIp = updatedIp,
+                expiresAt = if (shouldExtend) now.plus(sessionTtl) else sessionInfo.expiresAt,
+            )
             sessionPort.update(updatedSession)
         }
     }
