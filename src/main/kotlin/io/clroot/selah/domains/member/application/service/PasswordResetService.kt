@@ -2,12 +2,15 @@ package io.clroot.selah.domains.member.application.service
 
 import io.clroot.selah.domains.member.application.port.inbound.*
 import io.clroot.selah.domains.member.application.port.outbound.*
+import io.clroot.selah.domains.member.domain.Email
 import io.clroot.selah.domains.member.domain.MemberId
 import io.clroot.selah.domains.member.domain.NewPassword
 import io.clroot.selah.domains.member.domain.exception.InvalidPasswordResetTokenException
 import io.clroot.selah.domains.member.domain.exception.MemberNotFoundException
 import io.clroot.selah.domains.member.domain.exception.PasswordResetResendTooSoonException
 import io.github.oshai.kotlinlogging.KotlinLogging
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -26,6 +29,7 @@ class PasswordResetService(
     private val passwordHashPort: PasswordHashPort,
     private val sessionPort: SessionPort,
     private val sendEmailPort: SendEmailPort,
+    private val applicationScope: CoroutineScope,
     @Value($$"${selah.password-reset.resend-cooldown:PT1M}")
     private val resendCooldown: Duration,
 ) : PasswordResetUseCase {
@@ -44,6 +48,8 @@ class PasswordResetService(
         }
 
         val memberId = member.id
+        val email = member.email
+        val nickname = member.nickname
 
         // 재발송 쿨다운 확인
         checkResendCooldown(memberId)
@@ -52,14 +58,28 @@ class PasswordResetService(
         passwordResetTokenPort.invalidateAllByMemberId(memberId)
         val tokenResult = passwordResetTokenPort.create(memberId)
 
-        // 이메일 발송
-        sendEmailPort.sendPasswordResetEmail(
-            to = member.email,
-            nickname = member.nickname,
-            resetToken = tokenResult.rawToken,
-        )
+        // 이메일 발송 (트랜잭션 커밋 후 비동기 처리)
+        val resetToken = tokenResult.rawToken
+        applicationScope.launch {
+            sendPasswordResetEmailAsync(email, nickname, resetToken)
+        }
+    }
 
-        logger.info { "Password reset email sent to ${member.email.value}" }
+    private suspend fun sendPasswordResetEmailAsync(
+        email: Email,
+        nickname: String,
+        resetToken: String,
+    ) {
+        try {
+            sendEmailPort.sendPasswordResetEmail(
+                to = email,
+                nickname = nickname,
+                resetToken = resetToken,
+            )
+            logger.info { "Password reset email sent to ${email.value}" }
+        } catch (e: Exception) {
+            logger.error(e) { "Failed to send password reset email to ${email.value}" }
+        }
     }
 
     @Transactional(readOnly = true)
@@ -92,6 +112,8 @@ class PasswordResetService(
                 ?: throw MemberNotFoundException(tokenInfo.memberId.value)
 
         val memberId = member.id
+        val email = member.email
+        val nickname = member.nickname
 
         // 비밀번호 해싱 및 변경
         val passwordHash = passwordHashPort.hash(newPassword)
@@ -104,13 +126,27 @@ class PasswordResetService(
         // 모든 세션 무효화 (보안)
         sessionPort.deleteAllByMemberId(memberId)
 
-        // 비밀번호 변경 알림 메일 발송
-        sendEmailPort.sendPasswordChangedNotification(
-            to = member.email,
-            nickname = member.nickname,
-        )
-
         logger.info { "Password reset completed for member ${memberId.value}" }
+
+        // 비밀번호 변경 알림 메일 발송 (트랜잭션 커밋 후 비동기 처리)
+        applicationScope.launch {
+            sendPasswordChangedNotificationAsync(email, nickname)
+        }
+    }
+
+    private suspend fun sendPasswordChangedNotificationAsync(
+        email: Email,
+        nickname: String,
+    ) {
+        try {
+            sendEmailPort.sendPasswordChangedNotification(
+                to = email,
+                nickname = nickname,
+            )
+            logger.info { "Password changed notification sent to ${email.value}" }
+        } catch (e: Exception) {
+            logger.error(e) { "Failed to send password changed notification to ${email.value}" }
+        }
     }
 
     private suspend fun checkResendCooldown(memberId: MemberId) {

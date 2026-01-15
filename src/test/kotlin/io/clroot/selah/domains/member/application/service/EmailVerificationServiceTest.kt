@@ -25,33 +25,45 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.just
 import io.mockk.mockk
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.advanceUntilIdle
 import org.springframework.context.ApplicationEventPublisher
 import java.time.Duration
 import java.time.LocalDateTime
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class EmailVerificationServiceTest :
     DescribeSpec({
 
-        val loadMemberPort = mockk<LoadMemberPort>()
-        val saveMemberPort = mockk<SaveMemberPort>()
-        val emailVerificationTokenPort = mockk<EmailVerificationTokenPort>()
-        val sendEmailPort = mockk<SendEmailPort>()
-        val eventPublisher = mockk<ApplicationEventPublisher>(relaxed = true)
+        lateinit var loadMemberPort: LoadMemberPort
+        lateinit var saveMemberPort: SaveMemberPort
+        lateinit var emailVerificationTokenPort: EmailVerificationTokenPort
+        lateinit var sendEmailPort: SendEmailPort
+        lateinit var eventPublisher: ApplicationEventPublisher
+        lateinit var testScope: TestScope
+        lateinit var emailVerificationService: EmailVerificationService
 
         val resendCooldown = Duration.ofMinutes(5)
 
-        val emailVerificationService =
-            EmailVerificationService(
+        beforeEach {
+            clearAllMocks()
+            loadMemberPort = mockk()
+            saveMemberPort = mockk()
+            emailVerificationTokenPort = mockk()
+            sendEmailPort = mockk()
+            eventPublisher = mockk(relaxed = true)
+            testScope = TestScope()
+
+            emailVerificationService = EmailVerificationService(
                 loadMemberPort = loadMemberPort,
                 saveMemberPort = saveMemberPort,
                 emailVerificationTokenPort = emailVerificationTokenPort,
                 sendEmailPort = sendEmailPort,
                 eventPublisher = eventPublisher,
+                applicationScope = testScope,
                 resendCooldown = resendCooldown,
             )
-
-        beforeTest {
-            clearAllMocks()
         }
 
         describe("sendVerificationEmail") {
@@ -73,6 +85,7 @@ class EmailVerificationServiceTest :
                     } just Runs
 
                     emailVerificationService.sendVerificationEmail(command)
+                    testScope.advanceUntilIdle()
 
                     coVerify(exactly = 1) { loadMemberPort.findById(memberId) }
                     coVerify(exactly = 1) { emailVerificationTokenPort.invalidateAllByMemberId(memberId) }
@@ -150,6 +163,7 @@ class EmailVerificationServiceTest :
                     } just Runs
 
                     emailVerificationService.sendVerificationEmail(command)
+                    testScope.advanceUntilIdle()
 
                     coVerify(exactly = 1) { emailVerificationTokenPort.create(memberId) }
                     coVerify(exactly = 1) {

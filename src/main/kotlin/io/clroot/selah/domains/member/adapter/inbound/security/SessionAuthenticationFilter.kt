@@ -6,6 +6,8 @@ import io.clroot.selah.domains.member.application.port.outbound.SessionPort
 import jakarta.servlet.FilterChain
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.security.core.context.SecurityContextHolder
@@ -23,6 +25,7 @@ import java.time.LocalDateTime
 @Component
 class SessionAuthenticationFilter(
     private val sessionPort: SessionPort,
+    private val applicationScope: CoroutineScope,
     @Value($$"${selah.session.cookie-name:SELAH_SESSION}")
     private val sessionCookieName: String,
     @Value($$"${selah.session.ttl:P7D}")
@@ -78,29 +81,33 @@ class SessionAuthenticationFilter(
         private const val AUTH_ATTRIBUTE_KEY = "io.clroot.selah.security.AUTHENTICATION"
     }
 
-    private fun extractSessionToken(request: HttpServletRequest): String? = request.cookies?.find { it.name == sessionCookieName }?.value
+    private fun extractSessionToken(request: HttpServletRequest): String? =
+        request.cookies?.find { it.name == sessionCookieName }?.value
 
     private fun authenticateWithSession(
         sessionToken: String,
         ipAddress: String?,
     ) {
-        runBlocking {
-            val sessionInfo = sessionPort.findByToken(sessionToken) ?: return@runBlocking
+        // 세션 조회는 동기적으로 수행 (인증 완료 후 다음 필터로 진행해야 함)
+        val sessionInfo = runBlocking {
+            sessionPort.findByToken(sessionToken)
+        } ?: return
 
-            if (sessionInfo.isExpired()) {
-                return@runBlocking
-            }
+        if (sessionInfo.isExpired()) {
+            return
+        }
 
-            val principal =
-                MemberPrincipal(
-                    memberId = sessionInfo.memberId,
-                    role = sessionInfo.role,
-                    authenticationType = MemberPrincipal.AuthenticationType.SESSION,
-                )
-            val authentication = MemberAuthenticationToken(principal)
-            SecurityContextHolder.getContext().authentication = authentication
+        val principal =
+            MemberPrincipal(
+                memberId = sessionInfo.memberId,
+                role = sessionInfo.role,
+                authenticationType = MemberPrincipal.AuthenticationType.SESSION,
+            )
+        val authentication = MemberAuthenticationToken(principal)
+        SecurityContextHolder.getContext().authentication = authentication
 
-            // 세션 연장 및 마지막 접근 IP 업데이트 (Sliding Session)
+        // 세션 연장 및 마지막 접근 IP 업데이트는 비동기로 처리 (fire-and-forget)
+        applicationScope.launch {
             extendSessionIfNeeded(sessionInfo, ipAddress)
         }
     }

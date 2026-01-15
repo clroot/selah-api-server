@@ -8,6 +8,7 @@ import io.clroot.selah.domains.member.application.port.outbound.EmailVerificatio
 import io.clroot.selah.domains.member.application.port.outbound.LoadMemberPort
 import io.clroot.selah.domains.member.application.port.outbound.SaveMemberPort
 import io.clroot.selah.domains.member.application.port.outbound.SendEmailPort
+import io.clroot.selah.domains.member.domain.Email
 import io.clroot.selah.domains.member.domain.Member
 import io.clroot.selah.domains.member.domain.MemberId
 import io.clroot.selah.domains.member.domain.exception.EmailAlreadyVerifiedException
@@ -15,6 +16,8 @@ import io.clroot.selah.domains.member.domain.exception.EmailVerificationResendTo
 import io.clroot.selah.domains.member.domain.exception.InvalidEmailVerificationTokenException
 import io.clroot.selah.domains.member.domain.exception.MemberNotFoundException
 import io.github.oshai.kotlinlogging.KotlinLogging
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.ApplicationEventPublisher
 import org.springframework.stereotype.Service
@@ -33,6 +36,7 @@ class EmailVerificationService(
     private val emailVerificationTokenPort: EmailVerificationTokenPort,
     private val sendEmailPort: SendEmailPort,
     private val eventPublisher: ApplicationEventPublisher,
+    private val applicationScope: CoroutineScope,
     @Value($$"${selah.email-verification.resend-cooldown:PT5M}")
     private val resendCooldown: Duration,
 ) : EmailVerificationUseCase {
@@ -51,6 +55,9 @@ class EmailVerificationService(
             throw EmailAlreadyVerifiedException(member.email.value)
         }
 
+        val email = member.email
+        val nickname = member.nickname
+
         // 재발송 쿨다운 확인
         checkResendCooldown(command.memberId)
 
@@ -58,14 +65,28 @@ class EmailVerificationService(
         emailVerificationTokenPort.invalidateAllByMemberId(command.memberId)
         val tokenResult = emailVerificationTokenPort.create(command.memberId)
 
-        // 이메일 발송
-        sendEmailPort.sendVerificationEmail(
-            to = member.email,
-            nickname = member.nickname,
-            verificationToken = tokenResult.rawToken,
-        )
+        // 이메일 발송 (트랜잭션 커밋 후 비동기 처리)
+        val verificationToken = tokenResult.rawToken
+        applicationScope.launch {
+            sendVerificationEmailAsync(email, nickname, verificationToken)
+        }
+    }
 
-        logger.info { "Verification email sent to ${member.email.value}" }
+    private suspend fun sendVerificationEmailAsync(
+        email: Email,
+        nickname: String,
+        verificationToken: String,
+    ) {
+        try {
+            sendEmailPort.sendVerificationEmail(
+                to = email,
+                nickname = nickname,
+                verificationToken = verificationToken,
+            )
+            logger.info { "Verification email sent to ${email.value}" }
+        } catch (e: Exception) {
+            logger.error(e) { "Failed to send verification email to ${email.value}" }
+        }
     }
 
     override suspend fun verifyEmail(command: VerifyEmailCommand): Member {

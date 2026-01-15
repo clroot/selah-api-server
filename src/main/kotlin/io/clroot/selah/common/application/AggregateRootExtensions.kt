@@ -2,11 +2,15 @@ package io.clroot.selah.common.application
 
 import io.clroot.selah.common.domain.AggregateRoot
 import org.springframework.context.ApplicationEventPublisher
+import org.springframework.transaction.support.TransactionSynchronization
+import org.springframework.transaction.support.TransactionSynchronizationManager
 
 /**
  * Aggregate Root의 Domain Events를 발행하고 초기화하는 확장 함수
  *
  * Application Layer의 Service에서 Aggregate 저장 후 호출합니다.
+ * 트랜잭션이 활성화된 경우 커밋 후에 이벤트를 발행하고,
+ * 트랜잭션이 없는 경우 즉시 발행합니다.
  *
  * 사용 예시:
  * ```kotlin
@@ -15,8 +19,26 @@ import org.springframework.context.ApplicationEventPublisher
  * ```
  */
 fun <ID : Any> AggregateRoot<ID>.publishAndClearEvents(eventPublisher: ApplicationEventPublisher) {
-    domainEvents.forEach { event ->
-        eventPublisher.publishEvent(event)
-    }
+    val events = domainEvents.toList()
     clearEvents()
+
+    if (events.isEmpty()) return
+
+    if (TransactionSynchronizationManager.isSynchronizationActive()) {
+        // 트랜잭션 커밋 후 이벤트 발행
+        TransactionSynchronizationManager.registerSynchronization(
+            object : TransactionSynchronization {
+                override fun afterCommit() {
+                    events.forEach { event ->
+                        eventPublisher.publishEvent(event)
+                    }
+                }
+            },
+        )
+    } else {
+        // 트랜잭션이 없는 경우 즉시 발행
+        events.forEach { event ->
+            eventPublisher.publishEvent(event)
+        }
+    }
 }
