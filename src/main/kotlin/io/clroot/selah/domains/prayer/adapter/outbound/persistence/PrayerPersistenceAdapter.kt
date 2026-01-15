@@ -36,14 +36,12 @@ class PrayerPersistenceAdapter(
         return mapper.toDomain(saved)
     }
 
-    override suspend fun findById(id: PrayerId): Prayer? =
-        repository.findById(id.value)?.let { mapper.toDomain(it) }
+    override suspend fun findById(id: PrayerId): Prayer? = repository.findById(id.value)?.let { mapper.toDomain(it) }
 
     override suspend fun findByIdAndMemberId(
         id: PrayerId,
         memberId: MemberId,
-    ): Prayer? =
-        repository.findByIdAndMemberId(id.value, memberId.value)?.let { mapper.toDomain(it) }
+    ): Prayer? = repository.findByIdAndMemberId(id.value, memberId.value)?.let { mapper.toDomain(it) }
 
     override suspend fun deleteById(id: PrayerId) {
         repository.deleteById(id.value)
@@ -52,8 +50,7 @@ class PrayerPersistenceAdapter(
     override suspend fun findAllByMemberId(
         memberId: MemberId,
         pageable: Pageable,
-    ): Page<Prayer> =
-        repository.findAllByMemberId(memberId.value, pageable).map { mapper.toDomain(it) }
+    ): Page<Prayer> = repository.findAllByMemberId(memberId.value, pageable).map { mapper.toDomain(it) }
 
     // 서브쿼리가 필요한 복잡한 쿼리 - JDSL 사용
     override suspend fun findAllByMemberIdAndPrayerTopicId(

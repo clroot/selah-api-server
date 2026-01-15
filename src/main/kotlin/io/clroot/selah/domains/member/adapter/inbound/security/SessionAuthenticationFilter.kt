@@ -81,8 +81,7 @@ class SessionAuthenticationFilter(
         private const val AUTH_ATTRIBUTE_KEY = "io.clroot.selah.security.AUTHENTICATION"
     }
 
-    private fun extractSessionToken(request: HttpServletRequest): String? =
-        request.cookies?.find { it.name == sessionCookieName }?.value
+    private fun extractSessionToken(request: HttpServletRequest): String? = request.cookies?.find { it.name == sessionCookieName }?.value
 
     private fun authenticateWithSession(
         sessionToken: String,
@@ -90,9 +89,10 @@ class SessionAuthenticationFilter(
     ) {
         // 서블릿 필터는 suspend 함수가 아니므로 runBlocking 불가피
         // 세션 조회는 인증 결정에 필수이므로 동기적으로 수행
-        val sessionInfo = runBlocking {
-            sessionPort.findByToken(sessionToken)
-        } ?: return
+        val sessionInfo =
+            runBlocking {
+                sessionPort.findByToken(sessionToken)
+            } ?: return
 
         if (sessionInfo.isExpired()) {
             return
@@ -129,10 +129,11 @@ class SessionAuthenticationFilter(
 
         // IP가 변경되었거나 연장이 필요한 경우에만 업데이트
         if (updatedIp != sessionInfo.lastAccessedIp || shouldExtend) {
-            val updatedSession = sessionInfo.copy(
-                lastAccessedIp = updatedIp,
-                expiresAt = if (shouldExtend) now.plus(sessionTtl) else sessionInfo.expiresAt,
-            )
+            val updatedSession =
+                sessionInfo.copy(
+                    lastAccessedIp = updatedIp,
+                    expiresAt = if (shouldExtend) now.plus(sessionTtl) else sessionInfo.expiresAt,
+                )
             sessionPort.update(updatedSession)
         }
     }

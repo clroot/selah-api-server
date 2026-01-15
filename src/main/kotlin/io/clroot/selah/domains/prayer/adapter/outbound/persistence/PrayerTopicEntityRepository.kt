@@ -9,5 +9,8 @@ import org.springframework.data.repository.kotlin.CoroutineCrudRepository
  * 복잡한 쿼리(동적 조건, 페이지네이션 등)는 JDSL을 통해 PersistenceAdapter에서 처리합니다.
  */
 interface PrayerTopicEntityRepository : CoroutineCrudRepository<PrayerTopicEntity, String> {
-    suspend fun findByIdAndMemberId(id: String, memberId: String): PrayerTopicEntity?
+    suspend fun findByIdAndMemberId(
+        id: String,
+        memberId: String,
+    ): PrayerTopicEntity?
 }

@@ -43,16 +43,17 @@ class PasswordResetServiceTest :
             sendEmailPort = mockk()
             testScope = TestScope()
 
-            passwordResetService = PasswordResetService(
-                loadMemberPort = loadMemberPort,
-                saveMemberPort = saveMemberPort,
-                passwordResetTokenPort = passwordResetTokenPort,
-                passwordHashPort = passwordHashPort,
-                sessionPort = sessionPort,
-                sendEmailPort = sendEmailPort,
-                applicationScope = testScope,
-                resendCooldown = resendCooldown,
-            )
+            passwordResetService =
+                PasswordResetService(
+                    loadMemberPort = loadMemberPort,
+                    saveMemberPort = saveMemberPort,
+                    passwordResetTokenPort = passwordResetTokenPort,
+                    passwordHashPort = passwordHashPort,
+                    sessionPort = sessionPort,
+                    sendEmailPort = sendEmailPort,
+                    applicationScope = testScope,
+                    resendCooldown = resendCooldown,
+                )
         }
 
         describe("requestPasswordReset") {

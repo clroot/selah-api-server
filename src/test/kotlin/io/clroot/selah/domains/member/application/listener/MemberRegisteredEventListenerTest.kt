@@ -37,11 +37,12 @@ class MemberRegisteredEventListenerTest :
             emailVerificationTokenPort = mockk()
             sendEmailPort = mockk()
             testScope = TestScope()
-            listener = MemberRegisteredEventListener(
-                emailVerificationTokenPort = emailVerificationTokenPort,
-                sendEmailPort = sendEmailPort,
-                applicationScope = testScope,
-            )
+            listener =
+                MemberRegisteredEventListener(
+                    emailVerificationTokenPort = emailVerificationTokenPort,
+                    sendEmailPort = sendEmailPort,
+                    applicationScope = testScope,
+                )
         }
 
         describe("handle") {
@@ -50,12 +51,13 @@ class MemberRegisteredEventListenerTest :
                     val memberId = MemberId.new()
                     val email = Email("test@example.com")
                     val nickname = "TestUser"
-                    val member = createEmailMember(
-                        id = memberId,
-                        email = email,
-                        nickname = nickname,
-                        emailVerified = false,
-                    )
+                    val member =
+                        createEmailMember(
+                            id = memberId,
+                            email = email,
+                            nickname = nickname,
+                            emailVerified = false,
+                        )
                     val event = MemberRegisteredEvent(member)
                     val tokenResult = createTokenResult(memberId)
 
@@ -79,11 +81,12 @@ class MemberRegisteredEventListenerTest :
                     val memberId = MemberId.new()
                     val email = Email("test@example.com")
                     val nickname = "TestUser"
-                    val member = createOAuthMember(
-                        id = memberId,
-                        email = email,
-                        nickname = nickname,
-                    )
+                    val member =
+                        createOAuthMember(
+                            id = memberId,
+                            email = email,
+                            nickname = nickname,
+                        )
                     val event = MemberRegisteredEvent(member)
 
                     listener.handle(event)
@@ -99,12 +102,13 @@ class MemberRegisteredEventListenerTest :
                     val memberId = MemberId.new()
                     val email = Email("test@example.com")
                     val nickname = "TestUser"
-                    val member = createEmailMember(
-                        id = memberId,
-                        email = email,
-                        nickname = nickname,
-                        emailVerified = false,
-                    )
+                    val member =
+                        createEmailMember(
+                            id = memberId,
+                            email = email,
+                            nickname = nickname,
+                            emailVerified = false,
+                        )
                     val event = MemberRegisteredEvent(member)
                     val tokenResult = createTokenResult(memberId)
 
@@ -129,12 +133,13 @@ class MemberRegisteredEventListenerTest :
                     val memberId = MemberId.new()
                     val email = Email("test@example.com")
                     val nickname = "TestUser"
-                    val member = createEmailMember(
-                        id = memberId,
-                        email = email,
-                        nickname = nickname,
-                        emailVerified = false,
-                    )
+                    val member =
+                        createEmailMember(
+                            id = memberId,
+                            email = email,
+                            nickname = nickname,
+                            emailVerified = false,
+                        )
                     val event = MemberRegisteredEvent(member)
 
                     coEvery {

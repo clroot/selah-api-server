@@ -11,7 +11,13 @@ import org.springframework.data.repository.kotlin.CoroutineCrudRepository
  * 복잡한 쿼리(서브쿼리, GROUP BY 등)는 JDSL을 통해 PersistenceAdapter에서 처리합니다.
  */
 interface PrayerEntityRepository : CoroutineCrudRepository<PrayerEntity, String> {
-    suspend fun findAllByMemberId(memberId: String, pageable: Pageable): Page<PrayerEntity>
+    suspend fun findAllByMemberId(
+        memberId: String,
+        pageable: Pageable,
+    ): Page<PrayerEntity>
 
-    suspend fun findByIdAndMemberId(id: String, memberId: String): PrayerEntity?
+    suspend fun findByIdAndMemberId(
+        id: String,
+        memberId: String,
+    ): PrayerEntity?
 }

@@ -24,10 +24,11 @@ class CoroutineConfig {
 
     @Bean
     fun applicationScope(): CoroutineScope {
-        val exceptionHandler = CoroutineExceptionHandler { context, throwable ->
-            val coroutineName = context[CoroutineName]?.name ?: "unknown"
-            logger.error(throwable) { "Uncaught exception in coroutine '$coroutineName'" }
-        }
+        val exceptionHandler =
+            CoroutineExceptionHandler { context, throwable ->
+                val coroutineName = context[CoroutineName]?.name ?: "unknown"
+                logger.error(throwable) { "Uncaught exception in coroutine '$coroutineName'" }
+            }
 
         return CoroutineScope(
             SupervisorJob() + Dispatchers.Default + exceptionHandler + CoroutineName("applicationScope"),

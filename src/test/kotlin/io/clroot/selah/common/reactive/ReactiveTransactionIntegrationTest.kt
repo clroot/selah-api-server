@@ -106,9 +106,10 @@ class ReactiveTransactionIntegrationTest : IntegrationTestBase() {
 
                     shouldThrow<RuntimeException> {
                         tx.transactional {
-                            val saved = savePrayerTopicPort.save(
-                                PrayerTopic.create(testMemberId, "롤백될 기도제목"),
-                            )
+                            val saved =
+                                savePrayerTopicPort.save(
+                                    PrayerTopic.create(testMemberId, "롤백될 기도제목"),
+                                )
                             savedId = saved.id
                             throw RuntimeException("의도적 롤백 테스트")
                         }

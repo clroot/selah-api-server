@@ -55,15 +55,16 @@ class EmailVerificationServiceTest :
             eventPublisher = mockk(relaxed = true)
             testScope = TestScope()
 
-            emailVerificationService = EmailVerificationService(
-                loadMemberPort = loadMemberPort,
-                saveMemberPort = saveMemberPort,
-                emailVerificationTokenPort = emailVerificationTokenPort,
-                sendEmailPort = sendEmailPort,
-                eventPublisher = eventPublisher,
-                applicationScope = testScope,
-                resendCooldown = resendCooldown,
-            )
+            emailVerificationService =
+                EmailVerificationService(
+                    loadMemberPort = loadMemberPort,
+                    saveMemberPort = saveMemberPort,
+                    emailVerificationTokenPort = emailVerificationTokenPort,
+                    sendEmailPort = sendEmailPort,
+                    eventPublisher = eventPublisher,
+                    applicationScope = testScope,
+                    resendCooldown = resendCooldown,
+                )
         }
 
         describe("sendVerificationEmail") {
