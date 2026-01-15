@@ -88,7 +88,8 @@ class SessionAuthenticationFilter(
         sessionToken: String,
         ipAddress: String?,
     ) {
-        // 세션 조회는 동기적으로 수행 (인증 완료 후 다음 필터로 진행해야 함)
+        // 서블릿 필터는 suspend 함수가 아니므로 runBlocking 불가피
+        // 세션 조회는 인증 결정에 필수이므로 동기적으로 수행
         val sessionInfo = runBlocking {
             sessionPort.findByToken(sessionToken)
         } ?: return
