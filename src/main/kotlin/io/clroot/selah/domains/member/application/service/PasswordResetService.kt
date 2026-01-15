@@ -1,5 +1,6 @@
 package io.clroot.selah.domains.member.application.service
 
+import io.clroot.selah.common.application.afterCommit
 import io.clroot.selah.domains.member.application.port.inbound.*
 import io.clroot.selah.domains.member.application.port.outbound.*
 import io.clroot.selah.domains.member.domain.Email
@@ -60,8 +61,10 @@ class PasswordResetService(
 
         // 이메일 발송 (트랜잭션 커밋 후 비동기 처리)
         val resetToken = tokenResult.rawToken
-        applicationScope.launch {
-            sendPasswordResetEmailAsync(email, nickname, resetToken)
+        afterCommit {
+            applicationScope.launch {
+                sendPasswordResetEmailAsync(email, nickname, resetToken)
+            }
         }
     }
 
@@ -129,8 +132,10 @@ class PasswordResetService(
         logger.info { "Password reset completed for member ${memberId.value}" }
 
         // 비밀번호 변경 알림 메일 발송 (트랜잭션 커밋 후 비동기 처리)
-        applicationScope.launch {
-            sendPasswordChangedNotificationAsync(email, nickname)
+        afterCommit {
+            applicationScope.launch {
+                sendPasswordChangedNotificationAsync(email, nickname)
+            }
         }
     }
 

@@ -1,5 +1,6 @@
 package io.clroot.selah.domains.member.application.service
 
+import io.clroot.selah.common.application.afterCommit
 import io.clroot.selah.common.application.publishAndClearEvents
 import io.clroot.selah.domains.member.application.port.inbound.EmailVerificationUseCase
 import io.clroot.selah.domains.member.application.port.inbound.SendVerificationEmailCommand
@@ -67,8 +68,10 @@ class EmailVerificationService(
 
         // 이메일 발송 (트랜잭션 커밋 후 비동기 처리)
         val verificationToken = tokenResult.rawToken
-        applicationScope.launch {
-            sendVerificationEmailAsync(email, nickname, verificationToken)
+        afterCommit {
+            applicationScope.launch {
+                sendVerificationEmailAsync(email, nickname, verificationToken)
+            }
         }
     }
 
