@@ -754,15 +754,29 @@ class PrayerTopicPersistenceAdapter(
         status: PrayerTopicStatus?,
         pageable: Pageable
     ): Page<PrayerTopic> = sessions.read { session ->
-        val query = jpql {
+        // 조건 재사용을 위한 predicate 생성
+        fun whereConditions() = listOfNotNull(
+            path(PrayerTopicEntity::memberId).eq(memberId.value),
+            status?.let { path(PrayerTopicEntity::status).eq(it) }
+        )
+
+        // 1. 전체 카운트 쿼리
+        val countQuery = jpql {
+            select(count(entity(PrayerTopicEntity::class)))
+                .from(entity(PrayerTopicEntity::class))
+                .whereAnd(*whereConditions().toTypedArray())
+        }
+        val total = session.createQuery(countQuery, jpqlRenderContext)
+            .singleResult.await()
+
+        // 2. 데이터 조회 쿼리
+        val dataQuery = jpql {
             select(entity(PrayerTopicEntity::class))
                 .from(entity(PrayerTopicEntity::class))
-                .whereAnd(
-                    path(PrayerTopicEntity::memberId).eq(memberId.value),
-                    status?.let { path(PrayerTopicEntity::status).eq(it) }
-                )
+                .whereAnd(*whereConditions().toTypedArray())
+                .orderBy(path(PrayerTopicEntity::createdAt).desc())
         }
-        session.createQuery(query, jpqlRenderContext)
+        session.createQuery(dataQuery, jpqlRenderContext)
             .setFirstResult(pageable.offset.toInt())
             .setMaxResults(pageable.pageSize)
             .resultList
