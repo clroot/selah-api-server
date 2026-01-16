@@ -9,6 +9,8 @@ import jakarta.persistence.Id
 import jakarta.persistence.Index
 import jakarta.persistence.Table
 import jakarta.persistence.Version
+import org.springframework.data.annotation.CreatedDate
+import org.springframework.data.annotation.LastModifiedDate
 import java.time.LocalDateTime
 
 /**
@@ -44,8 +46,10 @@ class PrayerTopicEntity(
     @Version
     @Column(name = "version")
     var version: Long?,
+    @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
     val createdAt: LocalDateTime,
+    @LastModifiedDate
     @Column(name = "updated_at", nullable = false)
     var updatedAt: LocalDateTime,
 )

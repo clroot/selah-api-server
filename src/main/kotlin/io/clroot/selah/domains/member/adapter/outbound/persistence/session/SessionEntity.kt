@@ -2,6 +2,7 @@ package io.clroot.selah.domains.member.adapter.outbound.persistence.session
 
 import io.clroot.selah.domains.member.domain.Member
 import jakarta.persistence.*
+import org.springframework.data.annotation.CreatedDate
 import java.time.LocalDateTime
 
 /**
@@ -59,6 +60,7 @@ class SessionEntity(
     /**
      * 세션 생성 시간
      */
+    @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
     val createdAt: LocalDateTime,
 )

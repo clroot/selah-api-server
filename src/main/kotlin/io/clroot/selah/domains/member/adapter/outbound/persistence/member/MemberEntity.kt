@@ -2,6 +2,8 @@ package io.clroot.selah.domains.member.adapter.outbound.persistence.member
 
 import io.clroot.selah.domains.member.domain.Member
 import jakarta.persistence.*
+import org.springframework.data.annotation.CreatedDate
+import org.springframework.data.annotation.LastModifiedDate
 import java.time.LocalDateTime
 
 /**
@@ -44,8 +46,10 @@ class MemberEntity(
     @Version
     @Column(name = "version")
     var version: Long? = null,
+    @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
     val createdAt: LocalDateTime,
+    @LastModifiedDate
     @Column(name = "updated_at", nullable = false)
     var updatedAt: LocalDateTime,
 ) {

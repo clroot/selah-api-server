@@ -5,6 +5,7 @@ import jakarta.persistence.Entity
 import jakarta.persistence.Id
 import jakarta.persistence.Index
 import jakarta.persistence.Table
+import org.springframework.data.annotation.CreatedDate
 import java.time.LocalDateTime
 
 /**
@@ -51,6 +52,7 @@ class PasswordResetTokenEntity(
     /**
      * 생성 시간
      */
+    @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
     val createdAt: LocalDateTime,
 )
