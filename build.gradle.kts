@@ -19,7 +19,6 @@ group = "io.clroot.selah"
 
 repositories {
     mavenCentral()
-    maven { url = uri("https://jitpack.io") }
 }
 
 java {
@@ -63,15 +62,11 @@ dependencies {
     implementation("com.linecorp.kotlin-jdsl:hibernate-reactive-support:$kotlinJdslVersion") // Member + Prayer Context (Reactive)
 
     // ===== Hibernate Reactive =====
-    implementation(
-        "com.github.clroot.hibernate-reactive-coroutines:hibernate-reactive-coroutines-spring-boot-starter-boot4:$hibernateReactiveCoroutinesVersion",
-    )
+    implementation("io.clroot:hibernate-reactive-coroutines-spring-boot-starter-boot4:$hibernateReactiveCoroutinesVersion")
 
     // ===== Database =====
     runtimeOnly("org.postgresql:postgresql") // JDBC Driver (Liquibase + Test)
-    implementation("io.vertx:vertx-core:$vertxVersion") // Vert.x Core (Reactive)
     implementation("io.vertx:vertx-pg-client:$vertxVersion") // Reactive Driver (Prayer Context Reactive)
-    implementation("io.vertx:vertx-lang-kotlin-coroutines:$vertxVersion") // Vert.x Coroutines Support
 
     // ===== Database Migration =====
     implementation("org.springframework.boot:spring-boot-starter-liquibase")
@@ -109,9 +104,7 @@ dependencies {
     testFixturesApi("org.testcontainers:postgresql:$testcontainersVersion")
     testFixturesApi("org.testcontainers:junit-jupiter:$testcontainersVersion")
     testFixturesApi("org.postgresql:postgresql")
-    testFixturesApi(
-        "com.github.clroot.hibernate-reactive-coroutines:hibernate-reactive-coroutines-spring-boot-starter-boot4:$hibernateReactiveCoroutinesVersion",
-    )
+    testFixturesApi("io.clroot:hibernate-reactive-coroutines-spring-boot-starter-boot4:$hibernateReactiveCoroutinesVersion")
 }
 
 tasks {
