@@ -35,7 +35,7 @@ val testcontainersVersion = "1.20.4"
 val testcontainersCoreVersion = "2.0.2"
 val mockkVersion = "1.14.7"
 val hibernateReactiveVersion = "3.1.0.Final"
-val hibernateReactiveCoroutinesVersion = "1.3.6"
+val hibernateReactiveCoroutinesVersion = "1.4.1"
 val mutinyVersion = "2.6.0"
 val vertxVersion = "4.5.23"
 

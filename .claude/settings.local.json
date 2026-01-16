@@ -4,7 +4,19 @@
       "Bash(./gradlew compileKotlin:*)",
       "Bash(git add:*)",
       "Bash(git commit:*)",
-      "Bash(./gradlew test:*)"
+      "Bash(./gradlew test:*)",
+      "Skill(superpowers:systematic-debugging)",
+      "mcp__ide__getDiagnostics",
+      "Bash(./gradlew:*)",
+      "Bash(unzip:*)",
+      "Bash(xargs:*)",
+      "WebSearch",
+      "WebFetch(domain:docs.jboss.org)",
+      "WebFetch(domain:docs.hibernate.org)",
+      "Bash(git push:*)",
+      "Bash(git pull:*)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:raw.githubusercontent.com)"
     ]
   }
 }

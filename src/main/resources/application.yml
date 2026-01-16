@@ -26,7 +26,6 @@ spring:
 
   # JPA 설정
   jpa:
-    open-in-view: false
     database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
       ddl-auto: validate
@@ -34,6 +33,9 @@ spring:
       hibernate:
         format_sql: true
         use_sql_comments: true
+        reactive:
+          ssl-mode: prefer
+          pool-size: 10
   # 데이터소스 (로컬 개발용 - 환경변수로 오버라이드 가능)
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/selah}
@@ -134,8 +136,3 @@ logging:
     org.springframework.security: WARN
     org.hibernate.SQL: WARN
     org.hibernate.orm.jdbc.bind: WARN
-
-kotlin:
-  hibernate:
-    reactive:
-      ssl-mode: require
