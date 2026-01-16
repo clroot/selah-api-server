@@ -15,24 +15,21 @@ CREATE USER selah_user WITH PASSWORD 'CHANGE_ME_STRONG_PASSWORD';
 -- DataGrip에서 selah 데이터베이스로 연결을 변경한 후 실행하세요.
 \connect selah;
 
--- 4. 스키마 생성
-CREATE SCHEMA IF NOT EXISTS selah;
-
--- 5. 권한 부여
+-- 4. 권한 부여 (public 스키마 사용)
 GRANT CONNECT ON DATABASE selah TO selah_user;
-GRANT USAGE ON SCHEMA selah TO selah_user;
-GRANT CREATE ON SCHEMA selah TO selah_user;
+GRANT USAGE ON SCHEMA public TO selah_user;
+GRANT CREATE ON SCHEMA public TO selah_user;
 
--- 스키마 내 모든 테이블에 대한 권한
-ALTER DEFAULT PRIVILEGES IN SCHEMA selah
+-- public 스키마 내 모든 테이블에 대한 권한
+ALTER DEFAULT PRIVILEGES IN SCHEMA public
     GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO selah_user;
 
--- 스키마 내 모든 시퀀스에 대한 권한
-ALTER DEFAULT PRIVILEGES IN SCHEMA selah
+-- public 스키마 내 모든 시퀀스에 대한 권한
+ALTER DEFAULT PRIVILEGES IN SCHEMA public
     GRANT USAGE, SELECT ON SEQUENCES TO selah_user;
 
--- 6. 기본 검색 경로 설정
-ALTER USER selah_user SET search_path TO selah, public;
+-- 5. 기본 검색 경로 설정
+ALTER USER selah_user SET search_path TO public;
 
 -- 확인
 SELECT current_database(), current_schema();
