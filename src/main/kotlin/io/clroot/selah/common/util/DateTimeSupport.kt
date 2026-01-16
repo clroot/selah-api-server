@@ -31,6 +31,5 @@ object DateTimeSupport {
     /**
      * 주어진 LocalDateTime을 마이크로초 정밀도로 truncate.
      */
-    fun truncateToMicros(dateTime: LocalDateTime): LocalDateTime =
-        dateTime.truncatedTo(ChronoUnit.MICROS)
+    fun truncateToMicros(dateTime: LocalDateTime): LocalDateTime = dateTime.truncatedTo(ChronoUnit.MICROS)
 }
