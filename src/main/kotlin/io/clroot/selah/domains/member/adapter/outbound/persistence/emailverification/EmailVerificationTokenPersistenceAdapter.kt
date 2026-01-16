@@ -5,6 +5,7 @@ import com.linecorp.kotlinjdsl.render.jpql.JpqlRenderContext
 import com.linecorp.kotlinjdsl.support.hibernate.reactive.extension.createMutationQuery
 import com.linecorp.kotlinjdsl.support.hibernate.reactive.extension.createQuery
 import io.clroot.hibernate.reactive.ReactiveSessionProvider
+import io.clroot.selah.common.util.DateTimeSupport
 import io.clroot.selah.common.util.HexSupport.hashSha256
 import io.clroot.selah.common.util.HexSupport.toHexString
 import io.clroot.selah.common.util.ULIDSupport
@@ -32,7 +33,7 @@ class EmailVerificationTokenPersistenceAdapter(
 
     override suspend fun create(memberId: MemberId): EmailVerificationTokenCreateResult =
         sessions.write { session ->
-            val now = LocalDateTime.now()
+            val now = DateTimeSupport.now()
             val id = ULIDSupport.generateULID()
             val rawToken = generateToken()
             val tokenHash = hashToken(rawToken)
