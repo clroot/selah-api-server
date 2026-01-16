@@ -38,6 +38,9 @@ class SecurityConfig(
                 it.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
             }.authorizeHttpRequests { auth ->
                 auth
+                    // Actuator health 엔드포인트 허용 (배포 스크립트 헬스체크용)
+                    .requestMatchers("/actuator/health", "/actuator/health/**")
+                    .permitAll()
                     // 공개 엔드포인트 허용
                     .requestMatchers(publicEndpointRegistry.getPublicEndpointMatcher())
                     .permitAll()
