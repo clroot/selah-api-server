@@ -53,6 +53,7 @@ selah:
     cookie:
       secure: false               # 개발환경 false, 운영환경 true
       same-site: Lax              # Strict 또는 Lax
+      domain: ""                  # 개발환경 빈값, 운영환경 .clroot.io
 
   # API Key 설정
   api-key:
@@ -123,7 +124,8 @@ selah:
   session:
     cookie:
       secure: true
-      same-site: Strict
+      same-site: Lax              # OAuth callback에서 쿠키 전송을 위해 Lax 필요
+      domain: .clroot.io          # cross-domain 쿠키 공유 (selah.clroot.io ↔ api.selah.clroot.io)
 
 logging:
   level:

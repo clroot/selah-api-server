@@ -19,6 +19,8 @@ class SessionCookieHelper(
     private val cookieSecure: Boolean,
     @Value($$"${selah.session.cookie.same-site:Strict}")
     private val cookieSameSite: String,
+    @Value($$"${selah.session.cookie.domain:}")
+    private val cookieDomain: String,
 ) {
     companion object {
         private const val STATE_COOKIE_NAME = "oauth_state"
@@ -46,6 +48,7 @@ class SessionCookieHelper(
                 path = "/"
                 this.maxAge = maxAge
                 setAttribute("SameSite", cookieSameSite)
+                if (cookieDomain.isNotBlank()) domain = cookieDomain
             }
         response.addCookie(cookie)
     }
@@ -61,6 +64,7 @@ class SessionCookieHelper(
                 path = "/"
                 maxAge = 0
                 setAttribute("SameSite", cookieSameSite)
+                if (cookieDomain.isNotBlank()) domain = cookieDomain
             }
         response.addCookie(cookie)
     }
@@ -86,6 +90,7 @@ class SessionCookieHelper(
                 path = OAUTH_COOKIE_PATH
                 maxAge = OAUTH_COOKIE_MAX_AGE
                 setAttribute("SameSite", cookieSameSite)
+                if (cookieDomain.isNotBlank()) domain = cookieDomain
             }
         response.addCookie(cookie)
     }
@@ -101,6 +106,7 @@ class SessionCookieHelper(
                 path = OAUTH_COOKIE_PATH
                 maxAge = 0
                 setAttribute("SameSite", cookieSameSite)
+                if (cookieDomain.isNotBlank()) domain = cookieDomain
             }
         response.addCookie(cookie)
     }
@@ -126,6 +132,7 @@ class SessionCookieHelper(
                 path = OAUTH_COOKIE_PATH
                 maxAge = OAUTH_COOKIE_MAX_AGE
                 setAttribute("SameSite", cookieSameSite)
+                if (cookieDomain.isNotBlank()) domain = cookieDomain
             }
         response.addCookie(cookie)
     }
@@ -141,6 +148,7 @@ class SessionCookieHelper(
                 path = OAUTH_COOKIE_PATH
                 maxAge = 0
                 setAttribute("SameSite", cookieSameSite)
+                if (cookieDomain.isNotBlank()) domain = cookieDomain
             }
         response.addCookie(cookie)
     }
