@@ -19,7 +19,7 @@ group = "io.clroot.selah"
 
 repositories {
     mavenCentral()
-    maven { url = uri("https://jitpack.io") }
+    maven { url = uri("https://nexus.clroot.io/repository/maven-releases/") }
 }
 
 java {
@@ -35,7 +35,7 @@ val testcontainersVersion = "1.20.4"
 val testcontainersCoreVersion = "2.0.2"
 val mockkVersion = "1.14.7"
 val hibernateReactiveVersion = "3.1.0.Final"
-val hibernateReactiveCoroutinesVersion = "1.3.4"
+val hibernateReactiveCoroutinesVersion = "1.3.6"
 val mutinyVersion = "2.6.0"
 val vertxVersion = "4.5.23"
 
@@ -64,7 +64,7 @@ dependencies {
 
     // ===== Hibernate Reactive =====
     implementation(
-        "com.github.clroot.hibernate-reactive-coroutines:hibernate-reactive-coroutines-spring-boot-starter-boot4:$hibernateReactiveCoroutinesVersion",
+        "io.clroot:hibernate-reactive-coroutines-spring-boot-starter-boot4:$hibernateReactiveCoroutinesVersion",
     )
 
     // ===== Database =====
@@ -110,7 +110,7 @@ dependencies {
     testFixturesApi("org.testcontainers:junit-jupiter:$testcontainersVersion")
     testFixturesApi("org.postgresql:postgresql")
     testFixturesApi(
-        "com.github.clroot.hibernate-reactive-coroutines:hibernate-reactive-coroutines-spring-boot-starter-boot4:$hibernateReactiveCoroutinesVersion",
+        "io.clroot:hibernate-reactive-coroutines-spring-boot-starter-boot4:$hibernateReactiveCoroutinesVersion",
     )
 }
 
